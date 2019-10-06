@@ -1,0 +1,481 @@
+################################################################################
+#
+#  Tensor LEED optimisation algorithm - example: Fe_0.97 Al_0.03 (100)-c(2x2)
+#  Shell script using the TensErLEED package v1.2 -  V. Blum, 17.04.2000
+#
+#  as described in 
+#
+#  V. Blum, K. Heinz, submitted to Comp. Phys. Comm. (2000).
+#
+#  Please cite this reference when using TensErLEED.
+#
+#  Welcome to the Erlangen Tensor LEED program package. Permission is granted
+#  to use these programs freely, and to modify them as you may find appropriate.
+#  However, we cannot take any responsibility for possible bugs or other
+#  limitations you may encounter. If you find a bug or worthwhile improvement,
+#  please notify us at 
+#
+#                         tleed@fkp.physik.uni-erlangen.de
+#
+#  so we can make the updated code available to everyone. Likewise, in re-
+#  distributing the code please refer back to us first to ensure the latest version
+#  of the package is passed on.
+#
+#  This search algorithm is distributed with Erlangen TLEED v1.2, but does not
+#  rely on any subroutines from lib.tleed.f or lib.delta.f. It can thus be used
+#  independent of the rest of the package, provided you have delta amplitudes
+#  stored in the proper format. 
+#
+#  Note that this version cleans up behind itself.
+#
+#  Input files to be modified are constructed by cat.
+#  Necessary input:
+#                   PARAM           fixed dimension boundaries for the main 
+#                                   program
+#                   search.steu     control file, contains complete input
+#                   rf.info         control file for r-factor subroutine
+#                                   includes experimental data from $EXPFILE
+#                   restrict.f      subroutine that allows any kind of parameter
+#                                   coupling
+#
+################################################################################
+
+################################################################################
+#  set environment variables
+################################################################################
+
+################################################################################
+#
+#  $TLEED:     top level directory of Tensor LEED directory tree
+#  $WORK:      working directory (removed upon termination)
+#  $SOURCEDIR: location of main prg. source file
+#  $LIBDIR:    location of TLEED subroutine library
+#  $DELTADIR:  directory which contains necessary delta amplitude files
+#  $EXPDIR:    directory which contains experimental/pseudoexperimental I(E) data
+#  $OUTDIR:    directory in which to store search documentation output
+#
+#  $SOURCE:    name of main prg. source file
+#  $LIB:       FORTRAN subroutine source file
+#  $RNG:       c random number generator subroutine
+#  $EXE:       name of executable main prg.
+#  $EXPFILE:   name of file containing experimental/pseudoexperimental I(E) data
+#  $OUTNAME:   name by which to store search documentation file 
+#
+#  $FC:        name of FORTRAN compiler command
+#  $FCOPT:     FORTRAN command line options (e.g., code optimization!)
+#  $CC:        name of c compiler command
+#  $CCOPT:     c compiler command line options
+#
+################################################################################
+
+   TLEED=$HOME/ProgScratch/BayesLEED/TensErLEED/TLEED
+   WORK=$TLEED/work/tmp.$$
+
+   SOURCEDIR=$TLEED/v1.2/src
+   LIBDIR=$TLEED/v1.2/lib
+   DELTADIR=$TLEED/testrun/Deltas
+   EXPDIR=$TLEED/exp-data
+   OUTDIR=$TLEED/testrun/search-results
+
+   SOURCE=search.f
+   LIB=lib.search.f
+   RNG=random_.c
+   EXE=FeAl.findit!
+   OUTNAME=search-doc.Fe0.97Al0.03.100-c2x2.960K.1198.geo1-3.chem2-3.vib1-2
+   EXPFILE=Data.Fe0.97Al0.03.100-c2x2.960K
+
+   FC=gfortran
+   FCOPT='-O3 -malign-double'
+   CC=cc
+   CCOPT='-O3'
+
+#  for Linux:
+#   FC=g77
+#   FCOPT='-O3 -mpentiumpro -malign-double'
+#   CC=gcc
+#   CCOPT='-O3 -mpentiumpro'
+
+#  begin work
+
+  mkdir $WORK
+  cd $WORK
+
+################################################################################
+#  adjust array dimensions for search.f
+#  - note that this part is FORTRAN source code!
+################################################################################
+
+cat > PARAM << '/EO1'
+C Here are some global parameterization to be performed
+
+C MNBED IS NUMBER OF EXPERIMENTAL BEAMS
+C MNBTD IS NUMBER OF THEORETICAL BEAMS
+C MNBMD IS MAX(MNBED,MNBTD) - for some applications, this is absolutely crucial!
+      PARAMETER(MNBED = 8)
+      PARAMETER(MNBTD = 8)
+      PARAMETER(MNBMD = 8)
+C MNDATA IS MAX. NUMBER OF DATA POINTS IN EXPERIMENTAL BEAMS - should be .gt. MNDATT !
+      PARAMETER(MNDATA = 1000)
+C MNDATT IS NUMBER OF THEORETICAL DATA POINTS IN EACH BEAM
+      PARAMETER(MNDATT = 95)
+C MPS IS POPULATION SIZE (number of independent trial structures)
+      PARAMETER(MPS = 25)
+C MNDOM is number of domains to be incoherently averaged
+      parameter (MNDOM = 1)
+C MNPLACES IS NUMBER OF DIFFERENT ATOMIC SITES IN CURRENT VARIATION
+      PARAMETER(MNPLACES = 6)
+C MNFILES IS MAXIMUM NUMBER OF TLEED-FILES PER SITE
+      PARAMETER(MNFILES = 2)
+C MNCONCS IS MAX NUMBER OF CONCENTRATION STEPS PER SITE
+      PARAMETER(MNCONCS = 11)
+C MNPRMK IS NUMBER OF PARAMETERS - INCL ONE CONC PARAMETER PER SITE - incl. 1 per domain!
+      PARAMETER(MNPRMK = 23)
+C MNCSTEP IS MAX NUMBER OF VARIATIONS (geo. times therm.) IN 1 FILE
+C MNATOMS IS RELICT FROM OLDER VERSIONS 
+      PARAMETER (MNCSTEP = 105, MNATOMS = 1)
+/EO1
+
+#####################################################################
+#                                                                   #
+#  create input information search.steu                             #
+#                                                                   #
+#####################################################################
+
+  cat > search.steu << '/EO2'
+ 11             number of independent parameters
+ 0.1000         gaussian width control parameter RMUT
+  0             initialisation for random number generator - 0: use system time, 1,...: use init
+  1             1: use RPe -- 2: use R2
+  0             Optimization of which beam group do you want? (0=Aver,1=Int,2=Half)
+1000            output intervall
+10000           desired number of generations to be performed
+100             area fraction step width (%)
+SD.TL           name of search document file (max. 10 characters)
+  1             Number of domains under consideration
+======= Information about Domain 1: ============================================
+  6             Number of atomic sites in variation: Domain 1
+------- Information about site 1: ----------------------------------------------
+  1             Surface (0/1)
+  1             Atom number
+  1             No. of different files for Atom no. 1
+****Information about file 2:
+DEL.11.Fe        Name of 2.file (max. 15 characters)
+  1             Formatted(0/1)
+  2             Types of parameters in 2. file
+  5             thermal
+ 21             vertical 
+****concentration steps for site no. 1 - counted towards MNPRMK!!
+  1             no. of concentration steps - sum must equal 1 !
+ 1.0000 0.0000  concentration step no. 1 - (5F7.4)
+------- Information about site 2: ----------------------------------------------
+  1             Surface (0/1)
+  2             Atom number
+  1             No. of different files for Atom no. 2
+****Information about file 1:
+DEL.12.Al       Name of 1.file (max. 15 characters)
+  1             Formatted(0/1)
+  2             Types of parameters in 1. file
+  5             thermal
+ 21             vertical
+****concentration steps for site no. 2 - counted towards MNPRMK!!
+  1             no. of concentration steps - sum must equal 1 !
+ 1.0000 0.0000  concentration step no. 1 - (5F7.4)
+------- Information about site 3: ----------------------------------------------
+  0             Surface (0/1)
+  3             Atom number
+  2             No. of different files for Atom no. 3
+****Information about file 1:
+DEL.21.Al       Name of 1.file (max. 15 characters)
+  1             Formatted(0/1)
+  2             Types of parameters in 1. file
+  5             thermal
+ 11             vertical
+****Information about file 2:
+DEL.21.Fe       Name of 2.file (max. 15 characters)
+  1             Formatted(0/1)
+  2             Types of parameters in 2. file
+  5             thermal
+ 11             vertical
+****concentration steps for site no. 3 - counted towards MNPRMK!!
+ 11             no. of concentration steps - sum must equal 1 !
+ 0.0000 1.0000  concentration step no. 1 - (5F7.4)
+ 0.0500 0.9500  concentration step no. 1 - (5F7.4)
+ 0.1000 0.9000  concentration step no. 1 - (5F7.4)
+ 0.1500 0.8500  concentration step no. 1 - (5F7.4)
+ 0.2000 0.8000  concentration step no. 1 - (5F7.4)
+ 0.2500 0.7500  concentration step no. 1 - (5F7.4)
+ 0.3000 0.7000  concentration step no. 1 - (5F7.4)
+ 0.3500 0.6500  concentration step no. 1 - (5F7.4)
+ 0.4000 0.6000  concentration step no. 1 - (5F7.4)
+ 0.4500 0.5500  concentration step no. 1 - (5F7.4)
+ 0.5000 0.5000  concentration step no. 1 - (5F7.4)
+------- Information about site 4: ----------------------------------------------
+  0             Surface (0/1)
+  3             Atom number
+  2             No. of different files for Atom no. 4
+****Information about file 1:
+DEL.22.Al       Name of 1.file (max. 15 characters)
+  1             Formatted(0/1)
+  2             Types of parameters in 1. file
+  5             thermal
+ 11             vertical
+****Information about file 2:
+DEL.22.Fe       Name of 2.file (max. 15 characters)
+  1             Formatted(0/1)
+  2             Types of parameters in 2. file
+  5             thermal
+ 11             vertical
+****concentration steps for site no. 3 - counted towards MNPRMK!!
+ 11             no. of concentration steps - sum must equal 1 !
+ 0.0000 1.0000  concentration step no. 1 - (5F7.4)
+ 0.0500 0.9500  concentration step no. 1 - (5F7.4)
+ 0.1000 0.9000  concentration step no. 1 - (5F7.4)
+ 0.1500 0.8500  concentration step no. 1 - (5F7.4)
+ 0.2000 0.8000  concentration step no. 1 - (5F7.4)
+ 0.2500 0.7500  concentration step no. 1 - (5F7.4)
+ 0.3000 0.7000  concentration step no. 1 - (5F7.4)
+ 0.3500 0.6500  concentration step no. 1 - (5F7.4)
+ 0.4000 0.6000  concentration step no. 1 - (5F7.4)
+ 0.4500 0.5500  concentration step no. 1 - (5F7.4)
+ 0.5000 0.5000  concentration step no. 1 - (5F7.4)
+------- Information about site 5: ----------------------------------------------
+  0             Surface (0/1)
+  5             Atom number
+  2             No. of different files for Atom no. 3
+****Information about file 1:
+DEL.31.Al       Name of 1.file (max. 15 characters)
+  1             Formatted(0/1)
+  1             Types of parameters in 1. file
+ 11             vertical
+****Information about file 2:
+DEL.31.Fe       Name of 2.file (max. 15 characters)
+  1             Formatted(0/1)
+  1             Types of parameters in 2. file
+ 11             vertical
+****concentration steps for site no. 3 - counted towards MNPRMK!!
+ 11             no. of concentration steps - sum must equal 1 !
+ 0.0000 1.0000  concentration step no. 1 - (5F7.4)
+ 0.0500 0.9500  concentration step no. 1 - (5F7.4)
+ 0.1000 0.9000  concentration step no. 1 - (5F7.4)
+ 0.1500 0.8500  concentration step no. 1 - (5F7.4)
+ 0.2000 0.8000  concentration step no. 1 - (5F7.4)
+ 0.2500 0.7500  concentration step no. 1 - (5F7.4)
+ 0.3000 0.7000  concentration step no. 1 - (5F7.4)
+ 0.3500 0.6500  concentration step no. 1 - (5F7.4)
+ 0.4000 0.6000  concentration step no. 1 - (5F7.4)
+ 0.4500 0.5500  concentration step no. 1 - (5F7.4)
+ 0.5000 0.5000  concentration step no. 1 - (5F7.4)
+ ------- Information about site 6: ----------------------------------------------
+  0             Surface (0/1)
+  6             Atom number
+  2             No. of different files for Atom no. 4
+****Information about file 1:
+DEL.32.Al       Name of 1.file (max. 15 characters)
+  1             Formatted(0/1)
+  1             Types of parameters in 1. file
+ 11             vertical
+****Information about file 2:
+DEL.32.Fe       Name of 2.file (max. 15 characters)
+  1             Formatted(0/1)
+  1             Types of parameters in 2. file
+ 11             vertical
+****concentration steps for site no. 3 - counted towards MNPRMK!!
+ 11             no. of concentration steps - sum must equal 1 !
+ 0.0000 1.0000  concentration step no. 1 - (5F7.4)
+ 0.0500 0.9500  concentration step no. 1 - (5F7.4)
+ 0.1000 0.9000  concentration step no. 1 - (5F7.4)
+ 0.1500 0.8500  concentration step no. 1 - (5F7.4)
+ 0.2000 0.8000  concentration step no. 1 - (5F7.4)
+ 0.2500 0.7500  concentration step no. 1 - (5F7.4)
+ 0.3000 0.7000  concentration step no. 1 - (5F7.4)
+ 0.3500 0.6500  concentration step no. 1 - (5F7.4)
+ 0.4000 0.6000  concentration step no. 1 - (5F7.4)
+ 0.4500 0.5500  concentration step no. 1 - (5F7.4)
+ 0.5000 0.5000  concentration step no. 1 - (5F7.4)
+Information about start configuration: (Parameters for each place, conc for each place)
+  1             Certain start position (1) or random configuration (0)
+  2 18  1  3 13  1  4  5  4  5  5  4  5  4  5  5 10 10  1  6  6  6  1
+  4  8  1  5  5  1  3  4  3  4  6  3  4  3  4  6  7  7  2  7  7 10  1
+  3 17  1  2 10  1  3  8  3  8 10  3  8  3  8 10  8  8  9  4  4  8  1
+  1 12  1  5 21  1  1  6  1  6 10  1  6  1  6 10  6  6  1  8  8  6  1
+  2 18  1  4 19  1  3 11  3 11 10  3 11  3 11 10  7  7  6  8  8  4  1
+  3 11  1  4 16  1  3  7  3  7  8  3  7  3  7  8  4  4 10  7  7  6  1
+  3 19  1  5  4  1  3  8  3  8  7  3  8  3  8  7 11 11  6 10 10  2  1
+  4  9  1  5  8  1  4  6  4  6  5  4  6  4  6  5  6  6 11 10 10  6  1
+  3 19  1  2 16  1  3  6  3  6  2  3  6  3  6  2  9  9  4  3  3  4  1
+  4 16  1  2  3  1  2  5  2  5  5  2  5  2  5  5  2  2  6  1  1 10  1
+  5 13  1  1 21  1  1  8  1  8  1  1  8  1  8  1  3  3  1  8  8 11  1
+  5  7  1  4 16  1  2  6  2  6  7  2  6  2  6  7  5  5  1 11 11  3  1
+  1 20  1  2 12  1  1  8  1  8 10  1  8  1  8 10  7  7  3 10 10  5  1
+  1 18  1  2 14  1  4  9  4  9  3  4  9  4  9  3  2  2 10  9  9  7  1
+  3  7  1  5 10  1  3  9  3  9 11  3  9  3  9 11 10 10  5  3  3 11  1
+  5 18  1  1 15  1  4  3  4  3  2  4  3  4  3  2  2  2  2 11 11  7  1
+  2  3  1  1 19  1  5  4  5  4  3  5  4  5  4  3  4  4  6  9  9  5  1
+  1  5  1  5  6  1  2  4  2  4 11  2  4  2  4 11  7  7 10  6  6  6  1
+  1 20  1  3 15  1  3  8  3  8  4  3  8  3  8  4  1  1  6  2  2  3  1
+  2  5  1  3 17  1  1  7  1  7  9  1  7  1  7  9  8  8  1  5  5  1  1
+  1 20  1  5 10  1  5  2  5  2  9  5  2  5  2  9  7  7  2  9  9  4  1
+  3  2  1  4 11  1  5  1  5  1  1  5  1  5  1  1  3  3  9  5  5 10  1
+  1  8  1  1 18  1  5  4  5  4  9  5  4  5  4  9  9  9  1  9  9  1  1
+  1  3  1  5  3  1  3 10  3 10  9  3 10  3 10  9  8  8  1  1  1 11  1
+  1  4  1  5 13  1  5  7  5  7  5  5  7  5  7  5 10 10  2 11 11  2  1
+/EO2
+
+#####################################################################
+#                                                                   #
+#  create subroutine for parameter restriction                      #
+#                                                                   #
+#####################################################################
+
+  cat > restrict.f << '/EO3'
+C  This subroutine serves to restrict individual parameters to certain values inside
+C  the search. These values are stored in the PARIND(IPARAM,IPOP) array.
+C  Parameters are counted as listed in control file search.steu, including
+C  a concentration parameter after each atomic site, and the domain weight parameters
+C  for each domain at the end of the PARIND array.
+C
+C  perform restrictions in the following fashion: e.g.
+C
+C     PARIND(1,IPOP) = 5
+C
+C  or
+C
+C     PARIND(5,IPOP) = PARIND(1,IPOP)
+C
+C  etc.
+
+      subroutine restrict(NPRMK,NPS,PARIND,IPOP)
+
+      INTEGER NPRMK,NPS
+      INTEGER PARIND
+      DIMENSION PARIND(NPRMK,NPS)
+
+C  begin restrictions
+
+C  force different elements on the same site onto the same position
+
+C     second layer
+
+      PARIND(10,IPOP) = PARIND(8,IPOP)
+      PARIND(15,IPOP) = PARIND(13,IPOP)
+
+C     third layer
+
+      PARIND(18,IPOP) = PARIND(17,IPOP)
+      PARIND(21,IPOP) = PARIND(20,IPOP)
+
+C  equal thermal vibrational amplitudes for elements in second layer
+
+      PARIND(9,IPOP)  = PARIND(7,IPOP)
+      PARIND(14,IPOP) = PARIND(12,IPOP)
+
+C  end restrictions
+
+      RETURN
+
+      END           
+
+/EO3
+
+#####################################################################
+#                                                                   #
+#  create r-factor information rf.info                              #
+#                                                                   #
+#####################################################################
+
+  cat > rf.info << '/EO4'
+  20.00         EMIN
+ 510.00         EMAX
+   0.50         EINCR
+  0             IPR - determines amount of output to stdout
+   5.00         VI
+  10.30         V0RR
+  -5.00         V01
+   5.00         V02
+   0.50         VINCR
+  0             ISMOTH
+  0             EOT - 0: exp format, 1: van Hove format
+  8  8          NTH NEX
+  1  2  3  4  5  6  7  8
+ DATA MITTEL (integer & half order beams) :
+  1  1  1  1  1  2  2  2
+ exp - th relationship IBP, beam weights WB
+  1  2  3  4  5  6  7  8
+ 1. 1. 1. 1. 1. 1. 1. 1.
+/EO4
+
+  cat $EXPDIR/$EXPFILE >> rf.info
+
+#####################################################################
+#                                                                   #
+#  create executable $EXE                                           #
+#                                                                   #
+#####################################################################
+
+cp $SOURCEDIR/GLOBAL .
+cp $SOURCEDIR/$SOURCE .
+cp $LIBDIR/$LIB .
+cp $LIBDIR/$RNG .
+
+$CC $CCOPT -o random_.o    -c $RNG
+
+$FC $FCOPT -o lib.search.o -c $LIB
+$FC $FCOPT -o restrict.o   -c restrict.f
+$FC $FCOPT -o search.o     -c $SOURCE
+
+$FC $FCOPT -o $EXE            search.o random_.o lib.search.o restrict.o
+
+#####################################################################
+#                                                                   #
+#  get Delta-Amp files                                              #
+#                                                                   #
+#####################################################################
+
+uncompress $DELTADIR/DEL*.Z
+ln -s $DELTADIR/DEL* .
+
+#####################################################################
+#                                                                   #
+#  run; if possible, do not save protocol output - too large!       #
+#                                                                   #
+#####################################################################
+
+time ./$EXE < rf.info > /dev/null
+
+#####################################################################
+#                                                                   #
+#  save output and clean                                            #
+#                                                                   #
+#####################################################################
+
+cat search.steu >> SD.TL
+cat control.chem >> SD.TL
+
+mv SD.TL $OUTDIR/$OUTNAME
+
+compress $DELTADIR/DEL*
+rm DEL*
+
+rm PARAM
+rm search.steu
+rm rf.info
+rm $SOURCE
+rm search.o
+rm $LIB
+rm lib.search.o
+rm $RNG
+rm random_.o
+rm restrict.f
+rm restrict.o
+rm $EXE
+rm control.chem
+
+cd 
+rm -r $WORK
+
+#####################################################################
+#                                                                   #
+#  Finito!                                                          #
+#                                                                   #
+#####################################################################
+

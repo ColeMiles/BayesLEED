@@ -1,0 +1,62 @@
+lib.tleed.f(1543): remark #5140: Unrecognized directive
+CDIR$ SHORTLOOP                                                           170389
+-----------^
+lib.tleed.f(2328): warning #7866: The statement following this DEC loop optimization directive must be an iterative do-stmt, a vector assignment, an OMP pdo-directive, or an OMP parallel-do-directive.
+CDIR$ NOVECTOR
+------^
+lib.tleed.f(2562): warning #7866: The statement following this DEC loop optimization directive must be an iterative do-stmt, a vector assignment, an OMP pdo-directive, or an OMP parallel-do-directive.
+CDIR$ NOVECTOR
+------^
+lib.tleed.f(2865): remark #8291: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+7'.
+   20 FORMAT(5E12.6)
+---------------^
+lib.tleed.f(2912): remark #8291: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+7'.
+   20   FORMAT (5E16.10)
+------------------^
+lib.tleed.f(4375): remark #7920: The value was too small when converting to REAL(KIND=4); the result is in the denormalized range.   [1.0E-38]
+      IF (DBLE(F)-1.0E-38)  1540, 1540, 1520
+------------------^
+lib.tleed.f(4535): remark #5140: Unrecognized directive
+CDIR$ SHORTLOOP
+-----------^
+lib.tleed.f(4552): remark #5140: Unrecognized directive
+CDIR$ SHORTLOOP
+-----------^
+lib.tleed.f(4570): remark #5140: Unrecognized directive
+CDIR$ SHORTLOOP
+-----------^
+lib.tleed.f(5324): warning #7866: The statement following this DEC loop optimization directive must be an iterative do-stmt, a vector assignment, an OMP pdo-directive, or an OMP parallel-do-directive.
+CDIR$ NOVECTOR
+------^
+lib.delta.f(279): remark #8291: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+7'.
+   20 FORMAT(5E12.6)
+---------------^
+lib.delta.f(313): remark #8291: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+7'.
+   20 FORMAT (5E16.10)
+----------------^
+lib.delta.f(557): remark #8291: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+7'.
+  100 FORMAT (6E13.7)
+----------------^
+lib.delta.f(578): remark #8291: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+7'.
+  100 FORMAT (6E13.7)
+----------------^
+42.84user 0.06system 0:42.92elapsed 99%CPU (0avgtext+0avgdata 1712maxresident)k
+0inputs+6224outputs (0major+483minor)pagefaults 0swaps
+44.30user 0.05system 0:44.37elapsed 99%CPU (0avgtext+0avgdata 1712maxresident)k
+0inputs+6232outputs (0major+483minor)pagefaults 0swaps
+44.71user 0.05system 0:44.79elapsed 99%CPU (0avgtext+0avgdata 1712maxresident)k
+0inputs+6216outputs (0major+484minor)pagefaults 0swaps
+44.45user 0.05system 0:44.52elapsed 99%CPU (0avgtext+0avgdata 1712maxresident)k
+0inputs+6240outputs (0major+483minor)pagefaults 0swaps
+44.07user 0.02system 0:44.11elapsed 99%CPU (0avgtext+0avgdata 1712maxresident)k
+0inputs+6232outputs (0major+483minor)pagefaults 0swaps
+44.61user 0.05system 0:44.73elapsed 99%CPU (0avgtext+0avgdata 1712maxresident)k
+0inputs+6224outputs (0major+483minor)pagefaults 0swaps
+44.79user 0.05system 0:44.90elapsed 99%CPU (0avgtext+0avgdata 1712maxresident)k
+0inputs+6232outputs (0major+483minor)pagefaults 0swaps
+44.48user 0.04system 0:44.63elapsed 99%CPU (0avgtext+0avgdata 1712maxresident)k
+0inputs+6224outputs (0major+484minor)pagefaults 0swaps
+44.17user 0.08system 0:44.27elapsed 99%CPU (0avgtext+0avgdata 1712maxresident)k
+0inputs+6216outputs (0major+483minor)pagefaults 0swaps
+44.05user 0.04system 0:44.12elapsed 99%CPU (0avgtext+0avgdata 1712maxresident)k
+0inputs+6232outputs (0major+483minor)pagefaults 0swaps

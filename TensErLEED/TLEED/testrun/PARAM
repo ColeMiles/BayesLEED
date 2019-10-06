@@ -1,0 +1,105 @@
+C  Dimension statements for Tensor LEED reference calculation, 
+C  version v1.2
+
+C  1. lattice symmetry
+
+C  MIDEG: rotational symmetry of lateral point (!) lattice
+C  MNL1,MNL2: characterize relationship between bulk lattice
+C         and superlattice 
+C         (cf. Appendix B, Van Hove / Tong, "Surface Crystallography by LEED", Springer 1979)
+C         Each of the points (IL1-1) * ARA1 + (IL2-1) * ARA2 - IL1 running 
+C         from 1 to NL1, IL2 running from 1 to NL2 - should yield a point
+C         of the substrate lattice that lies in a different sublattice
+C         of the superlattice.
+C         (Dig that carefully. Sounds confusing due to those lots of different
+C         lattices in the same sentence.)
+C         Examples:
+C                      superlattice         MNL1 MNL2 
+C                      P(1*1)                1    1
+C                      C(2*2)                2    1
+C                      P(2*1)                2    1
+C                      P(1*2)                1    2
+C                      P(2*2)                2    2
+C                      P(1*3)                1    3
+C  MNL    amounts to ratio between bulk and overlayer unit mesh, i.e the total number
+C         of (superlattice) sublattices in the substrate lattice.
+
+      PARAMETER (MIDEG=2,MNL1=2,MNL2=1)
+      PARAMETER (MNL = MNL1*MNL2)
+
+C  2. General calculational quantities
+
+C  MKNBS: number of independent beam sets in beam list
+C  MKNT:  total number of beams in beam list
+C  MNPUN: number of beams for which the full-dynamical I(E) spectra are written
+C  MNT0:  number of beams for which tensor components are stored
+C  MNPSI: number of energies for which phase shifts are tabulated
+C  MNEL:  number of elements for which phase shifts are tabulated
+C  MLMAX: maximum angular momentum to be considered in calculation
+C  MNLMO: number of Clebsh-Gordon coefficients in overlayer - 
+C         set according to current MLMAX:
+C         MLMAX: 1  2  3   4    5    6    7    8     9     10    11    12    13     14     15
+C         MNLMO: 1 70 264 759 1820 3836 7344 13053 21868 34914 53560 79443 114492 160952 221408
+C  MNLM:  number of Clebsh-Gordon coefficients for matrices X and TAU 
+C         set according to current MLMAX:
+C         MLMAX: 1  2  3   4    5    6    7    8     9     10    11    12    13     14     15
+C         MNLM : 1 76 284 809 1925 4032 7680 13593 22693 36124 55276 81809 117677 165152 226848
+
+      PARAMETER (MKNBS = 2)
+      PARAMETER (MKNT =  161)
+      PARAMETER (MNPUN = 8, MNT0 = 8)
+      PARAMETER (MNPSI = 117, MNEL = 2)
+      PARAMETER (MLMAX = 7)
+      PARAMETER (MNLMO = 7344, MNLM = 7680)
+
+C  3. Parameters for (3D) geometry within (2D) unit mesh
+
+C  MNSITE : number of different site occupations (chemical, vibrational)
+C  MNLTYPE: number of different layer types
+C  MNBRAV : how many of these layer types are Bravais layers?
+C  MNSUB  : MAXIMUM number of subplanes in one layer
+C  MNSTACK: number of layers to be stacked onto bulk by layer doubling
+
+      PARAMETER (MNSITE  = 3)
+      PARAMETER (MNLTYPE = 2)
+      PARAMETER (MNBRAV  = 0)
+      PARAMETER (MNSUB   = 2)
+      PARAMETER (MNSTACK = 3)
+
+C  4. some derived quantities that must be treated explicitly (dummy dimensions for
+C     special cases necessary
+
+C  BELOW HERE, SIMPLY COMMENT OR UNCOMMENT STATEMENTS!! DO NOT MODIFY OTHERWISE,
+C  UNLESS FOR DEVELOPMENT PURPOSES!!
+
+      PARAMETER (MLMAX1=MLMAX+1)
+      PARAMETER (MLMMAX = MLMAX1*MLMAX1)
+
+C  if there is at least one true Bravais layer type, use the following statement:
+
+c       PARAMETER (MNBRAV2 = MNBRAV)
+
+C  else if all layer types are composite layers, use this:
+
+       PARAMETER (MNBRAV2 = 1)
+
+C  if there is at least one composite layer, use the following statements
+
+      PARAMETER (MNCOMP= MNLTYPE-MNBRAV)
+      PARAMETER (MLMT  = MNSUB*MLMMAX)
+      PARAMETER (MNSUB2= MNSUB * (MNSUB-1)/2)
+      PARAMETER (MLMG  = MNSUB2*MLMMAX*2)
+      PARAMETER (MLMN  = MNSUB * MLMMAX)
+      PARAMETER (MLM2N = 2*MLMN)
+      PARAMETER (MLMNI = MNSUB*MLMMAX)
+
+C  else if there is no composite layer, use these:
+
+c      PARAMETER (MNCOMP= 1 )
+c      PARAMETER (MLMT  = 1 )
+c      PARAMETER (MNSUB2= 1 )
+c      PARAMETER (MLMG  = 1 )
+c      PARAMETER (MLMN  = 1 )
+c      PARAMETER (MLM2N = 1 )
+c      PARAMETER (MLMNI = 1 )
+

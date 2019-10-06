@@ -1,0 +1,52 @@
+# mini script to run beamgen and clean up afterwards - execute directly!
+
+  TLEED=/home/shengroup/LEED-IV/TensErLEED/TLEED
+  WORK=$TLEED/work
+  OUTNAME=$TLEED/beamlists/CaRuO3-1x1-square
+
+  FC=ifort
+  FCOPT=''
+
+#  for Linux:
+#  FC=g77
+#  FCOPT='-O3 -mpentiumpro -malign-double'
+
+  cd $WORK
+
+# construct input
+#
+# Note: the current version constructs the beam list precisely as required for
+# the test run. While this approach works for the present case, it is not a safe
+# approach. To always ensure a converged calculation, one should normally
+# be sure to leave a little safety margin when computing the beamlist - layer
+# doubling in the prgs should never require more beams than given in the beamlist!
+# So, normally, choose EMAX somewhat above the EMAX you really need, and DMIN
+# somewhat smaller than the DMIN actually needed. This approach saves trouble in
+# case the beam list is later used for a refined model structure.
+
+  cat >> DATA << '/EOF'
+ 3.8600 0.0000                      ARA1 - substrate basis
+ 0.0000 3.8600                      ARA2 - vectors
+  1  0                              LATMAT - matrix connecting the superlattice basis vectors
+  0  1                              LATMAT - to the substrate basis vectors ARA1, ARA2
+  1                                 SSYM - symmetry code - cf. van Hove / Tong 1979 - set 1 for TLEED
+  502.0 1.430                       EMAX,DMIN - max. energy, min. interlayer distance for layer doubling
+   0.0001                           TST - convergence criterion for fd. reference calculation
+999                                 KNBMAX - max. number of beams to be written 
+/EOF
+
+# compile and run beamgen
+
+  $FC $FCOPT -o beamgen.x $TLEED/aux/beamgen/beamgen.f
+  beamgen.x
+
+# save output and clean
+
+  mv NBLIST $OUTNAME
+
+  rm DATA
+  rm BELIST
+  rm beamgen.x
+  rm PROT
+
+# bye!

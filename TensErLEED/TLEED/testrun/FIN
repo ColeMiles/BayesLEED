@@ -1,0 +1,83 @@
+Fe0.97Al0.03(100)-c(2x2), basic reference calculation
+  20.00 302.01   3.00   EI,EF,DE
+ 2.8650 0.0000          ARA1
+ 0.0000 2.8650          ARA2
+ 0.0    0.0             SS1
+ 0.0    0.0             SS2
+ 0.0    0.0             SS3
+ 0.0    0.0             SS4
+ 2.8650-2.8650          ARB1
+ 2.8650 2.8650          ARB2
+ 0.0    0.0             SO1
+ 0.0    0.0             SO2
+ 0.0    0.0             SO3
+ 0.5    1.0000          FR ASE 
+ 0.0001           >>>>> ! <<<<<              TST
+  2  6 10 14 22 82 86 94                     NPU(K)          
+   0.0    0.0                                THETA FI
+ 0.001                                       EPS
+  8                                          LITER
+  7                                          LMAX
+   1               IFORM
+   1.00000   0.00000  1  1          E =    18.3113  NR.  2
+   1.00000   1.00000  1  1          E =    36.6227  NR.  6
+   2.00000   0.00000  1  1          E =    73.2454  NR. 10
+   2.00000   1.00000  1  1          E =    91.5567  NR. 14
+   2.00000   2.00000  1  1          E =   146.4908  NR. 22
+   0.50000   0.50000  1  1          E =     9.1557  NR. 82
+   1.50000   0.50000  1  1          E =    45.7784  NR. 86
+   1.50000   1.50000  1  1          E =    82.4011  NR. 94
+-------------------------------------------------------------------
+--- define chem. and vib. properties for different atomic sites ---
+-------------------------------------------------------------------
+  3                       NSITE: number of different site types
+-   site type 1 ---
+ 1.0000 0.0600            concentration & vib. element 1, site 1
+ 0.0000 0.0600            concentration & vib. element 2, site 1
+-   site type 2 ---
+ 0.0000 0.0600            concentration & vib. element 1, site 2
+ 1.0000 0.0600            concentration & vib. element 2, site 2
+-   site type 3 ---
+ 0.9700 0.0600            concentration & vib. element 1, site 3
+ 0.0300 0.0600            concentration & vib. element 2, site 3
+-------------------------------------------------------------------
+--- define different layer types                                ---
+-------------------------------------------------------------------
+  2                       NLTYPE: number of different layer types
+-   layer type 1 ---
+  1                       LAY = 1: layer type no. 1 has overlayer lateral periodicity
+  2                       number of Bravais sublayers, 1st layer
+  1 0.0000 0.0000 0.0000  sublayer no. 1 is of site type 1, position 0,0,0
+  2 0.0000 2.8650 0.0000  sublayer no. 2 is of site type 2, position 0,2.865,0
+-   layer type 2 ---
+  1                       LAY = 1: layer type no. 2 has overlayer lateral periodicity
+  2                       number of Bravais sublayers, 2nd layer
+  3 0.0000 0.0000 0.0000  sublayer no. 1 is of site type 3, position 0,0,0
+  3 0.0000 2.8650 0.0000  sublayer no. 2 is of site type 3, position 0,2.865,0
+-------------------------------------------------------------------
+--- define bulk stacking sequence                               ---
+-------------------------------------------------------------------
+  0                       TSLAB = 0: compute bulk using subras
+ 1.4325 1.4325 1.4325     ASA interlayer vector between different bulk units
+  2                       top layer of bulk unit: type 2
+  2                       bottom layer of bulk unit: type 2
+ 1.4325 1.4325 1.4325     ASBULK between the two bulk unit layers (may differ from ASA)
+-------------------------------------------------------------------
+--- define layer stacking sequence and Tensor LEED output       ---
+-------------------------------------------------------------------
+  3
+  2 1.4325 1.4325 1.4325  3rd layer: layer type 2, interlayer vector below  
+  1                       1: Tensor output is required for this layer
+LAY31                      Tensor file name, current layer, sublayer 1
+LAY32                      Tensor file name, current layer, sublayer 2
+  2 1.4325 1.4325 1.4325  2nd layer: layer type 2, interlayer vector below  
+  1                       1: Tensor output is required for this layer
+LAY21                      Tensor file name, current layer, sublayer 1
+LAY22                      Tensor file name, current layer, sublayer 2
+  1 1.4325 1.4325 1.4325  top layer: layer type 1, interlayer vector below  
+  1                       1: Tensor output is required for this layer
+LAY11                      Tensor file name, current layer, sublayer 1
+LAY12                      Tensor file name, current layer, sublayer 2
+-------------------------------------------------------------------
+--- end geometrical input                                       ---
+-------------------------------------------------------------------

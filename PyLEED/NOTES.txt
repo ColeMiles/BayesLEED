@@ -1,0 +1,11 @@
+To get the library code to be callable (stuff in TLEED/v1.2/lib)
+  should be trivial. f2py -c -m <libname> <libfile> should do
+  the trick. But, there are nontrivial calculations done in the
+  main programs (stuff in TLEED/v1.2/src).
+
+Idea 1: Wrap the programs in TLEED/v1.2/src in functions/subroutines,
+         call f2py on that. This is extra painful because the functions
+         being called often read from stdin, which is not something I'll
+         be able to easily emulate in python. I'd have to edit the Fortran
+         code to read from files instead, which will modify lots of stuff.
+         Seems awful to do.

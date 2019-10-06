@@ -1,0 +1,7 @@
+# executes a shell from shell-script $1 and redirects the output to
+# $1.oPID. '2>&1' mixes stderr with stdout (a duplicate of stdout is mixed
+# with stderr)
+# The process runs in background.
+#
+
+(nice -10 sh < $1 > $1.o$$ 2>&1) &

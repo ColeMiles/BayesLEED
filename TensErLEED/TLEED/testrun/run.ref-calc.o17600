@@ -1,0 +1,1912 @@
+lib.tleed.f:4143:46:
+
+      1FLMS,NL,KLM,LM,CLM,NLM,LXI,NT,PQ,NA,NLL,FLM,NNSUB,LMAX1,XH)           
+                                              1
+Warning: Type mismatch in argument ‘flm’ at (1); passed REAL(4) to COMPLEX(4)
+43.88user 0.02system 0:43.92elapsed 99%CPU (0avgtext+0avgdata 10828maxresident)k
+0inputs+15072outputs (0major+947minor)pagefaults 0swaps
+ Fe0.97Al0.03(100)-c(2x2), basic reference calculation                           
+ SURF VECS       2.8650  0.0000
+                 0.0000  2.8650
+ SS    0.0000 0.0000
+ SS    0.0000 0.0000
+ SS    0.0000 0.0000
+ SS    0.0000 0.0000
+0PARAMETERS FOR SURFACE 
+ SURF VECS       2.8650 -2.8650
+                 2.8650  2.8650
+ SO     0.0000 0.0000
+ SO     0.0000 0.0000
+ SO     0.0000 0.0000
+ FR =  0.5000 ASE =  1.0000 STEP = 
+ TST =  0.00010000
+ PUNCHED BEAMS     2  6 10 14 22 82 86 94
+ THETA  FI =    0.00   0.00
+ EPS =  0.0010  LITER =   8
+ LMAX =   7
+0E =  0.7350  1ST ELEMENT    -0.7089 -0.1170 -0.2883  0.0222  0.0014  0.0001  0.0000  0.0000
+0E =  0.7350  1ST ELEMENT    -0.2997  0.2766  0.2061  0.0117  0.0007  0.0000  0.0000  0.0000
+ Tensor output for layer no.            3  required. Filename(s): 
+ Layer            3 , subplane            1 : LAY31                                   
+ Layer            3 , subplane            2 : LAY32                                   
+ Tensor output for layer no.            2  required. Filename(s): 
+ Layer            2 , subplane            1 : LAY21                                   
+ Layer            2 , subplane            2 : LAY22                                   
+ Tensor output for layer no.            1  required. Filename(s): 
+ Layer            1 , subplane            1 : LAY11                                   
+ Layer            1 , subplane            2 : LAY12                                   
+ Energy in crystal:    1.11356127      Hartrees.
+ That's    20.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can't propagate at current energy - skip computation.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can't propagate at current energy - skip computation.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    1.22381485      Hartrees.
+ That's    23.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can't propagate at current energy - skip computation.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can't propagate at current energy - skip computation.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    1.33406842      Hartrees.
+ That's    26.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can't propagate at current energy - skip computation.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can't propagate at current energy - skip computation.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    1.44432199      Hartrees.
+ That's    29.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can't propagate at current energy - skip computation.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can't propagate at current energy - skip computation.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    1.55457556      Hartrees.
+ That's    32.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can't propagate at current energy - skip computation.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can't propagate at current energy - skip computation.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    1.66482913      Hartrees.
+ That's    35.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can't propagate at current energy - skip computation.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can't propagate at current energy - skip computation.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    1.77508271      Hartrees.
+ That's    38.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can't propagate at current energy - skip computation.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    1.88533628      Hartrees.
+ That's    41.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can't propagate at current energy - skip computation.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    1.98710251      Hartrees.
+ That's    44.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can't propagate at current energy - skip computation.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    2.08704543      Hartrees.
+ That's    47.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    2.18777585      Hartrees.
+ That's    50.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    2.28919840      Hartrees.
+ That's    53.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    2.39123297      Hartrees.
+ That's    56.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    2.49381256      Hartrees.
+ That's    59.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    2.59687877      Hartrees.
+ That's    62.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    2.70038271      Hartrees.
+ That's    65.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    2.80428123      Hartrees.
+ That's    68.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    2.90853786      Hartrees.
+ That's    71.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can't propagate at current energy - skip computation.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    3.01311994      Hartrees.
+ That's    74.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    3.11799908      Hartrees.
+ That's    77.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    3.22315001      Hartrees.
+ That's    80.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can't propagate at current energy - skip computation.
+ Energy in crystal:    3.32855082      Hartrees.
+ That's    83.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    3.43418169      Hartrees.
+ That's    86.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    3.54002523      Hartrees.
+ That's    89.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can't propagate at current energy - skip computation.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    3.64606524      Hartrees.
+ That's    92.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    3.75228763      Hartrees.
+ That's    95.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    3.85867977      Hartrees.
+ That's    98.0000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    3.96522999      Hartrees.
+ That's    101.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    4.07192755      Hartrees.
+ That's    104.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    4.17876387      Hartrees.
+ That's    107.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    4.28572893      Hartrees.
+ That's    110.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    4.39281511      Hartrees.
+ That's    113.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    4.50001574      Hartrees.
+ That's    116.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    4.60732365      Hartrees.
+ That's    119.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    4.71473312      Hartrees.
+ That's    122.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    4.82223797      Hartrees.
+ That's    125.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    4.92983294      Hartrees.
+ That's    128.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    5.03751373      Hartrees.
+ That's    131.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    5.14527559      Hartrees.
+ That's    134.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    5.25311422      Hartrees.
+ That's    137.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    5.36102533      Hartrees.
+ That's    140.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    5.46900654      Hartrees.
+ That's    143.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    5.57705307      Hartrees.
+ That's    146.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can't propagate at current energy - skip computation.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    5.68516302      Hartrees.
+ That's    149.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    5.79333258      Hartrees.
+ That's    152.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    5.90155983      Hartrees.
+ That's    155.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    6.00984097      Hartrees.
+ That's    158.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    6.11817503      Hartrees.
+ That's    161.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    6.22655869      Hartrees.
+ That's    164.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    6.33499050      Hartrees.
+ That's    167.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    6.44346762      Hartrees.
+ That's    170.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    6.55198908      Hartrees.
+ That's    173.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    6.66055202      Hartrees.
+ That's    176.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    6.76915646      Hartrees.
+ That's    179.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    6.87779951      Hartrees.
+ That's    182.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    6.98647928      Hartrees.
+ That's    185.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    7.09519577      Hartrees.
+ That's    188.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    7.20394611      Hartrees.
+ That's    191.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    7.31273031      Hartrees.
+ That's    194.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    7.42154646      Hartrees.
+ That's    197.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    7.53039408      Hartrees.
+ That's    200.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    7.63927078      Hartrees.
+ That's    203.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    7.74817657      Hartrees.
+ That's    206.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    7.85711002      Hartrees.
+ That's    209.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    7.96607113      Hartrees.
+ That's    212.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   4  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    8.07505703      Hartrees.
+ That's    215.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    8.18406868      Hartrees.
+ That's    218.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   4  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    8.29310513      Hartrees.
+ That's    221.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    8.40216446      Hartrees.
+ That's    224.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   4  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    8.51124668      Hartrees.
+ That's    227.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   4  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    8.62035084      Hartrees.
+ That's    230.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   4  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    8.72947693      Hartrees.
+ That's    233.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    8.83862400      Hartrees.
+ That's    236.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    8.94779015      Hartrees.
+ That's    239.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    9.05697536      Hartrees.
+ That's    242.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    9.16618061      Hartrees.
+ That's    245.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    9.27540493      Hartrees.
+ That's    248.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    9.38464546      Hartrees.
+ That's    251.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    9.49390316      Hartrees.
+ That's    254.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    9.60317898      Hartrees.
+ That's    257.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    9.71247101      Hartrees.
+ That's    260.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    9.82177830      Hartrees.
+ That's    263.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   2  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    9.93110085      Hartrees.
+ That's    266.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    10.0404396      Hartrees.
+ That's    269.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    10.1497927      Hartrees.
+ That's    272.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    10.2591591      Hartrees.
+ That's    275.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   4  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    10.3685398      Hartrees.
+ That's    278.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   4  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    10.4779358      Hartrees.
+ That's    281.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    10.5873432      Hartrees.
+ That's    284.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   4  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    10.6967630      Hartrees.
+ That's    287.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    10.8061962      Hartrees.
+ That's    290.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    10.9156427      Hartrees.
+ That's    293.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   4  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    11.0250998      Hartrees.
+ That's    296.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    11.1345682      Hartrees.
+ That's    299.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Energy in crystal:    11.2440481      Hartrees.
+ That's    302.000000      eV in the vacuum.
+ Computation for incident beam started.
+ Compute layer diffraction matrices, NEXIT =           0
+   3  ITER IN SUBREF
+ Beam NEXIT =            1  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            2  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            3  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            4  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            5  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            6  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            7  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Beam NEXIT =            8  can propagate in vacuum - computation required.
+ Scattering matrices known from previous beams - only compute incoming amplitudes.
+ Program ends with energy    302.000000      eV.

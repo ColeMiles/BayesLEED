@@ -1,0 +1,47 @@
+lib.search.f:876:18:
+
+      .    (PARIND(OFFSET+IPARAM,IPOP),' ',IPARAM=1,NPRAS(IDOM),1)
+                  1
+Warning: Legacy Extension: REAL array index at (1)
+gzip: /home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.11.Fe already exists;	not overwritten
+gzip: /home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.12.Al already exists;	not overwritten
+gzip: /home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.21.Al already exists;	not overwritten
+gzip: /home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.21.Fe already exists;	not overwritten
+gzip: /home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.22.Al already exists;	not overwritten
+gzip: /home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.22.Fe already exists;	not overwritten
+gzip: /home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.31.Al already exists;	not overwritten
+gzip: /home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.31.Fe already exists;	not overwritten
+gzip: /home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.32.Al already exists;	not overwritten
+gzip: /home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.32.Fe already exists;	not overwritten
+167.38user 4.97system 2:52.84elapsed 99%CPU (0avgtext+0avgdata 9260maxresident)k
+0inputs+3848outputs (0major+685minor)pagefaults 0swaps
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.11.Fe.Z already exists.
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.11.Fe.Z not overwritten
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.11.Fe.Z: already has .Z suffix -- no change
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.12.Al.Z already exists.
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.12.Al.Z not overwritten
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.12.Al.Z: already has .Z suffix -- no change
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.21.Al.Z already exists.
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.21.Al.Z not overwritten
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.21.Al.Z: already has .Z suffix -- no change
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.21.Fe.Z already exists.
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.21.Fe.Z not overwritten
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.21.Fe.Z: already has .Z suffix -- no change
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.22.Al.Z already exists.
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.22.Al.Z not overwritten
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.22.Al.Z: already has .Z suffix -- no change
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.22.Fe.Z already exists.
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.22.Fe.Z not overwritten
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.22.Fe.Z: already has .Z suffix -- no change
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.31.Al.Z already exists.
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.31.Al.Z not overwritten
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.31.Al.Z: already has .Z suffix -- no change
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.31.Fe.Z already exists.
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.31.Fe.Z not overwritten
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.31.Fe.Z: already has .Z suffix -- no change
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.32.Al.Z already exists.
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.32.Al.Z not overwritten
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.32.Al.Z: already has .Z suffix -- no change
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.32.Fe.Z already exists.
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.32.Fe.Z not overwritten
+/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED/testrun/Deltas/DEL.32.Fe.Z: already has .Z suffix -- no change

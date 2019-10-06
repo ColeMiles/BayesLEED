@@ -1,0 +1,111 @@
+################################################################################
+#
+#  Shell script that runs a program that calculates an R-factor between given
+#  experimental and calculated I(E) data. The code is, apparently, closely
+#  related to the program originally obtained from M. Van Hove (1982?) but was 
+#  modified several times in Erlangen. It is compatible to the routines used
+#  in the search algorithm (average R-factors should be identical) and thus
+#  included here. 
+#
+################################################################################
+
+################################################################################
+#  set environment variables
+################################################################################
+
+################################################################################
+#
+#  $TLEED:     top level directory of Tensor LEED directory tree
+#  $WORK:      working directory (removed upon termination)
+#  $SOURCE:    r-factor prg. source file
+#  $EXE:       name of executable main prg.
+#  $EXPFILE:   file containing experimental I(E) data, as used for search.f
+#  $SPECTRUM:  calculated I(E) data file as written by ref-calc.f, superpos.f
+#  $OUTPUT:    file name to store r-factor output in
+#
+#  $FC:        name of FORTRAN compiler command
+#  $FCOPT:     FORTRAN command line options (e.g., code optimization!)
+#
+################################################################################
+
+  TLEED=$HOME/ProgScratch/BayesLEED/TensErLEED/TLEED
+  WORK=$TLEED/work/tmp.$$
+  SOURCE=$TLEED/aux/r-factor/rf.f
+  EXE=rf.x
+
+  EXPFILE=$TLEED/exp-data/Data.Fe0.97Al0.03.100-c2x2.960K
+  SPECTRUM=$TLEED/testrun/Spectra/spec.tleed.best-fit.geo1-3.chem2-3.vib1-2
+
+  OUTPUT=$TLEED/testrun/aux/rf-data/rf-out.tleed.best-fit.geo1-3.chem2-3.vib1-2
+
+   FC=gfortran
+   FCOPT='-O3 -malign-double'
+
+#  for Linux:
+#   FC=g77
+#   FCOPT='-O3 -mpentiumpro -malign-double'
+
+################################################################################
+#  create working directory
+################################################################################
+
+  mkdir -p $WORK
+  cd $WORK
+
+################################################################################
+#  create input file WEXPEL - bears resemblance to rf.info in search, but 
+#  retains some additional functionality not required by search.f
+#  Major difference: Namelist input!
+################################################################################
+
+#  info on energy range, beams, beam grouping etc
+
+  cat > WEXPEL << '/EOW'
+ &NL1
+ EMIN=     20.0,
+ EMAX=    310.0,
+ EINCR=     0.5,
+ NS=          1,
+ NSPL=        1,
+ NBLOW=       0,
+ LIMFIL=      1,
+ IPR=         0,
+ VI=        5.0,
+ V0RR=     10.3,
+ V01=      -5.0,
+ V02=       5.0,
+ VINCR=     0.5,
+ IREN=        0,
+ ISMOTH=      0,
+ SBR=         2,
+ &END
+  8  8                         NBTD,NBED
+  1  2  3  4  5  6  7  8
+Grouping of exp beam groups into two subgroups:
+  1  1  1  1  1  2  2  2
+ &NL2
+ IBP=     1, 2, 3, 4, 5, 6, 7, 8,
+ NSSK=    0, 0, 0, 0, 0, 0, 0, 0,
+ WB=      1.,1.,1.,1.,1.,1.,1.,1.,
+ WR=      0.,0.,0.,0.,0.,0.,0.,0.,0.,1.,
+ &END
+/EOW
+
+#  experimental file
+
+  cat $EXPFILE >> WEXPEL
+
+#  run r-factor program
+
+  $FC $FCOPT -o $EXE $SOURCE
+
+  ./$EXE < $SPECTRUM > /dev/null
+
+#  save and clean
+
+  mv ROUT $OUTPUT
+
+  cd
+  rm -r $WORK
+  
+#  that's it ...

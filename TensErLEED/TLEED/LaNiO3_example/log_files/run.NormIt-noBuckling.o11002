@@ -1,0 +1,31 @@
+ Normalisation and column output of calculated I(E) data.
+ reading control input from NormIt.steu
+  7
+  1  2  3  4  5  6  7
+  25.00 249.00
+  50.00 325.00
+  75.00 325.00
+ 112.00 325.00
+ 175.00 325.00
+ 171.00 325.00
+ 213.00 325.00
+   10.70000    
+   15.20000    
+  0
+ No energy-dependent rescaling of energy axis.
+  99.99
+  0
+   0.00
+ finished reading NormIt.steu
+ reading of exp data ok
+ energy ranges ok
+ averaging ok
+ normalisation constants:
+           1  5.9510996E-03
+           2  1.7545999E-03
+           3  1.4212999E-03
+           4  5.3198996E-04
+           5  1.6741998E-03
+           6  1.8111999E-03
+           7  1.4606998E-03
+ Normalisation ok

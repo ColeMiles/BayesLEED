@@ -1,0 +1,708 @@
+################################################################################
+#  Tensor LEED delta amplitude calculation - example: Fe_0.85 Al_0.15 (100)-c(2x2)
+#  Shell script using the TensErLEED package v1.2 -  V. Blum, 17.04.2000
+#
+#  as described in 
+#
+#  V. Blum, K. Heinz, submitted to Comp. Phys. Comm. (2000).
+#
+#  Please cite this reference when using TensErLEED.
+#
+#  Welcome to the Erlangen Tensor LEED program package. Permission is granted
+#  to use these programs freely, and to modify them as you may find appropriate.
+#  However, we cannot take any responsibility for possible bugs or other
+#  limitations you may encounter. If you find a bug or worthwhile improvement,
+#  please notify us at 
+#
+#                         tleed@fkp.physik.uni-erlangen.de
+#
+#  so we can make the updated code available to everyone. Likewise, in re-
+#  distributing the code please refer back to us first to ensure the latest version
+#  of the package is passed on.
+#
+#  This script demonstrates the successive execution of delta amplitude
+#  calculations for different atomic sites, with different parameters.
+#  Following immediately, a search algorithm is started to determine the
+#  global minimum of the parameter space wrt. experiment.
+#
+#  Note that this entire script requires customization for a new calculation; it is
+#  insufficient to modify its header and the input files only.
+#
+################################################################################
+
+################################################################################
+#  set environment variables
+################################################################################
+
+################################################################################
+#
+#  $TLEED:     top level directory of Tensor LEED directory tree
+#  $WORK:      working directory (removed upon termination)
+#  $SOURCEDIR: location of main prg. source file
+#  $LIBDIR:    location of TLEED subroutine library
+#  $PHASEDIR:  location of phaseshifts to be used
+#  $TENSORDIR: location of tensor files from fd. reference calculation
+#  $OUTDIR:    target directory for delta amplitude files
+#  $SEARCHDIR: location of shell script for (possibly) ensuing 
+#              Tensor LEED search algorithm
+#
+#  $LIB1:      Tensor LEED subroutine source file
+#  $LIB2:      Tensor LEED subroutine source file
+#  $PHASES:    name of phaseshift file to be used
+#  $EXE:       name of executable main prg.
+#  $SEARCH:    Tensor LEED search job name if desired
+#
+#  $FC:        name of FORTRAN compiler command
+#  $FCOPT:     FORTRAN command line options (e.g., code optimization!)
+#
+################################################################################
+
+   TLEED=$HOME/ProgScratch/BayesLEED/TensErLEED/TLEED
+
+   WORK=$TLEED/work/tmp.$$
+
+   SOURCEDIR=$TLEED/v1.2/src
+   LIBDIR=$TLEED/v1.2/lib
+   PHASEDIR=$TLEED/phaseshifts
+   TENSORDIR=$TLEED/testrun/Tensors
+   OUTDIR=$TLEED/testrun/Deltas
+
+   SOURCE=delta.f
+   LIB1=lib.tleed.f
+   LIB2=lib.delta.f
+   PHASES=phas.feal
+   EXE=delta.x
+
+   SEARCHDIR=$TLEED/testrun
+   SEARCH=run.search
+
+   FC=gfortran
+   FCOPT='-O3 -malign-double'
+
+#  for Linux:
+#   FC=g77
+#   FCOPT='-O3 -mpentiumpro -malign-double'
+
+################################################################################
+#  create working directory
+################################################################################
+
+   mkdir $WORK
+   cd $WORK
+
+################################################################################
+#  create site-independent  part of input file for delta amp. calculation - 
+#  information on
+#  * reference calculation
+#  * phase shifts
+################################################################################
+
+cat >> delta.in.basic << '/EO1'
+Fe0.97Al0.03(100)-c(2x2)
+  20.00 302.01          EI,EF
+ 2.8650 0.0000          ARA1
+ 0.0000 2.8650          ARA2
+ 2.8650-2.8650          ARB1
+ 2.8650 2.8650          ARB2
+   0.00   0.00          THETA,FI
+   1                    IFORM = FORMIN
+   1.00000   0.00000  1  1          E =    18.3113  NR.  2
+   1.00000   1.00000  1  1          E =    36.6227  NR.  6
+   2.00000   0.00000  1  1          E =    73.2454  NR. 10
+   2.00000   1.00000  1  1          E =    91.5567  NR. 14
+   2.00000   2.00000  1  1          E =   146.4908  NR. 22
+   0.50000   0.50000  1  1          E =     9.1557  NR. 82
+   1.50000   0.50000  1  1          E =    45.7784  NR. 86
+   1.50000   1.50000  1  1          E =    82.4011  NR. 94
+/EO1
+
+################################################################################
+#  then phaseshifts
+################################################################################
+
+cat $PHASEDIR/$PHASES >> delta.in.basic
+
+
+################################################################################
+#  consider top layer first
+################################################################################
+
+################################################################################
+#  adjust array dimensions for delta.f
+#  -  note that this part is FORTRAN source code
+################################################################################
+
+   cat > PARAM << '/EOP'
+C  Parameter statements for delta amplitude calculation, v1.2
+C  parameters must be consistent with preceding reference calculation!
+
+C  MLMAX: maximum angular momentum to be considered in calculation
+C  MNLMB: number of Clebsh-Gordon coefficients needed in tmatrix() subroutine - 
+C         set according to current LMAX
+C         MLMAX:  1  2   3    4    5    6    7     8     9     10    11     12     13     14     15
+C         MNLMB: 19 126 498 1463 3549 7534 14484 25821 43351 69322 106470 158067 227969 320664 441320
+C  MNPSI: number of phase shift values tabulated in phase shift file
+C  MNEL : number of elements for which phase shifts are tabulated
+C  MNT0 : number of beams for which delta amplitude calculation is required
+C  MNATOMS: currently, must be set to 1. In principle, number of different atomic
+C         positions in a superlattice wrt the reference periodicity when computing
+C         TLEED beams for a superlattice not present in the reference structure
+C  MNDEB: number of thermal variation steps to be performed (outer var. loop)
+C  MNCSTEP: number of geometric variation steps to be performed (inner var. loop)
+
+      PARAMETER( MLMAX = 7 )
+      PARAMETER( MNLMB = 14484 )
+      PARAMETER( MNPSI = 117, MNEL = 2 )
+      PARAMETER( MNT0 = 8 ) 
+      PARAMETER( MNATOMS = 1 )
+      PARAMETER( MNDEB = 5 )
+      PARAMETER( MNCSTEP = 21 )
+ 
+/EOP
+
+################################################################################
+#  compile libraries & main prg
+################################################################################
+
+cp $SOURCEDIR/GLOBAL .
+cp $SOURCEDIR/$SOURCE .
+cp $LIBDIR/$LIB1 .
+cp $LIBDIR/$LIB2 .
+
+$FC $FCOPT -o main.o      -c $SOURCE
+$FC $FCOPT -o lib.tleed.o -c $LIB1
+$FC $FCOPT -o lib.delta.o -c $LIB2
+
+$FC $FCOPT -o $EXE        main.o lib.tleed.o lib.delta.o
+
+################################################################################
+#  then information on Tensor LEED displacements - Fe, top layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   1                         IEL  - here first element in PHSS list, i.e. Fe
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.0600                      DRPER_A(1)
+ 0.0800                      DRPER_A(1)
+ 0.1000                      DRPER_A(1)
+ 0.1200                      DRPER_A(1)
+ 0.1400                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY11.Z AMP.Z
+uncompress AMP.Z
+
+time ./$EXE < delta.in > protocol
+
+compress DELWV
+
+mv DELWV.Z $OUTDIR/DEL.11.Fe.Z
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - Al, top layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   2                         IEL  - here second element in PHSS list, i.e. Al
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.0600                      DRPER_A(1)
+ 0.0800                      DRPER_A(1)
+ 0.1000                      DRPER_A(1)
+ 0.1200                      DRPER_A(1)
+ 0.1400                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY12.Z AMP.Z
+uncompress AMP.Z
+
+time ./$EXE < delta.in > protocol
+
+compress DELWV
+
+mv DELWV.Z $OUTDIR/DEL.12.Al.Z
+
+rm AMP
+
+################################################################################
+#  consider second layer next
+################################################################################
+
+################################################################################
+#  adjust array dimensions for delta.f
+#  -  note that this part is FORTRAN source code
+################################################################################
+
+   cat > PARAM << '/EOP'
+C  Parameter statements for delta amplitude calculation, v1.2
+C  parameters must be consistent with preceding reference calculation!
+
+C  MLMAX: maximum angular momenum to be considered in calculation
+C  MNLMB: number of Clebsh-Gordon coefficients needed in tmatrix() subroutine - 
+C         set according to current LMAX
+C         MLMAX:  1  2   3    4    5    6    7     8     9     10    11     12     13     14     15
+C         MNLMB: 19 126 498 1463 3549 7534 14484 25821 43351 69322 106470 158067 227969 320664 441320
+C  MNPSI: number of phase shift values tabulated in phase shift file
+C  MNEL : number of elements for which phase shifts are tabulated
+C  MNT0 : number of beams for which delta amplitude calculation is required
+C  MNATOMS: currently, must be set to 1. In principle, number of different atomic
+C         positions in a superlattice wrt the reference periodicity when computing
+C         TLEED beams for a superlattice not present in the reference structure
+C  MNDEB: number of thermal variation steps to be performed (outer var. loop)
+C  MNCSTEP: number of geometric variation steps to be performed (inner var. loop)
+
+      PARAMETER( MLMAX = 7 )
+      PARAMETER( MNLMB = 14484 )
+      PARAMETER( MNPSI = 117, MNEL = 2 )
+      PARAMETER( MNT0 = 8 ) 
+      PARAMETER( MNATOMS = 1 )
+      PARAMETER( MNDEB = 5 )
+      PARAMETER( MNCSTEP = 11 )
+ 
+/EOP
+
+################################################################################
+#  compile libraries & main prg
+################################################################################
+
+cp $SOURCEDIR/GLOBAL .
+cp $SOURCEDIR/$SOURCE .
+cp $LIBDIR/$LIB1 .
+cp $LIBDIR/$LIB2 .
+
+$FC $FCOPT -o main.o      -c $SOURCE
+$FC $FCOPT -o lib.tleed.o -c $LIB1
+$FC $FCOPT -o lib.delta.o -c $LIB2
+
+$FC $FCOPT -o $EXE        main.o lib.tleed.o lib.delta.o
+
+#  note a correct delta.in.basic exists already!
+
+################################################################################
+#  then information on Tensor LEED displacements - Fe
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   1                         IEL  - here first element in PHSS list, i.e. Fe
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  11                         NCSTEP - number of displaced positions
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.0600                      DRPER_A(1)
+ 0.0800                      DRPER_A(1)
+ 0.1000                      DRPER_A(1)
+ 0.1200                      DRPER_A(1)
+ 0.1400                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+# 2nd layer
+
+cp $TENSORDIR/LAY21.Z AMP.Z
+uncompress AMP.Z
+
+time ./$EXE < delta.in > protocol
+
+compress DELWV
+
+mv DELWV.Z $OUTDIR/DEL.21.Fe.Z
+
+rm AMP
+
+cp $TENSORDIR/LAY22.Z AMP.Z
+uncompress AMP.Z
+
+time ./$EXE < delta.in > protocol
+
+compress DELWV
+
+mv DELWV.Z $OUTDIR/DEL.22.Fe.Z
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - Al
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   2                         IEL  - here 2nd element in PHSS list, i.e. Al
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  11                         NCSTEP - number of displaced positions
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.0600                      DRPER_A(1)
+ 0.0800                      DRPER_A(1)
+ 0.1000                      DRPER_A(1)
+ 0.1200                      DRPER_A(1)
+ 0.1400                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+# 2nd layer
+
+cp $TENSORDIR/LAY21.Z AMP.Z
+uncompress AMP.Z
+
+time ./$EXE < delta.in > protocol
+
+compress DELWV
+
+mv DELWV.Z $OUTDIR/DEL.21.Al.Z
+
+rm AMP
+
+cp $TENSORDIR/LAY22.Z AMP.Z
+uncompress AMP.Z
+
+time ./$EXE < delta.in > protocol
+
+compress DELWV
+
+mv DELWV.Z $OUTDIR/DEL.22.Al.Z
+
+rm AMP
+
+################################################################################
+#  consider third layer next
+################################################################################
+
+################################################################################
+#  adjust array dimensions for delta.f
+#  -  note that this part is FORTRAN source code
+################################################################################
+
+   cat > PARAM << '/EOP'
+C  Parameter statements for delta amplitude calculation, v1.2
+C  parameters must be consistent with preceding reference calculation!
+
+C  MLMAX: maximum angular momenum to be considered in calculation
+C  MNLMB: number of Clebsh-Gordon coefficients needed in tmatrix() subroutine - 
+C         set according to current LMAX
+C         MLMAX:  1  2   3    4    5    6    7     8     9     10    11     12     13     14     15
+C         MNLMB: 19 126 498 1463 3549 7534 14484 25821 43351 69322 106470 158067 227969 320664 441320
+C  MNPSI: number of phase shift values tabulated in phase shift file
+C  MNEL : number of elements for which phase shifts are tabulated
+C  MNT0 : number of beams for which delta amplitude calculation is required
+C  MNATOMS: currently, must be set to 1. In principle, number of different atomic
+C         positions in a superlattice wrt the reference periodicity when computing
+C         TLEED beams for a superlattice not present in the reference structure
+C  MNDEB: number of thermal variation steps to be performed (outer var. loop)
+C  MNCSTEP: number of geometric variation steps to be performed (inner var. loop)
+
+      PARAMETER( MLMAX = 7 )
+      PARAMETER( MNLMB = 14484 )
+      PARAMETER( MNPSI = 117, MNEL = 2 )
+      PARAMETER( MNT0 = 8 ) 
+      PARAMETER( MNATOMS = 1 )
+      PARAMETER( MNDEB = 1 )
+      PARAMETER( MNCSTEP = 11 )
+ 
+/EOP
+
+################################################################################
+#  compile libraries & main prg
+################################################################################
+
+cp $SOURCEDIR/GLOBAL .
+cp $SOURCEDIR/$SOURCE .
+cp $LIBDIR/$LIB1 .
+cp $LIBDIR/$LIB2 .
+
+$FC $FCOPT -o main.o      -c $SOURCE
+$FC $FCOPT -o lib.tleed.o -c $LIB1
+$FC $FCOPT -o lib.delta.o -c $LIB2
+
+$FC $FCOPT -o $EXE        main.o lib.tleed.o lib.delta.o
+
+#  note a correct delta.in.basic exists already!
+
+################################################################################
+#  then information on Tensor LEED displacements - Fe
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   1                         IEL  - here first element in PHSS list, i.e. Fe
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  11                         NCSTEP - number of displaced positions
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   1                         NDEB - number of vib. amplitudes to be considered
+ 0.0600                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+# 3rd layer
+
+cp $TENSORDIR/LAY31.Z AMP.Z
+uncompress AMP.Z
+
+time ./$EXE < delta.in > protocol
+
+compress DELWV
+
+mv DELWV.Z $OUTDIR/DEL.31.Fe.Z
+
+rm AMP
+
+cp $TENSORDIR/LAY32.Z AMP.Z
+uncompress AMP.Z
+
+time ./$EXE < delta.in > protocol
+
+compress DELWV
+
+mv DELWV.Z $OUTDIR/DEL.32.Fe.Z
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - Al
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   2                         IEL  - here 2nd element in PHSS list, i.e. Al
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  11                         NCSTEP - number of displaced positions
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   1                         NDEB - number of vib. amplitudes to be considered
+ 0.0600                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+# 3rd layer
+
+cp $TENSORDIR/LAY31.Z AMP.Z
+uncompress AMP.Z
+
+time ./$EXE < delta.in > protocol
+
+compress DELWV
+
+mv DELWV.Z $OUTDIR/DEL.31.Al.Z
+
+rm AMP
+
+cp $TENSORDIR/LAY32.Z AMP.Z
+uncompress AMP.Z
+
+time ./$EXE < delta.in > protocol
+
+compress DELWV
+
+mv DELWV.Z $OUTDIR/DEL.32.Al.Z
+
+rm AMP
+
+################################################################################
+#  run is finished - clean up now !
+################################################################################
+
+cd 
+rm -r $WORK
+
+################################################################################
+#  if desired, initiate search run at this point ...
+################################################################################
+
+cd $SEARCHDIR
+$TLEED/aux/bin/sj0 $SEARCH
+
+################################################################################
+#  that's all folks!
+################################################################################

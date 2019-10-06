@@ -1,0 +1,186 @@
+################################################################################
+#  Tensor LEED intensity calculation - example: Fe_0.97 Al_0.03 (100)-c(2x2)
+#  Shell script using the TensErLEED package v1.2 -  V. Blum, 17.04.2000
+#
+#  as described in 
+#
+#  V. Blum, K. Heinz, submitted to Comp. Phys. Comm. (2000).
+#
+#  Please cite this reference when using TensErLEED.
+#
+#  Welcome to the Erlangen Tensor LEED program package. Permission is granted
+#  to use these programs freely, and to modify them as you may find appropriate.
+#  However, we cannot take any responsibility for possible bugs or other
+#  limitations you may encounter. If you find a bug or worthwhile improvement,
+#  please notify us at 
+#
+#                         tleed@fkp.physik.uni-erlangen.de
+#
+#  so we can make the updated code available to everyone. Likewise, in re-
+#  distributing the code please refer back to us first to ensure the latest version
+#  of the package is passed on.
+#
+#  This script calculates and stores the I(E) spectra for the best fit
+#  parameters obtained in the example search run. The input is
+#  set up to calculate I(E) spectra for one geometry only. In principle,
+#  superpos.f could do much more. However, since the search algorithm supplied
+#  with TensErLEED takes care of the fitting procedure itself, that additional
+#  functionality is not explained here in detail; please refer to the comments
+#  in superpos.f itself. 
+#
+################################################################################
+#
+#  Note that the I(E) data obtained here are still obtained using the Tensor
+#  LEED approximation. For the present purposes, this is sufficient. Final
+#  best fit spectra should, however, not be affected by the errors introduced
+#  through the Tensor LEED approximation. When in doubt, one should always
+#  recalculate the "final" I(E) spectra of the best fit surface structure 
+#  full dynamically, i.e. by a mere reference calculation for the appropriate
+#  geometry, or using a full dynamic package such as the original Van Hove / Tong
+#  package (1979).
+#
+################################################################################
+
+################################################################################
+#  set environment variables
+################################################################################
+
+################################################################################
+#
+#  $TLEED:     top level directory of Tensor LEED directory tree
+#  $WORK:      working directory (removed upon termination)
+#  $SOURCEDIR: location of main prg. source file
+#  $LIBDIR:    location of superpos subroutine library
+#  $DELTADIR:  directory which contains necessary delta amplitude files
+#  $OUTDIR:    target directory for full dynamical I(E) output file
+
+#  $SOURCE:    name of main prg. source file
+#  $LIB:       superpos subroutine source file
+#  $EXE:       name of executable main prg.
+#  $OUTFILE:   name of full dynamic I(E) output file
+#
+#  $FC:        name of FORTRAN compiler command
+#  $FCOPT:     FORTRAN command line options (e.g., code optimization!)
+#
+################################################################################
+
+   TLEED=$HOME/ProgScratch/BayesLEED/TensErLEED/TLEED
+
+   WORK=$TLEED/work/tmp.$$
+
+   SOURCEDIR=$TLEED/v1.2/src
+   LIBDIR=$TLEED/v1.2/lib
+   DELTADIR=$TLEED/testrun/Deltas
+   OUTDIR=$TLEED/testrun/Spectra
+
+   SOURCE=superpos.f
+   LIB=lib.superpos.f
+
+   EXE=superpos.x
+
+   OUTFILE=spec.tleed.best-fit.geo1-3.chem2-3.vib1-2
+
+   FC=gfortran
+   FCOPT='-O3 -malign-double'
+
+#  for Linux:
+#   FC=g77
+#   FCOPT='-O3 -mpentiumpro -malign-double'
+
+################################################################################
+#  create working directory
+################################################################################
+
+mkdir $WORK
+cd $WORK
+
+################################################################################
+#  adjust array dimensions for superpos.f
+#  - note that this part is FORTRAN source code!
+################################################################################
+
+cat << '/EO1' > PARAM
+C  DIMENSIONS MAY BE CHANGED IN PARAMETER-STATEMENT
+C
+C  MNFILES: (maximum) number of different files containing amplitude changes
+C           to be used as input files for the I(E) calculation
+C  MNCONCS: (maximum) number of different combinations of occupation probabilities
+C           for the lattice sites in the surface - i.e., weight factors multiplied
+C           to the delta amplitudes from each file
+C  MNT0:    (maximum) number of beams for which I(E) spectra are calculated
+C  MNCSTEP: (maximum) number of parameter combinations (geometry x vibrations)
+C           per energy tabulated in an individual delta amplitude file
+C  MNATOMS: currently inactive - set to 1
+C
+      PARAMETER (MNFILES=10)
+      PARAMETER (MNCONCS=1)
+      PARAMETER (MNT0=8, MNCSTEP=105, MNATOMS=1)
+/EO1
+
+#  input
+
+cat > CONTRIN << '/EO2'
+ 10  0               no. of files, VarAll: all possible parameter combinations? (1/0)
+  1                  number of concentration steps
+ 1.0000 1.0000 0.0000 1.0000 0.0000 1.0000 0.1500 0.8500 0.0500 0.9500   note: format (10F7.4)
+DEL.11.Fe   1  1  1  FILENAME,VARIATIONS,SURFACE?,FORMATTED?
+ 75
+DEL.12.Al   1  1  1  FILENAME,VARIATIONS,SURFACE?,FORMATTED?
+ 51
+DEL.21.Al   1  0  1  FILENAME,VARIATIONS,SURFACE?,FORMATTED?
+ 26
+DEL.21.Fe   1  0  1  FILENAME,VARIATIONS,SURFACE?,FORMATTED?
+ 26
+DEL.22.Al   1  0  1  FILENAME,VARIATIONS,SURFACE?,FORMATTED?
+ 26
+DEL.22.Fe   1  0  1  FILENAME,VARIATIONS,SURFACE?,FORMATTED?
+ 26
+DEL.31.Al   1  0  1  FILENAME,VARIATIONS,SURFACE?,FORMATTED?
+  6
+DEL.31.Fe   1  0  1  FILENAME,VARIATIONS,SURFACE?,FORMATTED?
+  6
+DEL.32.Al   1  0  1  FILENAME,VARIATIONS,SURFACE?,FORMATTED?
+  5
+DEL.32.Fe   1  0  1  FILENAME,VARIATIONS,SURFACE?,FORMATTED?
+  5
+/EO2
+
+# compile superpos
+
+cp $SOURCEDIR/$SOURCE .
+cp $SOURCEDIR/GLOBAL .
+cp $LIBDIR/$LIB .
+
+$FC $FCOPT -o $EXE $SOURCE $LIB
+
+# get Delta-Amplitudes
+
+uncompress $DELTADIR/DEL.11.Fe.Z
+uncompress $DELTADIR/DEL.12.Al.Z
+uncompress $DELTADIR/DEL.21.Al.Z
+uncompress $DELTADIR/DEL.21.Fe.Z
+uncompress $DELTADIR/DEL.22.Al.Z
+uncompress $DELTADIR/DEL.22.Fe.Z
+uncompress $DELTADIR/DEL.31.Al.Z
+uncompress $DELTADIR/DEL.31.Fe.Z
+uncompress $DELTADIR/DEL.32.Al.Z
+uncompress $DELTADIR/DEL.32.Fe.Z
+
+#
+ln -s $DELTADIR/DEL* .
+
+#  execute
+
+./$EXE < CONTRIN > INTENS
+
+# save and clean
+
+mv INTENS $OUTDIR/$OUTFILE
+cat DOC
+
+compress $DELTADIR/DEL*
+
+cd 
+rm -r $WORK
+
+# that's it!

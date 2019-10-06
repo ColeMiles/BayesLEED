@@ -1,0 +1,460 @@
+
+Referenced in run.beamgen script:
+
+beamgen.f
+
+	Description:  Program to generate beam lists that are to be subsequently used in TensErLEED ref-calc.f v1.2
+	Stats (unedited):  760 lines, 25767 characters
+	Dependencies: None		
+
+	Command line for compilation:  gfortran -o beamgen.x beamgen.f
+					(where "beamgen.x" is the name of the executable thus produced)
+
+	Errors and Warnings generated during initial compilation:
+
+	beamgen.f:85.28:
+
+      CALL RMPRT(ARA1,1,2,4HARA1)
+		Warning: Extension: Hollerith constant at (1)
+        
+beamgen.f:86.28:
+
+      CALL RMPRT(ARA2,1,2,4HARA2)
+        	
+Warning: Extension: Hollerith constant at (1)
+
+	beamgen.f:91.30:
+
+      CALL IMPRT(LATMAT,2,2,6HLATMAT)
+        	
+Warning: Extension: Hollerith constant at (1)
+	beamgen.f:120.30:
+
+      CALL IMPRT(KNB,1,KNBS,3HKNB)
+        	
+Warning: Extension: Hollerith constant at (1)
+	
+beamgen.f:230.28:
+
+      CALL RMPRT(ALMR,2,2,4HALMR)
+        	
+Warning: Extension: Hollerith constant at (1)
+	
+beamgen.f:231.28:
+
+      CALL RMPRT(RAR1,1,2,4HRAR1)
+        	
+Warning: Extension: Hollerith constant at (1)
+	
+beamgen.f:232.28:
+
+      CALL RMPRT(RAR2,1,2,4HRAR2)
+        	
+Warning: Extension: Hollerith constant at (1)
+	
+beamgen.f:233.28:
+
+      CALL RMPRT(RBR1,1,2,4HRBR1)
+        	
+Warning: Extension: Hollerith constant at (1)
+	
+beamgen.f:234.28:
+
+      CALL RMPRT(RBR2,1,2,4HRBR2)
+        	
+Warning: Extension: Hollerith constant at (1)
+	
+beamgen.f:367.27:
+
+      CALL RMPRT(G,2,KNT,1HG)
+        	
+Warning: Extension: Hollerith constant at (1)
+	
+beamgen.f:368.30:
+
+      CALL RMPRT(SPQF,2,KNT,4HSPQF)
+        	
+Warning: Extension: Hollerith constant at (1)
+	
+beamgen.f:369.30:
+
+      CALL IMPRT(KNB,1,KNBS,3HKNB)    
+        	
+Warning: Extension: Hollerith constant at (1)
+	
+beamgen.f:370.31:
+
+      CALL IMPRT(NBSET,1,KNT,5HNBSET)
+        	
+Warning: Extension: Hollerith constant at (1)
+	
+beamgen.f:433.30:
+
+      CALL IMPRT(KSYM,2,KNT,4HKSYM)
+		
+Warning: Extension: Hollerith constant at (1)
+
+
+	How to "fix" compilation errors:  N/A
+
+
+-----------------
+
+Referenced in run.ref-calc script:
+
+
+muftin.f
+	
+	Description:  Accounts for explicit energy dependence of inner potential, as defined by user
+	Stats:	Variable length, depending on parameterization of inner potential defined by user
+	Dependencies:  none
+	
+	Command line for compilation:  gfortran -o muftin.o -c muftin.f
+	
+	Errors and Warnings generated during initial compilation:  None
+
+	How to "fix" compilation errors:  N/A
+
+
+
+lib.tleed.f
+
+	
+	Description:
+	Stats (unedited):  5810 lines, 192688 characters
+	Dependencies:  GLOBAL (file)
+	
+	Command line for compilation:  gfortran -o lib.tleed.o -c lib.tleed.f
+	
+	Errors and Warnings generated during initial compilation:
+
+	lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+	
+lib.tleed.f:416.18:
+
+      REAL CA,FACT
+                
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+	
+lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+
+	lib.tleed.f:416.18:
+
+      REAL CA,FACT
+                Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+	
+lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+
+	lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+
+	lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+
+	lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+	
+lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+
+	lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+	
+lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+
+	lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+	
+lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+
+	lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+	
+lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+
+	lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+
+	lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+	
+lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+	
+lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                  
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+	
+lib.tleed.f:416.18:
+
+      REAL CA,FACT                                                      
+                
+		
+Error: Return type mismatch of function 'fact' at (1) (REAL(4)/REAL(8))
+
+	lib.tleed.f:4142.46:
+
+     1FLMS,NL,KLM,LM,CLM,NLM,LXI,NT,PQ,NA,NLL,FLM,NNSUB,LMAX1,XH)    
+                
+Warning: Type mismatch in argument 'flm' at (1); passed REAL(4) to COMPLEX(4)
+
+
+	How to "fix" compilation errors:  
+
+	Change function declaration of FACT on line 1229 to read "REAL*4
+FUNCTION FACT(L)" (instead of "DOUBLE PRECISION FUNCTION FACT(L)")
+
+
+
+ref-calc.f
+
+	Description:  Calculates I(V) profiles and tensors appropriate for a given reference structure
+	Stats (unedited):  1362 lines, 45250 characters
+	Dependencies:  PARAM (file defined in run.ref-calc), GLOBAL (file), 
+	
+	Command line for compilation:  gfortran -o main.o -c ref-calc.f
+	
+	Errors and Warnings generated during initial compilation:  None
+
+	How to "fix" compilation errors:  N/A
+
+
+
+$EXE is then the executable generated by linking the object files of ref-calc.f, lib.tleed.f, and mufftin.f
+
+
+------------------------
+
+Referenced in run.delta script:
+
+delta.f
+	
+	Description:  Performs geometric, thermal, and stoichiometric perturbations of the LEED amplitudes at a single atomic site of the reference structure,
+			yielding the appropriate amplitude differences in scattered beams caused by these perturbations.
+	Stats (unedited):  421 lines, 14610 characters
+	Dependencies:  PARAM (file defined in run.ref-calc), GLOBAL (file) 
+	
+	Command line for compilation:  gfortran -o main.o -c delta.f
+	
+	Errors and Warnings generated during initial compilation:  None
+
+	How to "fix" compilation errors:  N/A
+	
+
+lib.tleed.f
+	See above...
+
+
+lib.delta.f
+
+	Description:  Library that supplements the functions and subroutines in delta.f
+	Stats (unedited):  1086 lines, 29765 characters
+	Dependencies:  GLOBAL (file)
+
+	Command line for compilation:  gfortran -o lib.delta.o -c lib.delta.f
+	
+	Errors and Warnings generated during initial compilation:  None
+
+	How to "fix" compilation errors:  N/A
+
+
+$EXE is then the executable generated by linking the object files of delta.f, lib.tleed.f, and lib.delta.f
+
+
+------------------------
+
+Referenced in run.search script:
+
+random_.c
+
+	Description:  Generates random numbers for use with search.v103 and later.
+	Stats (unedited):  17 lines, 270 characters
+	Dependencies: <stdio.h>, <stdlib.h>, <time.h>
+
+	Command line for compilation:  gcc -o random_.o -c random_.c
+	
+	Errors and Warnings generated during initial compilation:  None
+
+	How to "fix" compilation errors:  N/A
+
+
+lib.search.f
+
+	Description:  Library that supplements the functions and subroutines in search.f
+	Stats (unedited):  3253 lines, 87114 characters
+	Dependencies: PARAM (file), GLOBAL (file)
+
+	Command line for compilation:  gfortran -o lib.search.o -c lib.search.f
+	
+	Errors and Warnings generated during initial compilation:
+
+	lib.search.f:876.18:	.    (PARIND(OFFSET+IPARAM,IPOP),' ',IPARAM=1,NPRAS(IDOM),1)
+		
+Warning: Extension: REAL array index at (1)
+
+
+	How to "fix" compilation errors:  N/A
+
+
+restrict.f
+
+	Description:  Restricts parameters to certain values/ranges within the search for an R-factor minimum.
+	Stats (unedited):  47 lines, 1142 characters
+	Dependencies:  None
+
+	Command line for compilation:  gfortran -o restrict.o -c restrict.f
+	
+	Errors and Warnings generated during initial compilation:  None
+
+	How to "fix" compilation errors:  N/A
+
+
+search.f
+
+	Description:  Searches for a global minimum of the r-factor of a given number of trial structures
+	Stats (unedited):  915 lines, 29772 characters
+	Dependencies:  PARAM (file), GLOBAL (file)
+
+	Command line for compilation:  gfortran -o search.o -c search.f
+	
+	Errors and Warnings generated during initial compilation:  None
+
+	How to "fix" compilation errors:  N/A
+
+
+$EXE is then the executable generated by linking the object files of random_.c, lib.search.f, restrict.f, and search.f
+
+
+------------------------
+
+Referenced in run.superpos script:
+
+superpos.f and lib.superpos.f
+
+	Description:  Collects the I(E) spectra for the best-fit structure found in the TLEED search.
+	Stats (unedited):  530 lines, 18644 characters ; 107 lines, 3594 characters
+	Dependencies:  PARAM (file), GLOBAL (file)
+
+	Command line for compilation:  gfortran -o $EXE superpos.f lib.superpos.f
+		(where $EXE is the name of the executable thus produced)
+	
+	Errors and Warnings generated during initial compilation:  None
+
+	How to "fix" compilation errors:  N/A
+
+
+
+------------------------
+
+Referenced in run.r-factor script:
+
+rf.f
+
+	Description:  Calculates the R-factor between the best-fit theoretical spectra and the experimental data.
+			Modified version of Van Hove and Tong's R-factor program.
+	Stats (unedited):  1769 lines, 70394 characters
+	Dependencies:  None
+
+	Command line for compilation:  gfortran -o $EXE rf.f
+		(where $EXE is the name of the executable thus produced)
+	
+	Errors and Warnings generated during initial compilation:
+
+	rf.f:1365.13:
+
+      READ(8,FMT)(EE(IB,IE),AE(IB,IE),IE=1,N)
+  
+      	
+Warning: Extension: Non-character in FORMAT tag at (1)
+
+
+	How to "fix" compilation errors:  N/A
+
+
+------------------------
+
+Referenced in run.NormIt script:
+
+NormIt.f
+
+	Description: Rearranges theoretical and experimental I(E) spectra into a format that is more easily plottable with standard graphics programs.
+	Stats (unedited):  479 lines, 10980 characters
+	Dependencies:  None
+
+	Command line for compilation:  gfortran -o $EXE NormIt.f
+		(where $EXE is the name of the executable thus produced)
+	
+	Errors and Warnings generated during initial compilation:  None
+
+	How to "fix" compilation errors:  N/A

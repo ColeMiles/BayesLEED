@@ -1,0 +1,491 @@
+################################################################################
+#  Tensor LEED reference calculation - LaNiO3-tetragonal(1x1) with zero polar rumplings (i.e. perfectly flat LaO and NiO2 planes) and Von Braun's La(Ni,Al)O3 optimized MFTR phase shifts and energy-dependent inner potential V0R(E) 
+#  Shell script using the TensErLEED package v1.2 -  V. Blum, 17.04.2000
+#
+#  as described in 
+#
+#  V. Blum, K. Heinz, submitted to Comp. Phys. Comm. (2000).
+#
+#  Please cite this reference when using TensErLEED.
+#
+#  Welcome to the Erlangen Tensor LEED program package. Permission is granted
+#  to use these programs freely, and to modify them as you may find appropriate.
+#  However, we cannot take any responsibility for possible bugs or other
+#  limitations you may encounter. If you find a bug or worthwhile improvement,
+#  please notify us at 
+#
+#                         tleed@fkp.physik.uni-erlangen.de
+#
+#  so we can make the updated code available to everyone. Likewise, in re-
+#  distributing the code please refer back to us first to ensure the latest version
+#  of the package is passed on.
+#
+################################################################################
+
+################################################################################
+#  set environment variables
+################################################################################
+
+################################################################################
+#
+#  $TLEED:     top level directory of Tensor LEED directory tree
+#  $WORK:      working directory (removed upon termination)
+#  $SOURCEDIR: location of main prg. source file
+#  $LIBDIR:    location of TLEED subroutine library
+#  $BEAMDIR:   location of beamlist
+#  $PHASEDIR:  location of phaseshifts to be used
+#  $OUTDIR:    target directory for full dynamical output spectrum
+#  $TENSORDIR: target directory for tensor files
+
+#  $SOURCE:    name of main prg. source file
+#  $LIB:       Tensor LEED subroutine source file
+#  $BEAMLIST:  beamlist used in input
+#  $PHASES:    name of phaseshift file to be used
+#  $EXE:       name of executable main prg.
+#  $OUTFILE:   name of full dynamic I(E) output file
+#
+#  $FC:        name of FORTRAN compiler command
+#  $FCOPT:     FORTRAN command line options (e.g., code optimization!)
+#
+################################################################################
+
+   TLEED=/home/shengroup/LEED-IV/TensErLEED/TLEED
+
+    WORK=$TLEED/work/tmp.$$
+
+   SOURCEDIR=$TLEED/v1.2/src
+   LIBDIR=$TLEED/v1.2/lib
+   BEAMDIR=$TLEED/beamlists
+   PHASEDIR=$TLEED/phaseshifts
+   OUTDIR=$TLEED/LaNiO3_example/Spectra
+   TENSORDIR=$TLEED/LaNiO3_example/Tensors/noBuckling
+
+   SOURCE=ref-calc.f
+   LIBSOURCE=lib.tleed.f
+
+   BEAMLIST=NBLIST.LaNiO3-LaAlO3-1x1
+   PHASES=ps-LaNiAlO3_noAl_TensErLEEDFormat
+
+   EXE=ref-calc.LaNiO3
+
+   OUTFILE=spec.ref-calc.LaNiO3-noBuckling
+
+#  info about Fortran compiler 
+   FC=ifort
+   FCOPT=''
+
+################################################################################
+#  create working directory
+################################################################################
+
+   mkdir $WORK
+   cd $WORK
+
+################################################################################
+#  adjust array dimensions for ref-calc.f
+#  - note that this part is FORTRAN source code!
+################################################################################
+
+   cat > PARAM << '/EOP'
+C  Dimension statements for Tensor LEED reference calculation, 
+C  version v1.2
+
+C  1. lattice symmetry
+
+C  MIDEG: rotational symmetry of lateral point (!) lattice
+C  MNL1,MNL2: characterize relationship between bulk lattice
+C         and superlattice 
+C         (cf. Appendix B, Van Hove / Tong, "Surface Crystallography by LEED", Springer 1979)
+C         Each of the points (IL1-1) * ARA1 + (IL2-1) * ARA2 - IL1 running 
+C         from 1 to NL1, IL2 running from 1 to NL2 - should yield a point
+C         of the substrate lattice that lies in a different sublattice
+C         of the superlattice.
+C         (Dig that carefully. Sounds confusing due to those lots of different
+C         lattices in the same sentence.)
+C         Examples:
+C                      superlattice         MNL1 MNL2 
+C                      P(1*1)                1    1
+C                      C(2*2)                2    1
+C                      P(2*1)                2    1
+C                      P(1*2)                1    2
+C                      P(2*2)                2    2
+C                      P(1*3)                1    3
+C  MNL    amounts to ratio between bulk and overlayer unit mesh, i.e the total number
+C         of (superlattice) sublattices in the substrate lattice.
+
+      PARAMETER (MIDEG=4,MNL1=1,MNL2=1)
+      PARAMETER (MNL = MNL1*MNL2)
+
+C  2. General calculational quantities
+
+C  MKNBS: number of independent beam sets in beam list
+C  MKNT:  total number of beams in beam list
+C  MNPUN: number of beams for which the full-dynamical I(E) spectra are written
+C  MNT0:  number of beams for which tensor components are stored
+C  MNPSI: number of energies for which phase shifts are tabulated
+C  MNEL:  number of elements for which phase shifts are tabulated
+C  MLMAX: maximum angular momentum to be considered in calculation
+C  MNLMO: number of Clebsh-Gordon coefficients in overlayer - 
+C         set according to current MLMAX:
+C         MLMAX: 1  2  3   4    5    6    7    8     9     10    11    12    13     14     15
+C         MNLMO: 1 70 264 759 1820 3836 7344 13053 21868 34914 53560 79443 114492 160952 221408
+C  MNLM:  number of Clebsh-Gordon coefficients for matrices X and TAU 
+C         set according to current MLMAX:
+C         MLMAX: 1  2  3   4    5    6    7    8     9     10    11    12    13     14     15
+C         MNLM : 1 76 284 809 1925 4032 7680 13593 22693 36124 55276 81809 117677 165152 226848
+
+      PARAMETER (MKNBS = 1)
+      PARAMETER (MKNT =  213)
+      PARAMETER (MNPUN = 7, MNT0 = 7)
+      PARAMETER (MNPSI =  74, MNEL = 4)
+      PARAMETER (MLMAX = 9)
+      PARAMETER (MNLMO =21868, MNLM =22693)
+
+C  3. Parameters for (3D) geometry within (2D) unit mesh
+
+C  MNSITE : number of different site occupations (chemical, vibrational)
+C  MNLTYPE: number of different layer types
+C  MNBRAV : how many of these layer types are Bravais layers?
+C  MNSUB  : MAXIMUM number of subplanes in one layer
+C  MNSTACK: number of layers to be stacked onto bulk by layer doubling
+
+      PARAMETER (MNSITE  =12)
+      PARAMETER (MNLTYPE = 2)
+      PARAMETER (MNBRAV  = 0)
+      PARAMETER (MNSUB   =10)
+      PARAMETER (MNSTACK = 1)
+
+C  4. some derived quantities that must be treated explicitly (dummy dimensions for
+C     special cases necessary
+
+C  BELOW HERE, SIMPLY COMMENT OR UNCOMMENT STATEMENTS!! DO NOT MODIFY OTHERWISE,
+C  UNLESS FOR DEVELOPMENT PURPOSES!!
+
+      PARAMETER (MLMAX1=MLMAX+1)
+      PARAMETER (MLMMAX = MLMAX1*MLMAX1)
+
+C  if there is at least one true Bravais layer type, use the following statement:
+
+c       PARAMETER (MNBRAV2 = MNBRAV)
+
+C  else if all layer types are composite layers, use this:
+
+       PARAMETER (MNBRAV2 = 1)
+
+C  if there is at least one composite layer, use the following statements
+
+      PARAMETER (MNCOMP= MNLTYPE-MNBRAV)
+      PARAMETER (MLMT  = MNSUB*MLMMAX)
+      PARAMETER (MNSUB2= MNSUB * (MNSUB-1)/2)
+      PARAMETER (MLMG  = MNSUB2*MLMMAX*2)
+      PARAMETER (MLMN  = MNSUB * MLMMAX)
+      PARAMETER (MLM2N = 2*MLMN)
+      PARAMETER (MLMNI = MNSUB*MLMMAX)
+
+C  else if there is no composite layer, use these:
+
+c      PARAMETER (MNCOMP= 1 )
+c      PARAMETER (MLMT  = 1 )
+c      PARAMETER (MNSUB2= 1 )
+c      PARAMETER (MLMG  = 1 )
+c      PARAMETER (MLMN  = 1 )
+c      PARAMETER (MLM2N = 1 )
+c      PARAMETER (MLMNI = 1 )
+
+/EOP
+
+################################################################################
+#  create input file for Tensor LEED
+#  first bulk geometry
+#  then beamlist
+#  then non-structural criteria
+#  then phaseshifts
+#  then composite layers and tensor LEED input
+################################################################################
+
+################################################################################
+#  first lateral geometry
+################################################################################
+
+cat > FIN << '/EO1'
+LaNiO3(001)-(1x1), top two bilayers with zero buckling, basic reference calculation
+  30.00 350.00   2.00   EI,EF,DE
+ 3.7910 0.0000          ARA1
+ 0.0000 3.7910          ARA2
+ 0.0    0.0             SS1
+ 0.0    0.0             SS2
+ 0.0    0.0             SS3
+ 0.0    0.0             SS4
+ 3.7910 0.0000          ARB1
+ 0.0000 3.7910          ARB2
+ 0.0    0.0             SO1
+ 0.0    0.0             SO2
+ 0.0    0.0             SO3
+ 0.5    1.2237          FR ASE 
+/EO1
+
+################################################################################
+#  then beamlist
+################################################################################
+
+cat $BEAMDIR/$BEAMLIST >> FIN
+
+################################################################################
+#  then non-structural criteria
+################################################################################
+
+cat >> FIN << '/EO2'
+ 0.0001           >>>>> ! <<<<<              TST
+  4  6 12 18 22 28 34                        NPU(K)          
+   0.0    0.0                                THETA FI
+ 0.001                                       EPS
+  8                                          LITER
+  9                                          LMAX
+/EO2
+
+################################################################################
+#  then phaseshifts
+################################################################################
+
+cat $PHASEDIR/$PHASES >> FIN
+
+################################################################################
+#  then Tensor LEED input
+################################################################################
+
+cat >> FIN << '/EO3'
+   1               IFORM - ASCII output of tensor components
+   1.00000   0.00000
+   1.00000   1.00000
+   2.00000   0.00000
+   2.00000   1.00000
+   2.00000   2.00000
+   3.00000   0.00000
+   3.00000   1.00000
+/EO3
+
+################################################################################
+#  read geometry input
+################################################################################
+
+cat >> FIN << '/EO4'
+-------------------------------------------------------------------
+--- define chem. and vib. properties for different atomic sites ---
+-------------------------------------------------------------------
+ 12                       NSITE: number of different site types
+-   site type 1 ---
+ 0.0000 0.0528            concentration & vib. element apO, site 1
+ 0.0000 0.0528            concentration & vib. element eqO, site 1
+ 1.0000 0.1400            concentration & vib. element La, site 1
+ 0.0000 0.0298            concentration & vib. element Ni, site 1
+-   site type 2 ---
+ 0.0000 0.0528            concentration & vib. element apO, site 2
+ 0.0000 0.0528            concentration & vib. element eqO, site 2
+ 1.0000 0.0200            concentration & vib. element La, site 2
+ 0.0000 0.0298            concentration & vib. element Ni, site 2
+-   site type 3 ---
+ 0.0000 0.0528            concentration & vib. element apO, site 3
+ 0.0000 0.0528            concentration & vib. element eqO, site 3
+ 1.0000 0.0298            concentration & vib. element La, site 3
+ 0.0000 0.0298            concentration & vib. element Ni, site 3
+-   site type 4 ---
+ 0.0000 0.0528            concentration & vib. element apO, site 4
+ 0.0000 0.0528            concentration & vib. element eqO, site 4
+ 0.0000 0.0298            concentration & vib. element La, site 4
+ 1.0000 0.0200            concentration & vib. element Ni, site 4
+-   site type 5 ---
+ 0.0000 0.0528            concentration & vib. element apO, site 5
+ 0.0000 0.0528            concentration & vib. element eqO, site 5
+ 0.0000 0.0298            concentration & vib. element La, site 5
+ 1.0000 0.0400            concentration & vib. element Ni, site 5
+-   site type 6 ---
+ 0.0000 0.0528            concentration & vib. element apO, site 6
+ 0.0000 0.0528            concentration & vib. element eqO, site 6
+ 0.0000 0.0298            concentration & vib. element La, site 6
+ 1.0000 0.0298            concentration & vib. element Ni, site 6
+-   site type 7 ---
+ 1.0000 0.1400            concentration & vib. element apO, site 7
+ 0.0000 0.0528            concentration & vib. element eqO, site 7
+ 0.0000 0.0298            concentration & vib. element La, site 7
+ 0.0000 0.0298            concentration & vib. element Ni, site 7
+-   site type 8 ---
+ 1.0000 0.1400            concentration & vib. element apO, site 8
+ 0.0000 0.0528            concentration & vib. element eqO, site 8
+ 0.0000 0.0298            concentration & vib. element La, site 8
+ 0.0000 0.0298            concentration & vib. element Ni, site 8
+-   site type 9 ---
+ 1.0000 0.0528            concentration & vib. element apO, site 9
+ 0.0000 0.0528            concentration & vib. element eqO, site 9
+ 0.0000 0.0298            concentration & vib. element La, site 9
+ 0.0000 0.0298            concentration & vib. element Ni, site 9
+-   site type10 ---
+ 0.0000 0.0528            concentration & vib. element apO, site 10
+ 1.0000 0.2000            concentration & vib. element eqO, site 10
+ 0.0000 0.0298            concentration & vib. element La, site 10
+ 0.0000 0.0298            concentration & vib. element Ni, site 10
+-   site type11 ---
+ 0.0000 0.0528            concentration & vib. element apO, site 11
+ 1.0000 0.1800            concentration & vib. element eqO, site 11
+ 0.0000 0.0298            concentration & vib. element La, site 11
+ 0.0000 0.0298            concentration & vib. element Ni, site 11
+-   site type12 ---
+ 0.0000 0.0528            concentration & vib. element apO, site 12
+ 1.0000 0.0528            concentration & vib. element eqO, site 12
+ 0.0000 0.0298            concentration & vib. element La, site 12
+ 0.0000 0.0298            concentration & vib. element Ni, site 12
+-------------------------------------------------------------------
+--- define different layer types                                ---
+-------------------------------------------------------------------
+  2                       NLTYPE: number of different layer types
+-   layer type 1 ---
+  1                       LAY = 1: layer type no. 1 has overlayer lateral periodicity
+ 10                       number of Bravais sublayers, 1st layer
+  1 0.0000 1.8955 1.8955  sublayer no. 1 is of site type 1 (La)
+  7 0.0000 0.0000 0.0000  sublayer no. 2 is of site type 7 (apO)
+  4 1.9500 0.0000 0.0000  sublayer no. 3 is of site type 4 (Ni)
+ 10 1.9500 1.8955 0.0000  sublayer no. 4 is of site type 10 (eqO)
+ 10 1.9500 0.0000 1.8955  sublayer no. 5 is of site type 10 (eqO)
+  2 3.9000 1.8955 1.8955  sublayer no. 6 is of site type 2 (La)
+  8 3.9000 0.0000 0.0000  sublayer no. 7 is of site type 8 (apO)
+  5 5.8500 0.0000 0.0000  sublayer no. 8 is of site type 5 (Ni)
+ 11 5.8500 1.8955 0.0000  sublayer no. 9 is of site type 11 (eqO)
+ 11 5.8500 0.0000 1.8955  sublayer no.10 is of site type 11 (eqO)
+-   layer type 2 ---
+  2                       LAY = 2: layer type no. 2 has substrate lateral periodicity
+  5                       number of Bravais sublayers, 2nd layer
+  3 0.0000 1.8955 1.8955  sublayer no. 1 is of site type 3 (La)
+  9 0.0000 0.0000 0.0000  sublayer no. 2 is of site type 9 (apO)
+  6 1.9500 0.0000 0.0000  sublayer no. 3 is of site type 6 (Ni)
+ 12 1.9500 1.8955 0.0000  sublayer no. 4 is of site type 12 (eqO)
+ 12 1.9500 0.0000 1.8955  sublayer no. 5 is of site type 12 (eqO)
+-------------------------------------------------------------------
+--- define bulk stacking sequence                               ---
+-------------------------------------------------------------------
+  0                       TSLAB = 0: compute bulk using subras
+ 1.9500 0.0000 0.0000     ASA interlayer vector between different bulk units
+  2                       top layer of bulk unit: type 2
+  2                       bottom layer of bulk unit: type 2
+ 1.9500 0.0000 0.0000     ASBULK between the two bulk unit layers (may differ from ASA)
+-------------------------------------------------------------------
+--- define layer stacking sequence and Tensor LEED output       ---
+-------------------------------------------------------------------
+  1
+  1 1.9500 0.0000 0.0000  surface layer is of type 1: interlayer vector connecting it to bulk is 1.950 0 0 
+  1                       1: Tensor output is required for this layer
+LAY11                      Tensor file name, current layer, sublayer 1
+LAY12                      Tensor file name, current layer, sublayer 2
+LAY13                      Tensor file name, current layer, sublayer 3
+LAY14                      Tensor file name, current layer, sublayer 4
+LAY15                      Tensor file name, current layer, sublayer 5
+LAY16                      Tensor file name, current layer, sublayer 6
+LAY17                      Tensor file name, current layer, sublayer 7
+LAY18                      Tensor file name, current layer, sublayer 8
+LAY19                      Tensor file name, current layer, sublayer 9
+LAY110                     Tensor file name, current layer, sublayer 10
+-------------------------------------------------------------------
+--- end geometrical input                                       ---
+-------------------------------------------------------------------
+/EO4
+
+################################################################################
+#  define inner potential as a function of energy in subroutine muftin.f
+################################################################################
+
+cat >> muftin.f << '/EO5'
+
+C  Subroutine muftin contains explicit energy dependence of inner 
+C  potentials. The functional form should be left to the user entirely,
+C  thus the subroutine is included in the input explicitly.
+
+C  All quantities should be set in eV. Conversion to Hartree (atomic units)
+C  is handled by ref-calc.f itself. Both the real and imaginary part should
+C  be given as positive values (the program then handles the sign correctly).
+
+      subroutine muftin(EEV,VO,VV,VPI,VPIS,VPIO)
+
+C  global variable
+
+C  EEV :  electron energy in the vacuum region
+C  VO  :  difference between real part of inner potential in the bulk and in
+C         topmost layer. Usually irrelevant -> set to zero.
+C  VV  :  real part of the inner potential in the bulk.
+C  VPI :  imaginary part of the inner potential.
+C  VPIS:  in case different values for the imaginary part of the inner
+C  VPIO:  potential for bulk and topmost layer were desired, VPIS would
+C         correspond to the bulk value, VPIO would be the respective
+C         value for the topmost layer. Usually, the effect is irrelevant,
+C         i.e. both are set equal to VPI.
+
+      real EEV,VO,VV,VPI,VPIS,VPIO
+
+C  local variable
+
+C  workfn: Work function of the LEED filament material. Theoretical predictions for the
+C          inner potential usually have their energy zero fixed at the
+C          Fermi level; the experimental energy scale (-> EEV) nominally
+C          does the same, except for the fact that electrons need to overcome
+C          the work function of the cathode first. Note that the this value is
+C          thus formally determined by a LEED fit, yet don't trust its accuracy.
+
+      real workfn
+
+C  set work function of cathode
+C  work function should be positive (added to exp. energy EEV)
+
+      workfn = 0.
+
+C  set real part of inner potential
+
+c      here: Rundgren type inner potential for FeAl
+
+      VV = workfn - max( (0.08-77.73/sqrt(EEV+workfn+30.7)) , -10.73)
+
+c  set difference between bulk and overlayer inner potential
+
+      VO = 0.
+
+c  set imaginary part of inner potential - energy independent value used here
+
+      VPI = 5.0
+
+c  set substrate / overlayer imaginary part of inner potential
+
+      VPIS = VPI
+      VPIO = VPI
+
+      return
+      end
+/EO5
+
+################################################################################
+#  get,compile, link and run TLEED job - use compiler options as appropriate
+################################################################################
+
+   cp $SOURCEDIR/GLOBAL  .
+   cp $SOURCEDIR/$SOURCE .
+   cp $LIBDIR/$LIBSOURCE .
+
+   $FC $FCOPT -o muftin.o    -c muftin.f
+   $FC $FCOPT -o lib.tleed.o -c $LIBSOURCE
+   $FC $FCOPT -o main.o      -c $SOURCE
+   $FC $FCOPT -o $EXE           muftin.o lib.tleed.o main.o
+#  exit
+   time ./$EXE < FIN > protocol
+
+################################################################################
+#  now save results and clean
+################################################################################
+
+cp fd.out $OUTDIR/$OUTFILE
+
+# compress LAY*
+mv LAY* $TENSORDIR
+
+cat protocol
+
+cd 
+rm -r $WORK
+
+################################################################################
+#  that's all folks!
+################################################################################

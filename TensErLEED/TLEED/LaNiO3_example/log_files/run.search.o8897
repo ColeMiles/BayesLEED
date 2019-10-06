@@ -1,0 +1,44 @@
+lib.search.f(880): remark #8290: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+3'.
+ 5559 FORMAT(I3,A4,F6.4,A3,F6.4,A3,F6.4,A3,F7.3,A4,i3,a4,500(I3,A1))
+--------------------^
+lib.search.f(880): remark #8290: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+3'.
+ 5559 FORMAT(I3,A4,F6.4,A3,F6.4,A3,F6.4,A3,F7.3,A4,i3,a4,500(I3,A1))
+----------------------------^
+lib.search.f(880): remark #8290: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+3'.
+ 5559 FORMAT(I3,A4,F6.4,A3,F6.4,A3,F6.4,A3,F7.3,A4,i3,a4,500(I3,A1))
+------------------------------------^
+lib.search.f(892): remark #8290: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+3'.
+          write(4,'(A34,I6,A4,F10.8)') 
+-------------------------------^
+lib.search.f(898): remark #8290: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+3'.
+          write(4,'(A34,I6,A4,F10.8)') 
+-------------------------------^
+lib.search.f(904): remark #8290: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+3'.
+          write(4,'(A26,I6,A4,F10.8)') 
+-------------------------------^
+lib.search.f(914): remark #8290: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+3'.
+          write(4,'(A33,I6,A4,F10.8)') 
+-------------------------------^
+lib.search.f(920): remark #8290: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+3'.
+          write(4,'(A33,I6,A4,F10.8)') 
+-------------------------------^
+lib.search.f(926): remark #8290: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+3'.
+          write(4,'(A25,I6,A4,F10.8)') 
+-------------------------------^
+lib.search.f(1360): remark #8290: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+3'.
+      READ(5,'(25F3.1)') (WB(I),I=1,NBED)
+------------------^
+lib.search.f(2247): remark #8291: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+7'.
+            READ(CNTFIL,'(6E13.7)') TTHETA,TFI,(TRAR1(I),I=1,2),
+----------------------------^
+lib.search.f(2369): remark #8291: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+7'.
+              READ(CNTFIL,'(6E13.7)',ERR=2227,END=2227) 
+------------------------------^
+lib.search.f(2372): remark #8291: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+7'.
+              READ(CNTFIL,'(6E13.7)') (XISTMK(IDOM,IDATT,I), I=1,NT0)
+------------------------------^
+lib.search.f(2374): remark #8291: Recommended relationship between field width 'W' and the number of fractional digits 'D' in this edit descriptor is 'W>=D+7'.
+              READ(CNTFIL,'(6E13.7)') 
+------------------------------^
+2463.78user 630.71system 53:27.60elapsed 96%CPU (0avgtext+0avgdata 10732maxresident)k
+0inputs+77785744outputs (0major+2742minor)pagefaults 0swaps

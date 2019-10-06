@@ -1,0 +1,224 @@
+
+  Guide to auxiliary programs supplied with the TensErLEED package, v1.2
+  V. Blum, 23.04.00
+    
+  Welcome to the Erlangen Tensor LEED program package. Permission is granted
+  to use these programs freely, and to modify them as you may find appropriate.
+  However, we cannot take any responsibility for possible bugs or other
+  limitations you may encounter. If you find a bug or worthwhile improvement,
+  please notify us at 
+
+                         tleed@fkp.physik.uni-erlangen.de
+
+  so we can make the updated code available to everyone. Likewise, in re-
+  distributing the code please refer back to us first to ensure the latest version
+  of the package is passed on.
+
+  A full description of the TensErLEED package can be found in
+
+  [1] V. Blum, K. Heinz, submitted to Comp. Phys. Comm. (2000).
+
+  Please cite this reference when using TensErLEED.
+
+  This Readme file explains the input and some source code features of the
+  auxiliar programs contained in TLEED/aux. These utilities are not central
+  parts of TensErLEED and are therefore omitted in Ref. [1] . However, since
+  they have proven useful tools, they are included with the package.
+
+
+Contents:
+
+  1. Generating a beam list
+
+  2. Calculating R-factors
+
+  3. Reformatting calculated I(E) data
+
+
+1. Generating a beam list
+
+  The full dynamic reference calculation ref-calc.f needs a list of reciprocal
+  lattice vectors as part of its input ("beam list"). The program beamgen.f
+  in TLEED/aux/beamgen performs this task. For convenience, a shell script
+  such as run.beamgen, located in TLEED/testrun/aux, should be used to run it.
+
+* Input file DATA :
+
+ Line  Quantity    Format     Explanation
+
+  1    ARA1(2)     2F7.4      2D substrate unit vector no. 1 as used in ref-calc.f [A]
+  2    ARA2(2)     2F7.4      2D substrate unit vector no. 1 as used in ref-calc.f [A]
+  3    LATMAT(1,2) 2I3        first row of 2x2 matrix connecting sustrate and 
+                              superlattice unit vectors, i.e. defining the vectors 
+                              ARB (of ref-calc.f) from ARA 
+  4    LATMAT(2,2) 2I3        second row of LATMAT
+  5    SSYM        I3         Symmetry code: To produce a beam list that contains only
+                              symmetry-inequivalent codes and appropriate weight factors, 
+                              SSYM may be set according to the description in chapter
+                              4 of Van Hove / Tong, "Surface Crystallography by LEED",
+                              Springer, Berlin (1979). 
+                              ref-calc.f DOES NOT SUPPORT this symmetry usage at present;
+                              SSYM=1 is the only possible option.
+  6    EMAX, DMIN  2F7.4      EMAX is the maximum energy of the LEED calculation that the
+                              present beam list is intended for [eV] . Likewise, DMIN is
+                              the minimum interlayer distance to be treated in plane-wave
+                              space in that calculation [A] . Note that a calculation is
+                              only properly converged if the beam list contains sufficiently
+                              many beams, so EMAX and DMIN should each be chosen well on the 
+                              safe side of what is required in the actual structure (no 
+                              calculational overhead will occur anyways).
+ 7     TST                    convergence criterion TST as used in ref-calc.f input
+ 8     KNBMAX      I3         upper limit to the number of beams that may be contained in 
+                              the output beam list (obsolete?)
+
+
+2. Calculating R-factors
+
+  In order to calculate by hand R-factors between calculated and measured I(E) spectra,
+  an R-factor program is included with the package (source: TLEED/aux/r-factor/rf.f,
+  shell script example: TLEED/testrun/aux/run.r-factor). The program produces identical
+  R-factors to search.f, and its input file WEXPEL is analogous to rf.info of search.f .
+  However, some obsolete quantities exist, and input is name list directed here instead
+  of formatted input as everywhere else. The program rf.f is directly derived from
+  Van Hoves R-factor program, brought to Erlangen in 1982, and modified here several times.
+
+* Input file "WEXPEL" :
+
+  EMIN, EMAX : Lowest and highest energy of energy range to be considered for a 
+              comparison (independent of the range for which amplitude changes
+              were calculated) (unit: eV)
+  EINCR     : Step width of energy grid for which R-factor is calculated. To 
+              ensure well-converged derivatives d(I(E))/dE, I(E) curves are 
+              interpolated onto this grid, and the R-factor is computed only then.
+              (unit: eV)
+  NS,NSPL   : number of different I(E) spectra within same file (order assumed is
+              first by energy (outermost loop), then by surface structure type, 
+              then by beam no.) Strictly, NSPL is number of structures to be 
+              skipped in an automatic search for the "best fit" among the given 
+              I(E) sets, but functionality of that feature is currently not 
+              guaranteed.
+  NBLOW     : leave set to zero
+  LIMFIL    : leave set to one
+  IPR       : controls amount of output to stdout. 0 means little, 2 means much
+              output. Leave set to 0 unless interested in stdout output.
+  VI:         imaginary part of the inner potential to be used in RPe calculation.
+              Should be set consistently with reference calculation. (unit: eV)
+  V0RR:       real part of the inner potential that was used in the reference 
+              calculation. (Is simply used added to the value exp. and theoretical
+              spectra are shifted by in the R-factor calcuation when writing 
+              output.) (unit: eV)
+  V01,V02,VINCR : The R-factor is calculated several times, shifting theoretical 
+              spectra with respect to the experimental ones along the energy axis,
+              with shifts from V01 to V02 in steps of VINCR. (unit: eV)
+  IREN      : leave set to zero
+  ISMOTH    : Number of times experimental data is treated with a three-point
+              smoothing formula prior to R-factor comparison. Normally, leave set
+              to zero.
+  SBR       : Determines amount of output to output file ROUT. Normally, leave set
+              to 2.
+  NBTD,NBED : Number of input theoretical and experimental beams, respectively.
+  KAV       : Grouping of theoretical beams for domain averaging (beam group 
+              numbers written in the order of theor beams given)
+  MITTEL    : Grouping of experimental beam groups into two subgroups, e.g.
+              integer and half-order beams (see search algorithm)
+  IBP       : Grouping of theor. beam groups in sequence of exp. beams
+  NSSK      : List of geometry numbers to be skipped. Leave set to zero.
+  WB        : Weighting factors for individual (exp) beams in R-factor 
+              calculation.
+  WR        : Determines which of 10 possible R-factors should be calculated. 
+              WR(10) refers to RPe, normally set that one to 1, all others to 
+              zero. WR(2) gives the R2 R-factor (these values are tabulated
+              to stdout, not to ROUT!)
+
+  Append the experimental I(E) data file as used by search algorithm to WEXPEL.
+  For formatting, see Ref. [1] or example file TLEED/exp-data/Data.3pc.960K-c2x2.coskor .
+
+* To be adjusted in source file "rf.var.f" :
+
+  Dimensions must be checked and adjusted individually. Do not forget subroutines.
+  Unfortunately, no fully consistent version of the prg. exists. See comment for
+  details.
+
+* Output files :
+
+  ROUT: Contains RP and other info for all beams and all "inner potential" shift 
+        values.
+  stdout : Contains all other info required, see code for details. In particular
+        R-factors chosen by WB other than RP are tabulated here.
+
+
+3. Reformatting calculated I(E) data
+
+  In order to convert I(E) output files from ref-calc.f and superpos.f to a
+  plotable format, a small utility NormIt.f (source in TLEED/aux/plot) is 
+  supplied with TensErLEED. The example shell script TLEED/testrun/aux/run.NormIt
+  shows how to run it.
+
+* input file NormIt.steu:
+
+  Line      Quantity        Format     Explanation
+
+  1         KBeams          I3         Number of beams in calculated I(E) file
+  2         Mittel(KBeams)  40I3       Averaging of beams to give different beam groups -
+                                       required e.g. if surface contains different,
+                                       rotationally equivalent domains. Mittel should
+                                       contain the number of the beam group in the 
+                                       order of beams written in I(E) data file. 
+  ------------------------------------------------------------------------------------
+  KBeams lines for IBeam = 1 .. KBeams containing
+
+            Emin(IBeam), Emax(IBeam)
+                            2F7.2      minimum and maximum energy to use for this beam
+                                       (e.g. to consider only that part of calculated 
+                                       I(E) data which is also experimentally available).
+  ------------------------------------------------------------------------------------
+  KBeams+3  VvH             *          inner potential value (or its energy-independent part)
+                                       used in the I(E) calculation
+  KBeams+4  Vrf             *          inner potential value (or its energy-independent part)
+                                       after shift to best fit by the R-factor calculation
+  KBeams+5  Shift           I3         0 : Do not perform an energy-dependent rescaling of
+                                           the energy axis itself
+                                       1 : Perform energy-dependent rescaling of energy axis
+                                           (use: introduce an energy-dependent inner potential
+                                           through R-factor calculation if none has been used
+                                           in ref-calc.f, or modify an energy-dependent inner
+                                           potential that was used in ref-calc.f)
+                                           linear case: E = E - Vrf + VvH + E/quot (F7.2)
+                                       2 : Rundgren-type rescaling:
+                                           E = E - Vrf + VvH + max(c1,c2-c3/sqrt(E+c4))
+  ------------------------------------------------------------------------------------
+  If Shift = 0 (no energy-dependent rescaling of energy axis) use
+
+  KBeams+6  (blank line)
+
+  If Shift = 1 use 
+
+  KBeams+6  quot                       energy-dependent rescaling E = E - Vrf + VvH + E/quot (F7.2)
+
+  If Shift = 2 use
+
+  KBeams+6  c1,c2,c3,c4     *          constants for E = E - Vrf + VvH + max(c1,c2-c3/sqrt(E+c4))
+  ------------------------------------------------------------------------------------
+  KBeams+7  Norm            F7.2       maximum peak intensity in each beam after renormalisation
+                                       (if NormFlag = 0, otherwise max intensity in first beam only)
+  KBeams+8  NormFlag        I3         if NormFlag=0, normalize all beams to max. intensity Norm.
+                                       if NormFlag=1, normalize first beam to max. intensity Norm,
+                                                      and use the same integral intensity for all
+                                                      following beams
+  KBeams+9  Offset          F7.2       Intensity axis offset to be added to I(E) spectra after all
+                                       other handling has been taken care of
+
+* modifications to the source code:
+
+  - Possibly adjust dimensions such as number of beams etc.
+
+  - Modify the output format of Spec.out to suit your own needs!!
+
+* Output file Spec.out:
+
+  I(E) spectra for all beams are written to a file Spec.out, organized in 
+  columns to provide
+  E(1),I(1),E(2),I(2),E(3),I(3),....
+  Since some graphing programs require each column to have the same number
+  of lines, for energy values for which a beam does not exist pairs of
+  zeroes are written.

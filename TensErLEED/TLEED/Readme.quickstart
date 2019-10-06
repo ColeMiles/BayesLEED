@@ -1,0 +1,301 @@
+
+  Quick start guide to the TensErLEED package, v1.2
+  V. Blum, 22.04.00
+    
+  Welcome to the Erlangen Tensor LEED program package. Permission is granted
+  to use these programs freely, and to modify them as you may find appropriate.
+  However, we cannot take any responsibility for possible bugs or other
+  limitations you may encounter. If you find a bug or worthwhile improvement,
+  please notify us at 
+
+                         tleed@fkp.physik.uni-erlangen.de
+
+  so we can make the updated code available to everyone. Likewise, in re-
+  distributing the code please refer back to us first to ensure the latest version
+  of the package is passed on.
+
+  A full description of the TensErLEED package can be found in
+
+  [1] V. Blum, K. Heinz, submitted to Comp. Phys. Comm. (2000).
+
+  Please cite this reference when using TensErLEED.
+
+  The present file provides information that should allow fast access to the
+  test run provided with the TensErLEED package without an in-depth study of the
+  above publication, and without in-depth knowledge of either the source code
+  or the shell scripts (batch files) that control the test run calculation.
+  However, in order to actually use the code, neither of these tasks should
+  be neglected!
+
+
+
+Contents:
+
+  1. Prerequisites to use the package
+
+  2. Performing the test run
+
+     2.1 List of shell scripts
+
+     2.2 Run!
+
+  3. Useful hints
+
+
+
+1. Prerequisites to use the package
+
+Upon extraction of the tar archive containing the Erlangen Tensor LEED package,
+you should find seven immediate subdirectories along with the top level directory,
+TLEED/, as described in Section 4 of Ref. [1]. The TLEED/testrun/ directory
+contains all files needed to test the package and the accompanying utilities
+for the surface crystallographic problem described in Section 5 of Ref. [1].
+
+To execute the test run, your computer system should meet the following 
+prerequisites:
+
+  * a UNIX-like operating system:
+
+    In order to run the shell scripts included with the package, you should be
+    using a UNIX-like operating system. In principle, any such system should do.
+    The package has been used successfully using
+        - Tru64 Unix V4.0E, V5.0 on a Compaq XP1000 Alpha workstation
+        - Linux (e.g., SuSE Linux 6.3) on a Pentium II PC
+        - Irix 6.2 on a SGI Power Challenge XL
+
+  * a FORTRAN 77 compiler (e.g., Compaq FORTRAN for Tru64 Unix; g77 for PC Linux)
+
+  * sufficient memory and disk space
+
+    The test run provided with the package uses little memory (8 MB)
+    and about 10 MB of free disk space to store intermediate data. Requirements
+    will normally be higher; however, very few problems will need more than, 
+    say, 128 MB of system memory.
+
+
+2. Performing the test run
+
+Each individual task of the Tensor LEED test run is handled by a 
+separate UNIX shell script (i.e., batch file). These tasks are listed
+in the following, the name of the shell script for each task is given, 
+and the mode of execution is described.
+
+2.1 List of shell scripts
+
+As outlined in [1], the test run consists of three main steps: 
+
+  * a full dynamic LEED calculation for a reference surface to
+    obtain the outgoing LEED amplitudes, and wave field components
+    inside the crystal
+    (Shell script: TLEED/testrun/run.ref-calc)
+
+  * Tensor LEED calculations to obtain outgoing amplitude changes
+    brought about by modifying the scattering properties of individual
+    atoms within the (2D) unit mesh
+    (Shell script: TLEED/testrun/run.delta)
+
+  * a structural search algorithm to obtain the structural best fit
+    of model I(E) spectra compared to experimental ones
+    (Shell script: TLEED/testrun/run.search)
+
+Prior to running these calculations, 
+
+  * the list of reciprocal lattice vectors needed for the reference 
+    calculation must be provided using the beamgen utility.
+    (Shell script: TLEED/testrun/aux/run.beamgen)
+
+Upon completion of the search run, one may
+
+  * calculate and store I(E) spectra of the best fit structure
+    (Shell script: TLEED/testrun/run.superpos)
+
+  * calculate the R-factor between the best fit I(E) spectra and
+    experiment individually for all beams
+    (Shell script: TLEED/testrun/aux/run.r-factor)
+
+  * renormalise the calculated I(E) curves and convert them to a
+    plotable column format
+    (Shell script: TLEED/testrun/aux/run.NormIt)
+
+2.2 Run!
+
+The following order of steps should allow the successful execution of all
+test run shell scripts.
+
+
+  a. Construct the beam list
+
+     - change to directory TLEED/testrun/aux
+     - edit "run.beamgen" :
+        - set the environment variable $TLEED to the proper pathname
+          of the Tensor LEED top level directory "/.../TLEED" in your
+          file system
+        - set the correct FORTRAN 77 compiler command for your system
+          in $FC, and the proper compiler options in $FCOPT
+     - directly run the script:
+       command-line> run.beamgen
+       If this doesn't work, try using the "sj" command located in TLEED/aux/bin:
+       command-line> ../../aux/bin/sj run.beamgen
+
+     A file TLEED/beamlists/NBLIST.Fe0.97Al0.03.100-c2x2 should now exist, listing
+     81 integer and 80 half-order beams.
+
+  b. Perform the structural analysis
+
+     - change to directory TLEED/testrun
+     - edit "run.ref-calc", "run.delta", "run.search" :
+        - set the environment variable $TLEED to the proper pathname
+          of the Tensor LEED top level directory "/.../TLEED" in your
+          file system
+        - set the correct FORTRAN 77 compiler command for your system
+          in $FC, and the proper compiler options in $FCOPT
+        - in "run.search", also set the correct C compiler command for your system
+          in $CC, and the proper compiler options in $CCOPT
+     - start "run.ref-calc" in the background - upon termination,
+       it will automatically invoke "run.delta", which in turn will
+       call "run.search"
+       command-line> ../aux/bin/sj run.ref-calc 
+
+     Note: Using the "sj" (TLEED/aux/bin/sj) to run a shell script will run it
+     in the background, automatically redirecting all control output and error
+     messages to a log file called    <script-name>.o<process-id> , 
+     for example run.ref-calc.o1574 . Use these log files to track the progress
+     of a calculation and investigate possible errors. 
+
+     A file TLEED/testrun/Spectra/spec.ref-calc.Fe0.97Al0.03.100-c2x2
+     should now exist, containing the full dynamic I(E) curves of the reference surface.
+
+     Files TLEED/testrun/Tensors/LAY* should now exist, containing Tensor components
+     for those lattice sites in the surface subject to the structural analysis.
+
+     Files TLEED/testrun/Deltas/DEL* should now exist, containing amplitude changes
+     calculated for each element on each lattice site under investigation.
+
+     A file TLEED/testrun/search-results/search-doc.Fe0.97Al0.03.100-c2x2.960K.1198.geo1-3.chem2-3.vib1-2
+     of about 2 MB size should now exist, documenting the progress of the structural search
+     algorithm up to generation 10000, allowing to judge its convergence behaviour and containing
+     the parameter step values and beam-group-wise R-factors e.g. for the best fit structure.
+
+  c. Calculate the best fit I(E) spectra in Tensor LEED
+
+     - change to directory TLEED/testrun
+     - edit "run.superpos" :
+        - set the environment variable $TLEED to the proper pathname
+          of the Tensor LEED top level directory "/.../TLEED" in your
+          file system
+        - set the correct FORTRAN 77 compiler command for your system
+          in $FC, and the proper compiler options in $FCOPT
+     - start "run.superpos" in the background 
+       command-line> ../aux/bin/sj run.superpos 
+
+     Upon termination of the superpos run, a file 
+     TLEED/testrun/Spectra/spec.tleed.best-fit.geo1-3.chem2-3.vib1-2
+     should now exist, containing the I(E) spectra of the best fit surface calculated using
+     the Tensor LEED approximation. For a final set of spectra, it would be advisable to
+     recalculate I(E) spectra for the best fit structure also full dynamically.
+
+  d. Calculate the R-factor between the theoretical best fit spectra and experiment
+
+     -change to directory TLEED/testrun/aux
+     -edit "run.r-factor":
+        - set the environment variable $TLEED to the proper pathname
+          of the Tensor LEED top level directory "/.../TLEED" in your
+          file system
+        - set the correct FORTRAN 77 compiler command for your system
+          in $FC, and the proper compiler options in $FCOPT
+     - directly run the script:
+       command-line> run.r-factor
+       If this doesn't work, try using the "sj" command located in TLEED/aux/bin:
+       command-line> ../../aux/bin/sj run.r-factor
+
+      A file TLEED/testrun/aux/rf-data/rf-out.tleed.best-fit.geo1-3.chem2-3.vib1-2
+      should now exist, containing Pendry R-factor values between experiment and
+      theory for each individual beam, for each beam group, and the average R-factor,
+      for several different rigid shifts of the energy axis (i.e. a constant addition
+      to the inner potential). (A rigid shift of -1.5 eV, yielding -11.8 eV for the 
+      constant part of the inner potential at low energies - the value quoted here - 
+      should give a result equal to that obtained by the search algorithm.)
+
+  e. Normalize the calculated I(E) data, and convert them to a plotable format
+
+     -change to directory TLEED/testrun/aux
+     -edit "run.NormIt":
+        - set the environment variable $TLEED to the proper pathname
+          of the Tensor LEED top level directory "/.../TLEED" in your
+          file system
+        - set the correct FORTRAN 77 compiler command for your system
+          in $FC, and the proper compiler options in $FCOPT
+     - directly run the script:
+       command-line> run.NormIt
+       If this doesn't work, try using the "sj" command located in TLEED/aux/bin:
+       command-line> ../../aux/bin/sj run.NormIt
+     
+     A file TLEED/testrun/aux/plot-data/plot.tleed.best-fit.geo1-3.chem2-3.vib1-2
+     should now exist, containing normalized I(E) data, including a rigid shift of
+     the energy axis as prescribed by the search result, in a column format
+     E(1), I(1),E(2),I(2), ... This file should be plotted using any available
+     graphing program, and compared to the experimental I(E) data located in the
+     file TLEED/exp-data/Data.Fe0.97Al0.03.100-c2x2.960K (note these curves may need some
+     additional normalization).
+
+
+3. Useful hints
+
+Customizing the package:
+
+in order to apply the package to YOUR PROBLEM OF INTENSITY ANALYSIS, it is 
+recommended to proceed as follows:
+
+a. Store the scattering phase shifts for each required combination of elements
+   in the subdirectory TLEED/phaseshifts (use the presupplied file phas.FeAl as
+   an example of the appropriate format. The phase shifts needed by ref-calc.f
+   should be read from this file ($PHASES in run.ref-calc). Phase shifts may be
+   generated using the available tools in the literature (e.g. Barbieri/Van Hove)
+   or obtained from other groups (e.g. from the Erlangen group) on request.
+
+b. Make a copy of the example directory TLEED/testrun. After carefully studying
+   the structure of each shell script, modify all environment variables, and 
+   adjust all input quantities according to the new structure (see Ref. [1]).
+
+c. Generate the appropriate input beam list by modifying TLEED/testrun/aux/run.beamgen . 
+   This defines the basis of plane waves used in the calculations. 
+
+Possible initial problems:
+
+If your system uses a special queuing system, the "sj" command recommended by us
+might not work to run the test job. A system-specific queuing command may need
+to replace it.
+
+When using the package on a platform other than those we have tested for 
+(Compaq Tru64 Unix, Digital Unix, Linux, Irix), some adaptions may be necessary
+to the FORTRAN source code before it actually compiles. Even if that is 
+not the case, check the output files you obtain very carefully against the 
+example output of Ref [1] in order to ensure the proper functionality of the code.
+
+FORTRAN compiler options that should work:
+
+a. Tru64 UNIX (Compaq Alpha):
+     DIGITAL Fortran 77 V5.2, V5.3: 
+     FCOPT=''
+   (conservative optimization is done by default)
+
+b. Linux (PC):
+
+     g77 based on egcs 1.1.2:
+     FCOPT='-O3 -mpentiumpro -malign_double'
+
+     g77 based on gcc 2.95:
+     FCOPT='-O9 -funroll_loops'
+
+c. Irix 6.2, 6.3 (SGI):
+
+     (compiler version?)
+     FCOPT='-64 -r8 -i4 -O3 -static'
+
+Explanation of names used:
+
+All files referring to the best fit obtained by the test run end with
+...geo1-3.chem2-3.vib1-2 . This is my own convention indicating that
+the full geometry of the topmost three layers was optimized, the 
+composition of layers two and three was optimized, and vibrational amplitudes
+in layers one and two were optimized.

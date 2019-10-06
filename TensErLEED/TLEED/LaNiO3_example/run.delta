@@ -1,0 +1,823 @@
+################################################################################
+#  Tensor LEED delta amplitude calculation - LaNiO3(001) - top two bilayers buckled - 1x1
+#  Shell script using the TensErLEED package v1.2 -  V. Blum, 17.04.2000
+#
+#  as described in 
+#
+#  V. Blum, K. Heinz, submitted to Comp. Phys. Comm. (2000).
+#
+#  Please cite this reference when using TensErLEED.
+#
+#  Welcome to the Erlangen Tensor LEED program package. Permission is granted
+#  to use these programs freely, and to modify them as you may find appropriate.
+#  However, we cannot take any responsibility for possible bugs or other
+#  limitations you may encounter. If you find a bug or worthwhile improvement,
+#  please notify us at 
+#
+#                         tleed@fkp.physik.uni-erlangen.de
+#
+#  so we can make the updated code available to everyone. Likewise, in re-
+#  distributing the code please refer back to us first to ensure the latest version
+#  of the package is passed on.
+#
+#  This script demonstrates the successive execution of delta amplitude
+#  calculations for different atomic sites, with different parameters.
+#  Following immediately, a search algorithm is started to determine the
+#  global minimum of the parameter space wrt. experiment.
+#
+#  Note that this entire script requires customization for a new calculation; it is
+#  insufficient to modify its header and the input files only.
+#
+################################################################################
+
+################################################################################
+#  set environment variables
+################################################################################
+
+################################################################################
+#
+#  $TLEED:     top level directory of Tensor LEED directory tree
+#  $WORK:      working directory (removed upon termination)
+#  $SOURCEDIR: location of main prg. source file
+#  $LIBDIR:    location of TLEED subroutine library
+#  $PHASEDIR:  location of phaseshifts to be used
+#  $TENSORDIR: location of tensor files from fd. reference calculation
+#  $OUTDIR:    target directory for delta amplitude files
+#  $SEARCHDIR: location of shell script for (possibly) ensuing 
+#              Tensor LEED search algorithm
+#
+#  $LIB1:      Tensor LEED subroutine source file
+#  $LIB2:      Tensor LEED subroutine source file
+#  $PHASES:    name of phaseshift file to be used
+#  $EXE:       name of executable main prg.
+#  $SEARCH:    Tensor LEED search job- Formatname if desired
+#
+#  $FC:        name of FORTRAN compiler command
+#  $FCOPT:     FORTRAN command line options (e.g., code optimization!)
+#
+################################################################################
+   
+   TLEED=/home/shengroup/LEED-IV/TensErLEED/TLEED
+
+   WORK=$TLEED/work/tmp.$$
+
+   SOURCEDIR=$TLEED/v1.2/src
+   LIBDIR=$TLEED/v1.2/lib
+   PHASEDIR=$TLEED/phaseshifts
+   TENSORDIR=$TLEED/LaNiO3_example/Tensors
+   OUTDIR=$TLEED/LaNiO3_example/Deltas
+
+   SOURCE=delta.f
+   LIB1=lib.tleed.f
+   LIB2=lib.delta.f
+   PHASES=ps-LaNiAlO3_noAl_TensErLEEDFormat
+   EXE=delta.x
+
+   SEARCHDIR=$TLEED/LaNiO3_example
+   SEARCH=run.search
+
+# info about Fortran compiler
+   FC=ifort
+   FCOPT=''
+
+################################################################################
+#  create working directory
+################################################################################
+
+   mkdir $WORK
+   cd $WORK
+
+################################################################################
+#  create site-independent  part of input file for delta amp. calculation - 
+#  information on
+#  * reference calculation
+#  * phase shifts
+################################################################################
+
+cat >> delta.in.basic << '/EO1'
+LaNiO3-(1x1)
+  30.00 350.00          EI,EF
+ 3.7910 0.0000          ARA1
+ 0.0000 3.7910          ARA2
+ 3.7910 0.0000          ARB1
+ 0.0000 3.7910          ARB2
+   0.00   0.00          THETA,FI
+   1                    IFORM = FORMIN
+   1.00000   0.00000
+   1.00000   1.00000
+   2.00000   0.00000
+   2.00000   1.00000
+   2.00000   2.00000
+   3.00000   0.00000
+   3.00000   1.00000
+/EO1
+
+################################################################################
+#  then phaseshifts
+################################################################################
+
+cat $PHASEDIR/$PHASES >> delta.in.basic
+
+
+################################################################################
+#  consider top layer first
+################################################################################
+
+################################################################################
+#  adjust array dimensions for delta.f
+#  -  note that this part is FORTRAN source code
+################################################################################
+
+   cat > PARAM << '/EOP'
+C  Parameter statements for delta amplitude calculation, v1.2
+C  parameters must be consistent with preceding reference calculation!
+
+C  MLMAX: maximum angular momentum to be considered in calculation
+C  MNLMB: number of Clebsh-Gordon coefficients needed in tmatrix() subroutine - 
+C         set according to current LMAX
+C         MLMAX:  1  2   3    4    5    6    7     8     9     10    11     12     13     14     15
+C         MNLMB: 19 126 498 1463 3549 7534 14484 25821 43351 69322 106470 158067 227969 320664 441320
+C  MNPSI: number of phase shift values tabulated in phase shift file
+C  MNEL : number of elements for which phase shifts are tabulated
+C  MNT0 : number of beams for which delta amplitude calculation is required
+C  MNATOMS: currently, must be set to 1. In principle, number of different atomic
+C         positions in a superlattice wrt the reference periodicity when computing
+C         TLEED beams for a superlattice not present in the reference structure
+C  MNDEB: number of thermal variation steps to be performed (outer var. loop)
+C  MNCSTEP: number of geometric variation steps to be performed (inner var. loop)
+
+      PARAMETER( MLMAX = 9 )
+      PARAMETER( MNLMB = 43351 )
+      PARAMETER( MNPSI =  74, MNEL = 4 )
+      PARAMETER( MNT0 = 7 ) 
+      PARAMETER( MNATOMS = 1 )
+      PARAMETER( MNDEB = 5 )
+      PARAMETER( MNCSTEP = 21 )
+ 
+/EOP
+
+################################################################################
+#  compile libraries & main prg
+################################################################################
+
+cp $SOURCEDIR/GLOBAL .
+cp $SOURCEDIR/$SOURCE .
+cp $LIBDIR/$LIB1 .
+cp $LIBDIR/$LIB2 .
+
+$FC $FCOPT -o main.o      -c $SOURCE
+$FC $FCOPT -o lib.tleed.o -c $LIB1
+$FC $FCOPT -o lib.delta.o -c $LIB2
+
+$FC $FCOPT -o $EXE        main.o lib.tleed.o lib.delta.o
+
+################################################################################
+#  then information on Tensor LEED displacements - La, top layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   3                         IEL  - here third element in PHSS list, i.e. lanthanum
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question with respect to its position in reference surface (not currently supported, set to zero )             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.1000                      DRPER_A(1)
+ 0.1200                      DRPER_A(1)
+ 0.1400                      DRPER_A(1)
+ 0.1600                      DRPER_A(1)
+ 0.1800                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY11 AMP
+
+time ./$EXE < delta.in > protocol
+
+mv DELWV $OUTDIR/DEL.11.La
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - apO, top layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   1                         IEL  - here first element in PHSS list, i.e. apical oxygen
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question with respect to its position in reference surface (not currently supported, set to zero )             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.1000                      DRPER_A(1)
+ 0.1200                      DRPER_A(1)
+ 0.1400                      DRPER_A(1)
+ 0.1600                      DRPER_A(1)
+ 0.1800                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY12 AMP
+
+time ./$EXE < delta.in > protocol
+
+mv DELWV $OUTDIR/DEL.12.apO
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - Ni, top layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   4                         IEL  - here fourth element in PHSS list, i.e. nickel
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question with respect to its position in reference surface (not currently supported, set to zero )             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.0200                      DRPER_A(1)
+ 0.0400                      DRPER_A(1)
+ 0.0600                      DRPER_A(1)
+ 0.0800                      DRPER_A(1)
+ 0.1000                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY13 AMP
+
+time ./$EXE < delta.in > protocol
+
+mv DELWV $OUTDIR/DEL.13.Ni
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - eqO, top layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   2                         IEL  - here second element in PHSS list, i.e. equatorial oxygen
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question with respect to its position in reference surface (not currently supported, set to zero )             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.1600                      DRPER_A(1)
+ 0.1800                      DRPER_A(1)
+ 0.2000                      DRPER_A(1)
+ 0.2200                      DRPER_A(1)
+ 0.2400                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY14 AMP
+
+time ./$EXE < delta.in > protocol
+
+mv DELWV $OUTDIR/DEL.14.eqO
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - equatorial O, top layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   2                         IEL  - here second element in PHSS list, i.e. equatorial oxygen
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question with respect to its position in reference surface (not currently supported, set to zero )             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.1600                      DRPER_A(1)
+ 0.1800                      DRPER_A(1)
+ 0.2000                      DRPER_A(1)
+ 0.2200                      DRPER_A(1)
+ 0.2400                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY15 AMP
+
+time ./$EXE < delta.in > protocol
+
+mv DELWV $OUTDIR/DEL.15.eqO
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - La, second layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   3                         IEL  - here third element in PHSS list, i.e. lanthanum
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question with respect to its position in reference surface (not currently supported, set to zero )             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.0200                      DRPER_A(1)
+ 0.0400                      DRPER_A(1)
+ 0.0600                      DRPER_A(1)
+ 0.0800                      DRPER_A(1)
+ 0.1000                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY16 AMP
+
+time ./$EXE < delta.in > protocol
+
+mv DELWV $OUTDIR/DEL.16.La
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - apO, second layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   1                         IEL  - here first element in PHSS list, i.e. apical oxygen
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question with respect to its position in reference surface (not currently supported, set to zero )             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.1000                      DRPER_A(1)
+ 0.1200                      DRPER_A(1)
+ 0.1400                      DRPER_A(1)
+ 0.1600                      DRPER_A(1)
+ 0.1800                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY17 AMP
+
+time ./$EXE < delta.in > protocol
+
+mv DELWV $OUTDIR/DEL.17.apO
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - Ni, second layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   4                         IEL  - here fourth element in PHSS list, i.e. nickel
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question with respect to its position in reference surface (not currently supported, set to zero )             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.0200                      DRPER_A(1)
+ 0.0400                      DRPER_A(1)
+ 0.0600                      DRPER_A(1)
+ 0.0800                      DRPER_A(1)
+ 0.1000                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY18 AMP
+
+time ./$EXE < delta.in > protocol
+
+mv DELWV $OUTDIR/DEL.18.Ni
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - eqO, second layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   2                         IEL  - here second element in PHSS list, i.e. equatorial oxygen
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question with respect to its position in reference surface (not currently supported, set to zero )             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.1400                      DRPER_A(1)
+ 0.1600                      DRPER_A(1)
+ 0.1800                      DRPER_A(1)
+ 0.2000                      DRPER_A(1)
+ 0.2200                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY19 AMP
+
+time ./$EXE < delta.in > protocol
+
+mv DELWV $OUTDIR/DEL.19.eqO
+
+rm AMP
+
+################################################################################
+#  then information on Tensor LEED displacements - equatorial O, second layer
+################################################################################
+
+cp delta.in.basic delta.in
+
+cat >> delta.in << '/EO2'
+   1                         FORMOUT - 0: unformatted, 1: formatted output
+-------------------------------------------------------------------
+--- chemical nature of displaced atom                           ---
+-------------------------------------------------------------------
+   2                         IEL  - here second element in PHSS list, i.e. equatorial oxygen
+-------------------------------------------------------------------
+--- undisplaced position of atomic site in question with respect to its position in reference surface (not currently supported, set to zero )             ---
+-------------------------------------------------------------------
+ 0.0000 0.0000 0.0000        CUNDISP (1st and only atom)
+-------------------------------------------------------------------
+--- displaced positions of atomic site in question              ---
+-------------------------------------------------------------------
+  21                         NCSTEP - number of displaced positions
+-0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.0800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1200 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1400 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1600 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.1800 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+ 0.2000 0.0000 0.0000        CDISP(z,x,y) - sign as usual in LEED
+-------------------------------------------------------------------
+--- vibrational displacements of atomic site in question        ---
+-------------------------------------------------------------------
+   5                         NDEB - number of vib. amplitudes to be considered
+ 0.1400                      DRPER_A(1)
+ 0.1600                      DRPER_A(1)
+ 0.1800                      DRPER_A(1)
+ 0.2000                      DRPER_A(1)
+ 0.2200                      DRPER_A(1)
+/EO2
+
+################################################################################
+#  run delta amp calculation & save output
+################################################################################
+
+cp $TENSORDIR/LAY110 AMP
+
+time ./$EXE < delta.in > protocol
+
+mv DELWV $OUTDIR/DEL.10.eqO
+
+rm AMP
+
+################################################################################
+#  run is finished - clean up now !
+################################################################################
+
+cd 
+rm -r $WORK
+
+################################################################################
+#  that's all folks!
+################################################################################

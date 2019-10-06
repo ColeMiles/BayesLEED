@@ -1,0 +1,35 @@
+lib.tleed.f:4143:46:
+
+      1FLMS,NL,KLM,LM,CLM,NLM,LXI,NT,PQ,NA,NLL,FLM,NNSUB,LMAX1,XH)           
+                                              1
+Warning: Type mismatch in argument ‘flm’ at (1); passed REAL(4) to COMPLEX(4)
+6.42user 0.00system 0:06.43elapsed 99%CPU (0avgtext+0avgdata 3224maxresident)k
+0inputs+4184outputs (0major+173minor)pagefaults 0swaps
+6.32user 0.00system 0:06.33elapsed 99%CPU (0avgtext+0avgdata 3284maxresident)k
+0inputs+4192outputs (0major+174minor)pagefaults 0swaps
+lib.tleed.f:4143:46:
+
+      1FLMS,NL,KLM,LM,CLM,NLM,LXI,NT,PQ,NA,NLL,FLM,NNSUB,LMAX1,XH)           
+                                              1
+Warning: Type mismatch in argument ‘flm’ at (1); passed REAL(4) to COMPLEX(4)
+3.19user 0.00system 0:03.20elapsed 99%CPU (0avgtext+0avgdata 3352maxresident)k
+0inputs+2232outputs (0major+175minor)pagefaults 0swaps
+3.21user 0.00system 0:03.21elapsed 99%CPU (0avgtext+0avgdata 3276maxresident)k
+0inputs+2232outputs (0major+174minor)pagefaults 0swaps
+3.20user 0.00system 0:03.20elapsed 99%CPU (0avgtext+0avgdata 3248maxresident)k
+0inputs+2232outputs (0major+174minor)pagefaults 0swaps
+3.21user 0.00system 0:03.21elapsed 99%CPU (0avgtext+0avgdata 3272maxresident)k
+0inputs+2240outputs (0major+172minor)pagefaults 0swaps
+lib.tleed.f:4143:46:
+
+      1FLMS,NL,KLM,LM,CLM,NLM,LXI,NT,PQ,NA,NLL,FLM,NNSUB,LMAX1,XH)           
+                                              1
+Warning: Type mismatch in argument ‘flm’ at (1); passed REAL(4) to COMPLEX(4)
+0.68user 0.00system 0:00.69elapsed 99%CPU (0avgtext+0avgdata 3284maxresident)k
+0inputs+512outputs (0major+174minor)pagefaults 0swaps
+0.67user 0.00system 0:00.67elapsed 99%CPU (0avgtext+0avgdata 3356maxresident)k
+0inputs+512outputs (0major+175minor)pagefaults 0swaps
+0.67user 0.00system 0:00.67elapsed 100%CPU (0avgtext+0avgdata 3384maxresident)k
+0inputs+512outputs (0major+177minor)pagefaults 0swaps
+0.66user 0.00system 0:00.67elapsed 99%CPU (0avgtext+0avgdata 3284maxresident)k
+0inputs+512outputs (0major+175minor)pagefaults 0swaps
