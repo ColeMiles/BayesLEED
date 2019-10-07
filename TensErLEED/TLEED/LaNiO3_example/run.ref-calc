@@ -1,5 +1,5 @@
 ################################################################################
-#  Tensor LEED reference calculation - LaNiO3-tetragonal(1x1) with nearly optimized polar rumplings and Von Braun's La(Ni,Al)O3 optimized MFTR phase shifts and energy-dependent inner potential V0R(E) 
+#  Tensor LEED reference calculation - LaNiO3-tetragonal(1x1) with zero polar rumplings (i.e. perfectly flat LaO and NiO2 planes) and Von Braun's La(Ni,Al)O3 optimized MFTR phase shifts and energy-dependent inner potential V0R(E) 
 #  Shell script using the TensErLEED package v1.2 -  V. Blum, 17.04.2000
 #
 #  as described in 
@@ -49,16 +49,22 @@
 #
 ################################################################################
 
-   TLEED=/home/cole/ProgScratch/BayesLEED/TensErLEED/TLEED
+   IDtag=$1
+   TLEED=/home/jordan/bayesopt/TLEED
 
-    WORK=$TLEED/work/tmp.$$
+   WORK=$TLEED/work/tmp.$$
 
    SOURCEDIR=$TLEED/v1.2/src
    LIBDIR=$TLEED/v1.2/lib
    BEAMDIR=$TLEED/beamlists
    PHASEDIR=$TLEED/phaseshifts
    OUTDIR=$TLEED/LaNiO3_example/Spectra
-   TENSORDIR=$TLEED/LaNiO3_example/Tensors
+   TENSORDIR=$TLEED/LaNiO3_example/Tensors/Tensors-$IDtag
+   
+   if [ ! -d "$TENSORDIR" ]
+   then
+      mkdir $TENSORDIR
+   fi
 
    SOURCE=ref-calc.f
    LIBSOURCE=lib.tleed.f
@@ -68,7 +74,7 @@
 
    EXE=ref-calc.LaNiO3
 
-   OUTFILE=spec.ref-calc.LaNiO3-optStruct
+   OUTFILE=spec.ref-calc.LaNiO3-optStruct-$IDtag
 
 #  info about Fortran compiler 
    FC=gfortran
@@ -208,7 +214,7 @@ c      PARAMETER (MLMNI = 1 )
 ################################################################################
 
 cat > FIN << '/EO1'
-LaNiO3(001)-(1x1), top two bilayers buckled, basic reference calculation
+LaNiO3(001)-(1x1), top two bilayers with zero buckling, basic reference calculation
   30.00 350.00   2.00   EI,EF,DE
  3.7910 0.0000          ARA1
  0.0000 3.7910          ARA2
@@ -340,16 +346,7 @@ cat >> FIN << '/EO4'
 -   layer type 1 ---
   1                       LAY = 1: layer type no. 1 has overlayer lateral periodicity
  10                       number of Bravais sublayers, 1st layer
-  1 0.2200 1.8955 1.8955  sublayer no. 1 is of site type 1 (La)
-  7-0.1800 0.0000 0.0000  sublayer no. 2 is of site type 7 (apO)
-  4 1.9500 0.0000 0.0000  sublayer no. 3 is of site type 4 (Ni)
- 10 1.9000 1.8955 0.0000  sublayer no. 4 is of site type 10 (eqO)
- 10 1.9000 0.0000 1.8955  sublayer no. 5 is of site type 10 (eqO)
-  2 3.9900 1.8955 1.8955  sublayer no. 6 is of site type 2 (La)
-  8 3.8200 0.0000 0.0000  sublayer no. 7 is of site type 8 (apO)
-  5 5.8400 0.0000 0.0000  sublayer no. 8 is of site type 5 (Ni)
- 11 5.8400 1.8955 0.0000  sublayer no. 9 is of site type 11 (eqO)
- 11 5.8400 0.0000 1.8955  sublayer no.10 is of site type 11 (eqO)
+# Insert coordinates here:
 -   layer type 2 ---
   2                       LAY = 2: layer type no. 2 has substrate lateral periodicity
   5                       number of Bravais sublayers, 2nd layer

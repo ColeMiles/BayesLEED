@@ -28,18 +28,19 @@
 #
 ################################################################################
 
-  TLEED=/home/shengroup/LEED-IV/TensErLEED/TLEED
+  IDtag=$1
+  TLEED=/home/jordan/bayesopt/TLEED
   WORK=$TLEED/work/tmp.$$
   SOURCE=$TLEED/aux/r-factor/rf.f
   EXE=rf.x
 
   EXPFILE=$TLEED/exp-data/Data.LaNiO3-10uc-1x1-7IntBeams-LT325eV
-  SPECTRUM=$TLEED/LaNiO3_example/Spectra/spec.ref-calc.LaNiO3-optStruct
+  SPECTRUM=$TLEED/LaNiO3_example/Spectra/spec.ref-calc.LaNiO3-optStruct-$IDtag
 
-  OUTPUT=$TLEED/LaNiO3_example/rf-out.LaNiO3-optStruct
+  OUTPUT=$TLEED/LaNiO3_example/R-factor_out/rf-out.LaNiO3-optStruct-$IDtag
 
-   FC=ifort
-   FCOPT=''
+  FC=gfortran
+  FCOPT=''
 
 ################################################################################
 #  create working directory
@@ -95,7 +96,7 @@ Grouping of exp beam groups into two subgroups:
 
   $FC $FCOPT -o $EXE $SOURCE
 
-  $EXE < $SPECTRUM > /dev/null
+  ./$EXE < $SPECTRUM > /dev/null
 
 #  save and clean
 
