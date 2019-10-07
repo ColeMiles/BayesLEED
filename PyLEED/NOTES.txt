@@ -9,3 +9,22 @@ Idea 1: Wrap the programs in TLEED/v1.2/src in functions/subroutines,
          be able to easily emulate in python. I'd have to edit the Fortran
          code to read from files instead, which will modify lots of stuff.
          Seems awful to do.
+
+(*) Idea 2: Quick-and-dirty way. The python script just edits FIN to change the
+         coordinates after each perturbation, then runs the executable to
+         produce output data / curves.
+
+    Trying this for now for a proof-of-concept. Some notes on the current
+         scaffolding: (Important to keep this updated to avoid insanity).
+
+    Everything described on the subset of scripts/data in LaNiO3_example/
+
+    - I made a script called run.prep-ref-calc which does all of the steps
+        of run.ref-calc, but doesn't run the actual code and leaves everything
+        in TLEED/work/*
+    - The idea is then that a python script (to be written in here) would only
+        edit TLEED/work/FIN on each perturbation.
+    - Initial python script to edit FIN is based off of Jordan's code,
+        run_LEED_reduced_dim.py. However, for some reason, Jordan repeats some
+        of the perturbations? I.e he regresses only 8 displacements for the 10
+        total layers, and repeats displacements 3 and 7. So, I do the same.
