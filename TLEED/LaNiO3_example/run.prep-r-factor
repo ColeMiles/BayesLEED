@@ -46,7 +46,7 @@
 #  create working directory
 ################################################################################
 
-  mkdir $WORK
+  mkdir -p $WORK
   cd $WORK
 
 ################################################################################
@@ -92,17 +92,6 @@ Grouping of exp beam groups into two subgroups:
 
   cat $EXPFILE >> WEXPEL
 
-#  run r-factor program
+#  compile r-factor program
 
   $FC $FCOPT -o $EXE $SOURCE
-
-  ./$EXE < $SPECTRUM > /dev/null
-
-#  save and clean
-
-  mv ROUT $OUTPUT
-
-  cd
-  rm -r $WORK
-  
-#  that's it ...

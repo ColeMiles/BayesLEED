@@ -28,3 +28,6 @@ Idea 1: Wrap the programs in TLEED/v1.2/src in functions/subroutines,
         run_LEED_reduced_dim.py. However, for some reason, Jordan repeats some
         of the perturbations? I.e he regresses only 8 displacements for the 10
         total layers, and repeats displacements 3 and 7. So, I do the same.
+    - NEED the run_refcalc/calc_rfactor functions to be producing files in
+        independent directories, and cleaning up afterwards. This is so that
+        we can eventually make parallel calls to them.

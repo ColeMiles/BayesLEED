@@ -1,5 +1,7 @@
 """ Python code for interfacing with the TensErLEED code.
 """
+import os
+import subprocess
 import numpy as np
 
 """ The section which will be inserted into FIN with each perturbative change,
@@ -7,7 +9,7 @@ import numpy as np
 """
 COORD_SECT = """
   1                       LAY = 1: layer type no. 1 has overlayer lateral periodicity
-  10                      number of Bravais sublayers, 1st layer
+ 10                       number of Bravais sublayers, 1st layer
   1 {:.4f} 1.8955 1.8955  sublayer no. 1 is of site type 1 (La)
   7 {:.4f} 0.0000 0.0000  sublayer no. 2 is of site type 7 (apO)
   4 {:.4f} 0.0000 0.0000  sublayer no. 3 is of site type 4 (Ni)
@@ -62,5 +64,21 @@ def write_displacements(leedfile, displacements, idtag):
         newfile.write(new_coord_sect)
         newfile.writelines(oldfile_contents[indafter:])
 
-def run_leed(displacements, idtag):
+def run_command(executable, inputfile):
+    return subprocess.run([executable], stdin=open(inputfile, "r"), text=True)
+
+def run_refcalc(directory, idtag):
+    """ Given the path to a base directory, makes a new 
+         calculation on it, and returns the resulting R-factor.
+    """
+    newdir = os.path.join(directory, "refcalc"+str(idtag))
+    os.mkdir(newdir)
+    subprocess.run(["cp", "ref-calc.LaNiO3", newdir])
+    # TODO: Finish this
+    refcalc_res = run_command()
+    # Output is now in fd.out. Feed this to rfactor program, which puts output
+    #  in ROUT.
+    raise NotImplementedError()
+
+def calc_rfactor(executable, inputfile, idtag):
     raise NotImplementedError()
