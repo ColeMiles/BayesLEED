@@ -50,7 +50,7 @@
 ################################################################################
 
    IDtag=$1
-   TLEED=/home/jordan/bayesopt/TLEED
+   TLEED=/home/cole/ProgScratch/BayesLEED/TLEED
 
    WORK=$TLEED/work/tmp.$$
 

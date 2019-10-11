@@ -1,7 +1,9 @@
 """ Python code for interfacing with the TensErLEED code.
 """
 import os
+import shutil
 import subprocess
+import re
 import numpy as np
 
 """ The section which will be inserted into FIN with each perturbative change,
@@ -28,7 +30,58 @@ UNPERTURBED = np.array(
     [0.0000, 0.0000, 1.9500, 1.9500, 1.9500, 3.9000, 3.9000, 5.8500, 5.8500, 5.8500]
 )
 
-def write_displacements(leedfile, displacements, idtag):
+class LEEDManager:
+    def __init__(self, basedir, leed_executable, rfactor_executable, exp_datafile, templatefile):
+        """ Create a LEEDManager to keep track of TensErLEED components.
+                basedir: The base directory to do computation in
+                leed_executable: Path to the LEED executable
+                rfactor_executable: Path to the rfactor executable
+                exp_datafile: Path to the experimental datafile
+                templatefile: The base template for the LEED input file (FIN)
+        """
+        for path in [basedir, leed_executable, rfactor_executable, templatefile]:
+            if not os.path.exists(path):
+                raise ValueError("File not found: {}".format(path))
+        self.basedir = os.path.abspath(basedir)
+        self.leed_exe = os.path.abspath(leed_executable)
+        self.rfactor_exe = os.path.abspath(rfactor_executable)
+        self.exp_datafile = os.path.abspath(exp_datafile)
+        with open(templatefile, "r") as f:
+            self.input_template = f.readlines()
+        self.calc_number = 0
+
+    # Note: This is going to break with parallelism... think about that
+    # Maybe make it some pseudo-random number rather than a sequence?
+    # Or if I can get the process number somehow?
+    def ref_calc(self, displacements):
+        """ Do the full process of performing a reference calculation.
+                displacements: A length 8 np.array of atomic displacements
+        """
+        self.calc_number += 1
+        newdir = os.path.join(self.basedir, "ref-calc" + str(self.calc_number))
+        os.mkdir(newdir)
+        shutil.copy(self.exp_datafile, os.path.join(newdir, "WEXPEL"))
+        os.chdir(newdir)
+        input_filename = os.path.join(newdir, "FIN")
+        stdout_filename = os.path.join(newdir, "protocol")
+        write_displacements(self.input_template, displacements, input_filename)
+        subprocess.run(
+            [self.leed_exe], 
+            stdin=open(input_filename, "r"),
+            stdout=open(stdout_filename, "w"),
+            text=True
+        )
+        result_filename = os.path.join(newdir, "fd.out")
+        result = run_command(self.rfactor_exe, result_filename, capture_output=True)
+        result = subprocess.run(
+            [self.rfactor_exe],
+            stdin=open(result_filename, "r"),
+            capture_output=True,
+            text=True
+        )
+        return extract_rfactor(result.stdout)
+
+def write_displacements(input_template, displacements, newfilename):
     """ Edits a TLEED input script to contain updated coordinates.
         displacements should be a np.array of length 8
     """
@@ -43,13 +96,10 @@ def write_displacements(leedfile, displacements, idtag):
     new_coords = np.round(UNPERTURBED + displacements, 4)
     new_coord_sect = COORD_SECT.format(*new_coords)
 
-    # Read in entirety of old script
-    with open(leedfile, "r") as initfile:
-        oldfile_contents = initfile.readlines()
     # Find line before where new coordinates need to be inserted, as well as the
     #  line which marks the following section
     indbefore, indafter = -1, -1
-    for i, line in enumerate(oldfile_contents):
+    for i, line in enumerate(input_template):
         if line == "-   layer type 1 ---\n":
             indbefore = i+1
         elif line == "-   layer type 2 ---\n":
@@ -59,26 +109,18 @@ def write_displacements(leedfile, displacements, idtag):
         raise ValueError("LEED input file does not contain section marker lines")
 
     # Write new script as 1st section, then new coords, then 2nd section
-    with open(leedfile + str(idtag), "w") as newfile:
-        newfile.writelines(oldfile_contents[:indbefore])
+    with open(newfilename, "w") as newfile:
+        newfile.writelines(input_template[:indbefore])
         newfile.write(new_coord_sect)
-        newfile.writelines(oldfile_contents[indafter:])
+        newfile.writelines(input_template[indafter:])
 
-def run_command(executable, inputfile):
-    return subprocess.run([executable], stdin=open(inputfile, "r"), text=True)
+def run_command(executable, inputfile, **kwargs):
+    return subprocess.run([executable], stdin=open(inputfile, "r"), text=True, **kwargs)
 
-def run_refcalc(directory, idtag):
-    """ Given the path to a base directory, makes a new 
-         calculation on it, and returns the resulting R-factor.
-    """
-    newdir = os.path.join(directory, "refcalc"+str(idtag))
-    os.mkdir(newdir)
-    subprocess.run(["cp", "ref-calc.LaNiO3", newdir])
-    # TODO: Finish this
-    refcalc_res = run_command()
-    # Output is now in fd.out. Feed this to rfactor program, which puts output
-    #  in ROUT.
-    raise NotImplementedError()
-
-def calc_rfactor(executable, inputfile, idtag):
-    raise NotImplementedError()
+def extract_rfactor(output):
+    p = re.compile(r"AVERAGE R-FACTOR =  (\d\.\d+)")
+    m = re.search(p, output)
+    if m is not None:
+        return float(m.group(1))
+    else:
+        raise ValueError("No average R-factor line found in input")
