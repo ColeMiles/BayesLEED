@@ -48,18 +48,16 @@ class LEEDManager:
         self.exp_datafile = os.path.abspath(exp_datafile)
         with open(templatefile, "r") as f:
             self.input_template = f.readlines()
-        self.calc_number = 0
 
     # Note: This is going to break with parallelism... think about that
-    # Maybe make it some pseudo-random number rather than a sequence?
+    # Maybe make it some random number rather than a sequence?
     # Or if I can get the process number somehow?
-    def ref_calc(self, displacements):
+    def ref_calc(self, displacements, calcid):
         """ Do the full process of performing a reference calculation.
                 displacements: A length 8 np.array of atomic displacements
         """
-        self.calc_number += 1
-        newdir = os.path.join(self.basedir, "ref-calc" + str(self.calc_number))
-        os.mkdir(newdir)
+        newdir = os.path.join(self.basedir, "ref-calc" + str(calcid))
+        os.makedirs(newdir, exist_ok=True)
         shutil.copy(self.exp_datafile, os.path.join(newdir, "WEXPEL"))
         os.chdir(newdir)
         input_filename = os.path.join(newdir, "FIN")

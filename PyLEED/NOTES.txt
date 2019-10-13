@@ -28,6 +28,16 @@ Idea 1: Wrap the programs in TLEED/v1.2/src in functions/subroutines,
         run_LEED_reduced_dim.py. However, for some reason, Jordan repeats some
         of the perturbations? I.e he regresses only 8 displacements for the 10
         total layers, and repeats displacements 3 and 7. So, I do the same.
+        (* talked to him: this is to make the problem slightly easier *)
     - NEED the run_refcalc/calc_rfactor functions to be producing files in
         independent directories, and cleaning up afterwards. This is so that
-        we can eventually make parallel calls to them.
+        we can eventually make parallel calls to them. (* done *)
+
+To-do
+============
+- Make a basic Bayes Opt loop
+- Figure out what the contraints are. There must be some due to the geometry of
+    the unit cell (i.e. make sure atoms don't collide or leave the unit cell)
+- Figure out how parallelization is going to work. Afterwards, will probably
+    want to switch to MC-based acquisition functions.
+
