@@ -41,3 +41,8 @@ To-do
 - Figure out how parallelization is going to work. Afterwards, will probably
     want to switch to MC-based acquisition functions.
 
+Current Bugs
+===========
+- Setting a noise constraint to LessThan crashes the program, claiming that there's a
+   CPU-bound Tensor somewhere being used with a GPU-bound one. Maybe
+   something to do with the raw -> real transform?

@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import re
+import logging
 import numpy as np
 
 """ The section which will be inserted into FIN with each perturbative change,
@@ -48,13 +49,11 @@ class LEEDManager:
         self.exp_datafile = os.path.abspath(exp_datafile)
         with open(templatefile, "r") as f:
             self.input_template = f.readlines()
+        self.calc_number = 0
 
-    # Note: This is going to break with parallelism... think about that
-    # Maybe make it some random number rather than a sequence?
-    # Or if I can get the process number somehow?
-    def ref_calc(self, displacements, calcid):
-        """ Do the full process of performing a reference calculation.
-                displacements: A length 8 np.array of atomic displacements
+    def _start_calc(self, displacements, calcid):
+        """ Start a new process running TLEED, and return the subprocess
+              handle and working directory without waiting for it to finish
         """
         newdir = os.path.join(self.basedir, "ref-calc" + str(calcid))
         os.makedirs(newdir, exist_ok=True)
@@ -63,14 +62,25 @@ class LEEDManager:
         input_filename = os.path.join(newdir, "FIN")
         stdout_filename = os.path.join(newdir, "protocol")
         write_displacements(self.input_template, displacements, input_filename)
-        subprocess.run(
+        process = subprocess.Popen(
             [self.leed_exe], 
             stdin=open(input_filename, "r"),
             stdout=open(stdout_filename, "w"),
+            cwd=newdir,
             text=True
         )
-        result_filename = os.path.join(newdir, "fd.out")
-        result = run_command(self.rfactor_exe, result_filename, capture_output=True)
+        return process, newdir
+
+    def ref_calc(self, displacements):
+        """ Do the full process of performing a reference calculation.
+                displacements: A length 8 np.array of atomic displacements.
+            NOTE: Do not call this function in parallel, as there is a race
+                condition on self.calc_number. Instead, use batch_ref_calcs.
+        """
+        self.calc_number += 1
+        calc_process, pdir = self._start_calc(displacements, self.calc_number)
+        calc_process.wait()
+        result_filename = os.path.join(pdir, "fd.out")
         result = subprocess.run(
             [self.rfactor_exe],
             stdin=open(result_filename, "r"),
@@ -78,6 +88,39 @@ class LEEDManager:
             text=True
         )
         return extract_rfactor(result.stdout)
+    
+    def batch_ref_calcs(self, displacements):
+        """ Run multiple reference calculations in parallel, one for each
+             row of displacements.
+        """
+        if len(displacements.shape) != 2:
+            raise ValueError("LEEDManager.batch_ref_calcs expects a 2-dimensional argument")
+        num_evals = displacements.shape[0]
+
+        # Start up all of the calculation processes
+        logging.info("Starting {} reference calculations...".format(num_evals))
+        processes = []
+        for i in range(num_evals):
+            self.calc_number += 1
+            processes.append(self._start_calc(displacements[i], self.calc_number))
+
+        # Wait for all of them to complete, calculate r-factors for each
+        # The r-factor calculations are fast enough that we may as well run
+        #   them serially
+        rfactors = []
+        for p, pdir in processes:
+            p.wait()
+            result_filename = os.path.join(pdir, "fd.out")
+            result = subprocess.run(
+                [self.rfactor_exe],
+                stdin=open(result_filename, "r"),
+                capture_output=True,
+                text=True
+            )
+            rfactors.append(extract_rfactor(result.stdout))
+        logging.info("Reference calculations completed.")
+        return np.array(rfactors)
+
 
 def write_displacements(input_template, displacements, newfilename):
     """ Edits a TLEED input script to contain updated coordinates.
@@ -111,9 +154,6 @@ def write_displacements(input_template, displacements, newfilename):
         newfile.writelines(input_template[:indbefore])
         newfile.write(new_coord_sect)
         newfile.writelines(input_template[indafter:])
-
-def run_command(executable, inputfile, **kwargs):
-    return subprocess.run([executable], stdin=open(inputfile, "r"), text=True, **kwargs)
 
 def extract_rfactor(output):
     p = re.compile(r"AVERAGE R-FACTOR =  (\d\.\d+)")

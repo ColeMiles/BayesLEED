@@ -25,6 +25,9 @@ Misc. Notes
    must be present
 - Library compilation command: `gfortran -g -shared -fPIC -o <libname>.so <libname>.f`
 - `nm -l` is the command to extract symbols from shared library
+- Coordinate order in TLEED files is (z, x, y)...
+- The TLEED code is searching over the search space of displacements between
+    -0.2 and 0.2, I should do the same (but normalize to unit cube in search space)
 
 TLEED Library Structure
 =======================
