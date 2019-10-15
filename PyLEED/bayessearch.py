@@ -103,9 +103,9 @@ def main(workdir, ncores, nepochs):
             num_samples=1000, 
             resample=False
         )
-        acquisition = botorch.acquisition.qExpectedImprovement(
+        acquisition = botorch.acquisition.qUpperConfidenceBound(
             model,
-            -best_rfactor,
+            0.1,
             sampler
         )
         logging.info("Optimizing acquisition function to generate new test points...")
