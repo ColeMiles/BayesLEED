@@ -57,7 +57,7 @@
 #
 ################################################################################
    
-   TLEED=/home/shengroup/LEED-IV/TensErLEED/TLEED
+   TLEED=/home/cole/ProgScratch/BayesLEED/TLEED
 
    WORK=$TLEED/work/tmp.$$
 
@@ -77,14 +77,14 @@
    SEARCH=run.search
 
 # info about Fortran compiler
-   FC=ifort
-   FCOPT=''
+   FC=gfortran
+   FCOPT='-O3 -malign-double'
 
 ################################################################################
 #  create working directory
 ################################################################################
 
-   mkdir $WORK
+   mkdir -p $WORK
    cd $WORK
 
 ################################################################################

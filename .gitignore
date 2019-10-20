@@ -1,0 +1,15 @@
+TLEED/LaNiO3_example/Deltas/*
+TLEED/LaNiO3_example/Spectra/*
+TLEED/LaNiO3_example/Tensors/*
+TLEED/LaNiO3_example/search-results/*
+TLEED/LaNiO3_example/FIN
+TLEED/LaNiO3_example/*.f
+TLEED/LaNiO3_example/*.o
+TLEED/work/*
+PyLEED/__pycache__/*
+TLEED/LaNiO3_example/FINTEMPLATE
+TLEED/LaNiO3_example/GLOBAL
+TLEED/LaNiO3_example/PARAM
+TLEED/LaNiO3_example/protocol
+TLEED/LaNiO3_example/ref-calc.LaNiO3
+

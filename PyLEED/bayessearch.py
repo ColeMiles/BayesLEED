@@ -11,6 +11,12 @@ import gpytorch
 import botorch
 import tleed
 
+SEARCH_SPACE = np.array([-0.25, 0.25])
+# True, target solution, with symmetric pts taken out
+TRUE_SOL = np.array(
+    [0.2200, -0.1800, 0.0000, -0.0500, 0.0900, -0.0800, -0.0100, -0.0100]
+)
+
 
 def create_manager(workdir):
     """ Makes a LEEDManager working in the given directory. This should be
@@ -28,14 +34,14 @@ def create_manager(workdir):
        templatefile
     )
 
-# The search space is [-0.2, 0.2] for each atom, but the default kernel parameters
+# The search space is +- some small value, but the default kernel parameters
 #   work best for inputs normalized to the unit cube. So, just do that mapping.
 def normalize_input(disp):
-    return (disp + 0.2) * 2.5
+    return (disp - SEARCH_SPACE[0]) / (SEARCH_SPACE[1] - SEARCH_SPACE[0])
 
-# Just the reverse operation: Unit cube -> [-0.2, 0.2] in each dimension
+# Just the reverse operation: Unit cube -> search space in each dimension
 def denormalize_input(norm_disp):
-    return (0.4 * norm_disp) - 0.2
+    return ((SEARCH_SPACE[1] - SEARCH_SPACE[0]) * norm_disp) + SEARCH_SPACE[0]
 
 def create_model(pts, rfactors, state_dict=None):
     """ Create / update a botorch model using the given points
@@ -69,26 +75,58 @@ def create_model(pts, rfactors, state_dict=None):
         model.load_state_dict(state_dict)
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(model.likelihood, model)
     return model, mll
-    
 
-def main(workdir, ncores, nepochs):
+
+def random_unit_vecs(num_vecs, vec_dim):
+    """ Samples num_vecs number of random unit vectors, in vec_dim-dimensional space
+    """
+    vecs = np.random.random((num_vecs, vec_dim))
+    return vecs / np.linalg.norm(vecs, axis=1, keepdims=True)
+
+
+def random_sample(npts):
+    """ Return npts number of points, randomly sampled across the entire
+         search space.
+    """
+    random_unit_cube = np.random.random((npts, len(TRUE_SOL)))
+    return denormalize_input(random_unit_cube)
+
+
+def warm_start(npts, dist):
+    """ Return npts number of points in search space, sampled close to the 
+         true solution. The distance from the true solution is given by dist.
+    """
+    # Sample npts random vectors on the unit sphere, then scale by dist
+    rand_disps = dist * random_unit_vecs(npts, len(TRUE_SOL))
+    sample_pts = TRUE_SOL + rand_disps
+    return sample_pts
+
+def main(workdir, ncores, nepochs, warm=None):
     num_eval = min(ncores, mp.cpu_count())
     manager = create_manager(workdir)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Initialize a model with random points in search space to begin
-    pts = np.random.rand(ncores, 8)
-    denormalized_pts = denormalize_input(pts)
-    rfactors = manager.batch_ref_calcs(denormalized_pts)
-    model, mll = create_model(pts, rfactors)
+    if warm is None:
+        logging.info("Performing random start with {} points".format(num_eval))
+        pts = random_start(num_eval)
+    else:
+        logging.info(
+            "Performing warm start with {} points, {} from true solution".format(num_eval, warm)
+        )
+        pts = warm_start(num_eval, warm)
+    normalized_pts = normalize_input(pts)
+    rfactors = manager.batch_ref_calcs(pts)
+    model, mll = create_model(normalized_pts, rfactors)
+
     # Find the best out of these initial trial points
     best_idx = np.argmin(rfactors)
-    best_pt = denormalized_pts[best_idx]
+    best_pt = pts[best_idx]
     best_rfactor = rfactors[best_idx]
     rfactor_progress = [best_rfactor]
     np.savetxt("bestpt.txt", best_pt)
 
-    pts = torch.tensor(pts, device=device, dtype=torch.float64)
+    normalized_pts = torch.tensor(normalized_pts, device=device, dtype=torch.float64)
     rfactors = torch.tensor(rfactors, device=device, dtype=torch.float64)
     # Main Bayesian Optimization Loop
     for epoch in range(nepochs):
@@ -109,7 +147,7 @@ def main(workdir, ncores, nepochs):
             sampler
         )
         logging.info("Optimizing acquisition function to generate new test points...")
-        new_pts, _ = botorch.optim.optimize_acqf(
+        new_normalized_pts, _ = botorch.optim.optimize_acqf(
             acq_function=acquisition,
             bounds=torch.tensor([[0.0] * 8, [1.0] * 8], device=device, dtype=torch.float64),
             q=num_eval,
@@ -119,15 +157,15 @@ def main(workdir, ncores, nepochs):
             sequential=True
         )
         logging.info("New test points generated")
-        denormalized_pts = denormalize_input(new_pts.cpu().numpy())
-        new_rfactors = manager.batch_ref_calcs(denormalized_pts)
+        pts = denormalize_input(new_normalized_pts.cpu().numpy())
+        new_rfactors = manager.batch_ref_calcs(pts)
 
         # Get the new best pt, rfactor
         best_new_idx = np.argmin(new_rfactors)
         best_new_rfactor = new_rfactors[best_new_idx]
         if best_new_rfactor < best_rfactor:
             best_rfactor = best_new_rfactor
-            best_pt = denormalized_pts[best_new_idx]
+            best_pt = pts[best_new_idx]
             np.savetxt("bestpt.txt", best_pt)
         rfactor_progress.append(best_rfactor)
         np.savetxt("rfactor_progress.txt", rfactor_progress)
@@ -135,9 +173,9 @@ def main(workdir, ncores, nepochs):
         
         # Update the model with the new (point, rfactor) values
         new_rfactors_tensor = torch.tensor(new_rfactors, device=device, dtype=torch.float64)
-        pts = torch.cat((pts, new_pts))
+        normalized_pts = torch.cat((normalized_pts, new_normalized_pts))
         rfactors = torch.cat((rfactors, new_rfactors_tensor))
-        model, mll = create_model(pts, rfactors, state_dict=model.state_dict())
+        model, mll = create_model(normalized_pts, rfactors, state_dict=model.state_dict())
         logging.info("Botorch model updated with new evaluated points")
         torch.save(model.state_dict(), "finalmodel.mdl")
         logging.info("Saved model state dictionary to finalmodel.mdl")
@@ -159,6 +197,9 @@ if __name__ == "__main__":
     parser.add_argument("--nepochs", type=int, default=100,
         help="The number of epochs to run."
     )
+    parser.add_argument("--warm", type=float, default=0.03,
+        help="Warm start with points a given distance from the true solution"
+    )
     args = parser.parse_args()
 
     # Check for GPU presence
@@ -171,4 +212,4 @@ if __name__ == "__main__":
     np.random.seed(12345)
     torch.manual_seed(seed=12345)
 
-    main(args.workdir, args.ncores, args.nepochs)
+    main(args.workdir, args.ncores, args.nepochs, args.warm)

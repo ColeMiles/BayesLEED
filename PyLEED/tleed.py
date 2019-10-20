@@ -31,6 +31,8 @@ UNPERTURBED = np.array(
     [0.0000, 0.0000, 1.9500, 1.9500, 1.9500, 3.9000, 3.9000, 5.8500, 5.8500, 5.8500]
 )
 
+SOL_RFACTOR = 0.2794
+
 class LEEDManager:
     def __init__(self, basedir, leed_executable, rfactor_executable, exp_datafile, templatefile):
         """ Create a LEEDManager to keep track of TensErLEED components.
@@ -58,7 +60,6 @@ class LEEDManager:
         newdir = os.path.join(self.basedir, "ref-calc" + str(calcid))
         os.makedirs(newdir, exist_ok=True)
         shutil.copy(self.exp_datafile, os.path.join(newdir, "WEXPEL"))
-        os.chdir(newdir)
         input_filename = os.path.join(newdir, "FIN")
         stdout_filename = os.path.join(newdir, "protocol")
         write_displacements(self.input_template, displacements, input_filename)

@@ -68,7 +68,7 @@
 #
 ################################################################################
 
-   TLEED=/home/shengroup/LEED-IV/TensErLEED/TLEED
+   TLEED=/home/cole/ProgScratch/BayesLEED/TLEED
    WORK=$TLEED/work/tmp.$$
 
    SOURCEDIR=$TLEED/v1.2/src
@@ -85,10 +85,10 @@
    EXPFILE=Data.LaNiO3-10uc-1x1-7IntBeams-LT325eV
 
 # info about Fortran and C compilers
-   FC=ifort
-   FCOPT=''
+   FC=gfortran
+   FCOPT='-O3 -malign-double'
    CC=cc
-   CCOPT=''
+   CCOPT='-O3'
 
 #  begin work
 
@@ -385,7 +385,7 @@ ln -s $DELTADIR/DEL* .
 #                                                                   #
 #####################################################################
 
-time $EXE < rf.info > protocol
+time ./$EXE < rf.info > protocol
 
 #####################################################################
 #                                                                   #
