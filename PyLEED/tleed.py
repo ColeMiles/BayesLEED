@@ -49,6 +49,12 @@ class LEEDManager:
         self.leed_exe = os.path.abspath(leed_executable)
         self.rfactor_exe = os.path.abspath(rfactor_executable)
         self.exp_datafile = os.path.abspath(exp_datafile)
+        # Copy the exp datafile to the working directory if not already there
+        copy_exp_datafile = os.path.join(self.basedir, os.path.split(self.exp_datafile)[1])
+        try:
+            shutil.copyfile(self.exp_datafile, copy_exp_datafile)
+        except shutil.SameFileError:
+            pass
         with open(templatefile, "r") as f:
             self.input_template = f.readlines()
         self.calc_number = 0
@@ -59,7 +65,7 @@ class LEEDManager:
         """
         newdir = os.path.join(self.basedir, "ref-calc" + str(calcid))
         os.makedirs(newdir, exist_ok=True)
-        shutil.copy(self.exp_datafile, os.path.join(newdir, "WEXPEL"))
+        #shutil.copy(self.exp_datafile, os.path.join(newdir, "WEXPEL"))
         input_filename = os.path.join(newdir, "FIN")
         stdout_filename = os.path.join(newdir, "protocol")
         write_displacements(self.input_template, displacements, input_filename)
@@ -72,6 +78,19 @@ class LEEDManager:
         )
         return process, newdir
 
+    def _rfactor_calc(self, refcalc_outfile):
+        """ Runs the r-factor calculation, and parses the output,
+             returning the result
+        """
+        result = subprocess.run(
+            [self.rfactor_exe],
+            cwd=self.basedir,
+            stdin=open(refcalc_outfile, "r"),
+            capture_output=True,
+            text=True
+        )
+        return extract_rfactor(result.stdout)
+
     def ref_calc(self, displacements):
         """ Do the full process of performing a reference calculation.
                 displacements: A length 8 np.array of atomic displacements.
@@ -82,13 +101,14 @@ class LEEDManager:
         calc_process, pdir = self._start_calc(displacements, self.calc_number)
         calc_process.wait()
         result_filename = os.path.join(pdir, "fd.out")
-        result = subprocess.run(
-            [self.rfactor_exe],
-            stdin=open(result_filename, "r"),
-            capture_output=True,
-            text=True
-        )
-        return extract_rfactor(result.stdout)
+        return self._rfactor_calc(result_filename)
+        #result = subprocess.run(
+        #    [self.rfactor_exe],
+        #    stdin=open(result_filename, "r"),
+        #    capture_output=True,
+        #    text=True
+        #)
+        #return extract_rfactor(result.stdout)
     
     def batch_ref_calcs(self, displacements):
         """ Run multiple reference calculations in parallel, one for each
@@ -112,13 +132,15 @@ class LEEDManager:
         for p, pdir in processes:
             p.wait()
             result_filename = os.path.join(pdir, "fd.out")
-            result = subprocess.run(
-                [self.rfactor_exe],
-                stdin=open(result_filename, "r"),
-                capture_output=True,
-                text=True
-            )
-            rfactors.append(extract_rfactor(result.stdout))
+            rfactors.append(self._rfactor_calc(result_filename))
+            #result = subprocess.run(
+            #    [self.rfactor_exe],
+            #    cwd=pdir,
+            #    stdin=open(result_filename, "r"),
+            #    capture_output=True,
+            #    text=True
+            #)
+            #rfactors.append(extract_rfactor(result.stdout))
         logging.info("Reference calculations completed.")
         return np.array(rfactors)
 
@@ -162,4 +184,6 @@ def extract_rfactor(output):
     if m is not None:
         return float(m.group(1))
     else:
+        import ipdb
+        ipdb.set_trace()
         raise ValueError("No average R-factor line found in input")

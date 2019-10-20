@@ -67,7 +67,7 @@ def create_model(pts, rfactors, state_dict=None):
     model.mean_module.register_parameter(
         name="constant",
         parameter=torch.nn.Parameter(
-            torch.tensor([0.7], device=device, dtype=torch.float64)
+            torch.tensor([-0.7], device=device, dtype=torch.float64)
         )
     )
 
@@ -209,7 +209,7 @@ if __name__ == "__main__":
         logging.warning("No CUDA-capable GPU found, continuing on CPU")
 
     # Set random seeds to get reproducible behavior for now
-    np.random.seed(12345)
-    torch.manual_seed(seed=12345)
+    np.random.seed(1234)
+    torch.manual_seed(seed=1234)
 
     main(args.workdir, args.ncores, args.nepochs, args.warm)
