@@ -17,6 +17,13 @@ TRUE_SOL = np.array(
     [0.2200, -0.1800, 0.0000, -0.0500, 0.0900, -0.0800, -0.0100, -0.0100]
 )
 
+def append_arrays_to_file(filename, pts, rfactors):
+    assert len(pts.shape) == 2, "append_array_to_file only handles dim-2 pts array"
+    assert len(pts) == len(rfactors), "do not have same number of pts and rfactors"
+    row_format_string = "{:<8.4f}" * 9
+    with open(filename, "a") as f:
+        for pt, rfactor in zip(pts, rfactors):
+            f.write(row_format_string.format(*pt, rfactor) + "\n")
 
 def create_manager(workdir):
     """ Makes a LEEDManager working in the given directory. This should be
@@ -124,7 +131,10 @@ def main(workdir, ncores, nepochs, warm=None):
     best_pt = pts[best_idx]
     best_rfactor = rfactors[best_idx]
     rfactor_progress = [best_rfactor]
-    np.savetxt("bestpt.txt", best_pt)
+    with open("tested_points.txt", "w") as ptfile:
+        ptfile.write("DISPLACEMENT" + " " * 52 + "RFACTOR\n")
+    append_arrays_to_file("tested_points.txt", pts, rfactors)
+    logging.info("Best r-factor from initial set: {:.4f}".format(best_rfactor))
 
     normalized_pts = torch.tensor(normalized_pts, device=device, dtype=torch.float64)
     rfactors = torch.tensor(rfactors, device=device, dtype=torch.float64)
@@ -136,6 +146,8 @@ def main(workdir, ncores, nepochs, warm=None):
         # Fit the kernel hyperparameters
         logging.info("Fitting Kernel hyperparameters...")
         botorch.fit.fit_gpytorch_model(mll)
+        torch.save(model, "finalmodel.pt")
+        logging.info("Saved full model to finalmodel.pt")
 
         sampler = botorch.sampling.SobolQMCNormalSampler(
             num_samples=1000, 
@@ -167,6 +179,7 @@ def main(workdir, ncores, nepochs, warm=None):
             best_rfactor = best_new_rfactor
             best_pt = pts[best_new_idx]
             np.savetxt("bestpt.txt", best_pt)
+        append_arrays_to_file("tested_points.txt", pts, new_rfactors)
         rfactor_progress.append(best_rfactor)
         np.savetxt("rfactor_progress.txt", rfactor_progress)
         logging.info("Current best rfactor = {}".format(best_rfactor))
@@ -177,8 +190,6 @@ def main(workdir, ncores, nepochs, warm=None):
         rfactors = torch.cat((rfactors, new_rfactors_tensor))
         model, mll = create_model(normalized_pts, rfactors, state_dict=model.state_dict())
         logging.info("Botorch model updated with new evaluated points")
-        torch.save(model.state_dict(), "finalmodel.mdl")
-        logging.info("Saved model state dictionary to finalmodel.mdl")
 
 
 if __name__ == "__main__":
@@ -200,6 +211,9 @@ if __name__ == "__main__":
     parser.add_argument("--warm", type=float, default=0.03,
         help="Warm start with points a given distance from the true solution"
     )
+    parser.add_argument("--seed", type=int,
+        help="Set the seed for the RNGs"
+    )
     args = parser.parse_args()
 
     # Check for GPU presence
@@ -208,8 +222,9 @@ if __name__ == "__main__":
     else:
         logging.warning("No CUDA-capable GPU found, continuing on CPU")
 
-    # Set random seeds to get reproducible behavior for now
-    np.random.seed(1234)
-    torch.manual_seed(seed=1234)
+    # Set random seeds to get reproducible behavior
+    if args.seed is not None:
+        np.random.seed(args.seed)
+        torch.manual_seed(seed=args.seed)
 
     main(args.workdir, args.ncores, args.nepochs, args.warm)
