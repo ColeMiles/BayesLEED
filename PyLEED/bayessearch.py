@@ -3,7 +3,6 @@ import os
 import time
 import logging
 import multiprocessing as mp
-import multiprocessing.dummy as mpdummy
 
 import numpy as np
 import torch
@@ -20,7 +19,7 @@ TRUE_SOL = np.array(
 def append_arrays_to_file(filename, pts, rfactors):
     assert len(pts.shape) == 2, "append_array_to_file only handles dim-2 pts array"
     assert len(pts) == len(rfactors), "do not have same number of pts and rfactors"
-    row_format_string = "{:<8.4f}" * 9
+    row_format_string = "{:<8.4f}" * (pts.shape[1] + 1)
     with open(filename, "a") as f:
         for pt, rfactor in zip(pts, rfactors):
             f.write(row_format_string.format(*pt, rfactor) + "\n")
@@ -74,7 +73,7 @@ def create_model(pts, rfactors, state_dict=None):
     model.mean_module.register_parameter(
         name="constant",
         parameter=torch.nn.Parameter(
-            torch.tensor([-0.7], device=device, dtype=torch.float64)
+            torch.tensor([-0.65], device=device, dtype=torch.float64)
         )
     )
 
@@ -106,7 +105,95 @@ def warm_start(npts, dist):
     # Sample npts random vectors on the unit sphere, then scale by dist
     rand_disps = dist * random_unit_vecs(npts, len(TRUE_SOL))
     sample_pts = TRUE_SOL + rand_disps
+    sample_pts = np.clip(sample_pts, SEARCH_SPACE[0], SEARCH_SPACE[1])
     return sample_pts
+
+
+def restricted_problem(workdir, ncores, nepochs, ndims, warm=None):
+    """ Searches only over ndims of the coordinates rather than all 8
+    """
+    num_eval = min(ncores, mp.cpu_count())
+    manager = create_manager(workdir)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # Initialize a model with random points in search space to begin
+    if warm is None:
+        logging.info("Performing random start with {} points".format(num_eval))
+        pts = random_start(num_eval)
+        pts[:, ndims:] = TRUE_SOL[ndims:]
+    else:
+        logging.info(
+            "Performing warm start with {} points, {} from true solution".format(num_eval, warm)
+        )
+        pts = warm_start(num_eval, warm)
+        pts[:, ndims:] = TRUE_SOL[ndims:]
+    normalized_pts = normalize_input(pts)[:, :ndims]
+    rfactors = manager.batch_ref_calcs(pts)
+    model, mll = create_model(normalized_pts, rfactors)
+
+    # Find the best out of these initial trial points
+    best_idx = np.argmin(rfactors)
+    best_pt = pts[best_idx, :ndims]
+    best_rfactor = rfactors[best_idx]
+    rfactor_progress = [best_rfactor]
+    with open("restricted_points.txt", "w") as ptfile:
+        ptfile.write("DISPLACEMENT" + " " * (ndims * 9 - 12) + "RFACTOR\n")
+    append_arrays_to_file("restricted_points.txt", pts[:, :ndims], rfactors)
+    logging.info("Best r-factor from initial set: {:.4f}".format(best_rfactor))
+
+    normalized_pts = torch.tensor(normalized_pts, device=device, dtype=torch.float64)
+    rfactors = torch.tensor(rfactors, device=device, dtype=torch.float64)
+    # Main Bayesian Optimization Loop
+    for epoch in range(nepochs):
+        logging.info("Starting Epoch {}".format(epoch))
+        # Fit the kernel hyperparameters
+        logging.info("Fitting Kernel hyperparameters...")
+        botorch.fit.fit_gpytorch_model(mll)
+        torch.save(model.state_dict(), "finalmodel.pt")
+        logging.info("Saved model state dict to finalmodel.pt")
+
+        sampler = botorch.sampling.SobolQMCNormalSampler(
+            num_samples=2500, 
+            resample=False
+        )
+        acquisition = botorch.acquisition.qExpectedImprovement(
+           model,
+           -best_rfactor,
+           sampler
+        )
+        logging.info("Optimizing acquisition function to generate new test points...")
+        new_normalized_pts, _ = botorch.optim.optimize_acqf(
+            acq_function=acquisition,
+            bounds=torch.tensor([[0.0] * ndims, [1.0] * ndims], device=device, dtype=torch.float64),
+            q=num_eval,
+            num_restarts=20,
+            raw_samples=200,
+            options={},
+            sequential=True
+        )
+        logging.info("New test points generated")
+        pts = denormalize_input(new_normalized_pts.cpu().numpy())
+        # Add on the other fixed coordinates
+        full_pts = np.concatenate((pts, np.repeat(TRUE_SOL[np.newaxis, ndims:], len(pts), axis=0)), axis=1)
+        new_rfactors = manager.batch_ref_calcs(full_pts)
+
+        # Get the new best pt, rfactor
+        best_new_idx = np.argmin(new_rfactors)
+        best_new_rfactor = new_rfactors[best_new_idx]
+        if best_new_rfactor < best_rfactor:
+            best_rfactor = best_new_rfactor
+            best_pt = pts[best_new_idx]
+        append_arrays_to_file("restricted_points.txt", pts, new_rfactors)
+        rfactor_progress.append(best_rfactor)
+        np.savetxt("rfactor_progress.txt", rfactor_progress)
+        logging.info("Current best rfactor = {}".format(best_rfactor))
+        
+        # Update the model with the new (point, rfactor) values
+        new_rfactors_tensor = torch.tensor(new_rfactors, device=device, dtype=torch.float64)
+        normalized_pts = torch.cat((normalized_pts, new_normalized_pts))
+        rfactors = torch.cat((rfactors, new_rfactors_tensor))
+        model, mll = create_model(normalized_pts, rfactors, state_dict=model.state_dict())
+        logging.info("Botorch model updated with new evaluated points")
 
 def main(workdir, ncores, nepochs, warm=None):
     num_eval = min(ncores, mp.cpu_count())
@@ -140,23 +227,21 @@ def main(workdir, ncores, nepochs, warm=None):
     rfactors = torch.tensor(rfactors, device=device, dtype=torch.float64)
     # Main Bayesian Optimization Loop
     for epoch in range(nepochs):
-        #import ipdb
-        #ipdb.set_trace()
         logging.info("Starting Epoch {}".format(epoch))
         # Fit the kernel hyperparameters
         logging.info("Fitting Kernel hyperparameters...")
         botorch.fit.fit_gpytorch_model(mll)
-        torch.save(model, "finalmodel.pt")
-        logging.info("Saved full model to finalmodel.pt")
+        torch.save(model.state_dict(), "finalmodel.pt")
+        logging.info("Saved model state dict to finalmodel.pt")
 
         sampler = botorch.sampling.SobolQMCNormalSampler(
-            num_samples=1000, 
+            num_samples=2500, 
             resample=False
         )
         acquisition = botorch.acquisition.qExpectedImprovement(
-            model,
-            -best_rfactor,
-            sampler
+           model,
+           -best_rfactor,
+           sampler
         )
         logging.info("Optimizing acquisition function to generate new test points...")
         new_normalized_pts, _ = botorch.optim.optimize_acqf(
@@ -164,7 +249,7 @@ def main(workdir, ncores, nepochs, warm=None):
             bounds=torch.tensor([[0.0] * 8, [1.0] * 8], device=device, dtype=torch.float64),
             q=num_eval,
             num_restarts=20,
-            raw_samples=100,
+            raw_samples=200,
             options={},
             sequential=True
         )
@@ -214,6 +299,9 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int,
         help="Set the seed for the RNGs"
     )
+    parser.add_argument("--dims", type=int,
+        help="If set, reduces the number of dimensions searched over to the number given"
+    )
     args = parser.parse_args()
 
     # Check for GPU presence
@@ -227,4 +315,7 @@ if __name__ == "__main__":
         np.random.seed(args.seed)
         torch.manual_seed(seed=args.seed)
 
-    main(args.workdir, args.ncores, args.nepochs, args.warm)
+    if args.dims is not None and 1 <= args.dims <= 7:
+        restricted_problem(args.workdir, args.ncores, args.nepochs, args.dims, args.warm)
+    else:
+        main(args.workdir, args.ncores, args.nepochs, args.warm)
