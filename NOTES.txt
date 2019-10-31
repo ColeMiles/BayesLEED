@@ -28,6 +28,10 @@ Misc. Notes
 - Coordinate order in TLEED files is (z, x, y)...
 - The TLEED code is searching over the search space of displacements between
     -0.2 and 0.2, I should do the same (but normalize to unit cube in search space)
+        Changed to -0.25 to 0.25
+- If you're looking for the raw/actual parameter explanation:
+https://gpytorch.readthedocs.io/en/latest/examples/00_Basic_Usage/Hyperparameters.html#Defining-an-example-model
+
 
 TLEED Library Structure
 =======================

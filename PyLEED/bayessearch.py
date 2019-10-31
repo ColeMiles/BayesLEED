@@ -149,8 +149,8 @@ def restricted_problem(workdir, ncores, nepochs, ndims, warm=None):
         # Fit the kernel hyperparameters
         logging.info("Fitting Kernel hyperparameters...")
         botorch.fit.fit_gpytorch_model(mll)
-        torch.save(model.state_dict(), "finalmodel.pt")
-        logging.info("Saved model state dict to finalmodel.pt")
+        torch.save(model, "finalmodel.pt")
+        logging.info("Saved model to finalmodel.pt")
 
         sampler = botorch.sampling.SobolQMCNormalSampler(
             num_samples=2500, 
@@ -231,7 +231,7 @@ def main(workdir, ncores, nepochs, warm=None):
         # Fit the kernel hyperparameters
         logging.info("Fitting Kernel hyperparameters...")
         botorch.fit.fit_gpytorch_model(mll)
-        torch.save(model.state_dict(), "finalmodel.pt")
+        torch.save(model, "finalmodel.pt")
         logging.info("Saved model state dict to finalmodel.pt")
 
         sampler = botorch.sampling.SobolQMCNormalSampler(
