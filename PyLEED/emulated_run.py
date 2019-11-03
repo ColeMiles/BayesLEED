@@ -80,10 +80,10 @@ def emulate1D(pts, rfactors, batch_size, justpoints=False):
     ax.set_xlabel(r"$x_1$")
     ax.set_ylabel("R-Factor")
     ax.set_xlim(*X1LIM)
-    ax.set_ylim(0.0, 1.5)
+    ax.set_ylim(0.0, 1.2)
 
     if justpoints:
-        ax.scatter(pts[:, 0], rfactors)
+        Ax.scatter(pts[:, 0], rfactors)
         plt.show()
         sys.exit(0)
 
@@ -109,7 +109,7 @@ def emulate1D(pts, rfactors, batch_size, justpoints=False):
 
         # Plot mean function
         model.eval()
-        eval_pts = torch.linspace(*X1LIM, dtype=torch.float64)[:, None].cuda()
+        eval_pts = torch.linspace(*X1LIM, dtype=torch.float64, steps=500)[:, None].cuda()
         posterior = model(normalize_input(eval_pts))
         mean_func = -posterior.mean.detach().cpu().numpy()
         lower_conf, upper_conf = posterior.confidence_region()

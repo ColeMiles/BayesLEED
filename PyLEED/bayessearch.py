@@ -118,9 +118,17 @@ def warm_start(npts, dist):
     return sample_pts
 
 
-def restricted_problem(workdir, ncores, nepochs, ndims, warm=None):
-    """ Searches only over ndims of the coordinates rather than all 8
+def restricted_problem(workdir, ncores, nepochs, search_inds, warm=None):
+    """ Searches only over the coordinates in search_inds rather than all 8.
+        The indices not searched over are set to the 'optimal' solution.
     """
+    # Take out possible duplicates
+    search_inds = np.unique(search_inds)
+    ndims = len(search_inds)
+    # The indices to hold fixed to the true solution
+    fixed_inds = np.delete(np.arange(len(TRUE_SOL)), search_inds)
+
+    # Set up
     num_eval = min(ncores, mp.cpu_count())
     manager = create_manager(workdir)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -129,25 +137,31 @@ def restricted_problem(workdir, ncores, nepochs, ndims, warm=None):
     if warm is None:
         logging.info("Performing random start with {} points".format(num_eval))
         pts = random_start(num_eval)
-        pts[:, ndims:] = TRUE_SOL[ndims:]
+        #pts[:, ndims:] = TRUE_SOL[ndims:]
+        pts[:, fixed_inds] = TRUE_SOL[fixed_inds]
     else:
         logging.info(
             "Performing warm start with {} points, {} from true solution".format(num_eval, warm)
         )
         pts = warm_start(num_eval, warm)
-        pts[:, ndims:] = TRUE_SOL[ndims:]
-    normalized_pts = normalize_input(pts)[:, :ndims]
+        #pts[:, ndims:] = TRUE_SOL[ndims:]
+        pts[:, fixed_inds] = TRUE_SOL[fixed_inds]
+    #normalized_pts = normalize_input(pts)[:, :ndims]
+    normalized_pts = normalize_input(pts)[:, search_inds]
     rfactors = manager.batch_ref_calcs(pts)
     model, mll = create_model(normalized_pts, rfactors)
 
     # Find the best out of these initial trial points
     best_idx = np.argmin(rfactors)
-    best_pt = pts[best_idx, :ndims]
+    #best_pt = pts[best_idx, :ndims]
+    best_pt = pts[best_idx, search_inds]
     best_rfactor = rfactors[best_idx]
     rfactor_progress = [best_rfactor]
     with open("restricted_points.txt", "w") as ptfile:
-        ptfile.write("DISPLACEMENT" + " " * (ndims * 9 - 12) + "RFACTOR\n")
-    append_arrays_to_file("restricted_points.txt", pts[:, :ndims], rfactors)
+        header_str = "DIPLACEMENT" + " " * (ndims * 9 - 12) + "RFACTOR"
+        header_str += "    SEARCH_INDS: " + str(search_inds) + "\n"
+        ptfile.write(header_str)
+    append_arrays_to_file("restricted_points.txt", pts[:, search_inds], rfactors)
     logging.info("Best r-factor from initial set: {:.4f}".format(best_rfactor))
 
     normalized_pts = torch.tensor(normalized_pts, device=device, dtype=torch.float64)
@@ -182,8 +196,10 @@ def restricted_problem(workdir, ncores, nepochs, ndims, warm=None):
         )
         logging.info("New test points generated")
         pts = denormalize_input(new_normalized_pts.cpu().numpy())
-        # Add on the other fixed coordinates
-        full_pts = np.concatenate((pts, np.repeat(TRUE_SOL[np.newaxis, ndims:], len(pts), axis=0)), axis=1)
+        # Add on the other fixed coordinates -- two scatters needed
+        full_pts = np.zeros((len(pts), len(TRUE_SOL)))
+        full_pts[:, search_inds] = pts
+        full_pts[:, fixed_inds] = np.repeat(TRUE_SOL[np.newaxis, fixed_inds], len(pts), axis=0)
         new_rfactors = manager.batch_ref_calcs(full_pts)
 
         # Get the new best pt, rfactor
@@ -308,8 +324,8 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int,
         help="Set the seed for the RNGs"
     )
-    parser.add_argument("--dims", type=int,
-        help="If set, reduces the number of dimensions searched over to the number given"
+    parser.add_argument("--restrict", nargs="+", type=int,
+        help="Restricts the search space to include only the coordinates provided"
     )
     args = parser.parse_args()
 
@@ -324,7 +340,7 @@ if __name__ == "__main__":
         np.random.seed(args.seed)
         torch.manual_seed(seed=args.seed)
 
-    if args.dims is not None and 1 <= args.dims <= 7:
-        restricted_problem(args.workdir, args.ncores, args.nepochs, args.dims, args.warm)
+    if args.restrict is not None and 1 <= len(args.restrict) <= 7:
+        restricted_problem(args.workdir, args.ncores, args.nepochs, args.restrict, args.warm)
     else:
         main(args.workdir, args.ncores, args.nepochs, args.warm)
