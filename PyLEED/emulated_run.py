@@ -8,12 +8,12 @@ import numpy as np
 import torch
 import botorch
 
-from bayessearch import create_model
+from bayessearch import create_model, normalize_input, denormalize_input
 
 X1LIM = [-0.25, 0.25]
 X2LIM = [-0.25, 0.0]
 
-def emulate_search(pts, rfactors, batch_size, justpoints=False):
+def emulate2D(pts, rfactors, batch_size, justpoints=False):
     """ Given an array of pts and their corresponding r-factors, steps through training botorch
          models using the given pts, batch_size at a time.
     """
@@ -70,6 +70,83 @@ def emulate_search(pts, rfactors, batch_size, justpoints=False):
         # fig.clear()
         ax.clear()
 
+def emulate1D(pts, rfactors, batch_size, justpoints=False):
+    """ Given an array of pts and their corresponding r-factors, steps through training botorch
+         models using the given pts, batch_size at a time.
+    """
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(111)
+    ax.set_xlabel(r"$x_1$")
+    ax.set_ylabel("R-Factor")
+    ax.set_xlim(*X1LIM)
+    ax.set_ylim(0.0, 1.5)
+
+    if justpoints:
+        ax.scatter(pts[:, 0], rfactors)
+        plt.show()
+        sys.exit(0)
+
+    num_pts = len(pts)
+    num_batches = num_pts // batch_size
+
+    state_dict = None
+
+    plt.ion()
+    plt.show()
+    for i in range(num_batches):
+        print("{} points evaluated".format(batch_size))
+
+        idx1, idx2 = batch_size * i, batch_size * (i + 1)
+        ax.scatter(pts[:idx2, 0], rfactors[:idx2], c="blue")
+        plt.draw()
+        input("Fit Model? [Enter]")
+
+        normalized_pts = normalize_input(pts[:idx2, :])
+        model, mll = create_model(normalized_pts, rfactors[:idx2], state_dict=state_dict)
+        botorch.fit.fit_gpytorch_model(mll)
+        state_dict = model.state_dict()
+
+        # Plot mean function
+        model.eval()
+        eval_pts = torch.linspace(*X1LIM, dtype=torch.float64)[:, None].cuda()
+        posterior = model(normalize_input(eval_pts))
+        mean_func = -posterior.mean.detach().cpu().numpy()
+        lower_conf, upper_conf = posterior.confidence_region()
+
+        eval_pts_np = eval_pts.cpu().numpy()[:, 0]
+        upper_conf_np = -lower_conf.cpu().detach().numpy()
+        lower_conf_np = -upper_conf.cpu().detach().numpy()
+        ax.plot(eval_pts_np, mean_func)
+        # import ipdb
+        # ipdb.set_trace()
+        ax.fill_between(eval_pts_np, lower_conf_np, upper_conf_np, alpha=0.5)
+
+        input("Calculate Acquisition Function? [Enter]")
+        best_rfactor = np.min(rfactors[:idx2])
+        acq = botorch.acquisition.ExpectedImprovement(model, -best_rfactor)
+        acq_values = acq(normalize_input(eval_pts)[:, :, None]).cpu().detach().numpy()
+        ax.plot(eval_pts_np, acq_values, "r-")
+
+        # I'm plotting the analytic single-point acquisition function but in reality I optimize qEI
+        sampler = botorch.sampling.SobolQMCNormalSampler(num_samples=2500, resample=False)
+        qacq = botorch.acquisition.qExpectedImprovement(model, -best_rfactor, sampler)
+        new_normalized_pts, _ = botorch.optim.optimize_acqf(
+            acq_function=qacq,
+            bounds=torch.tensor([[0.0], [1.0]], device=device, dtype=torch.float64),
+            q=batch_size,
+            num_restarts=20,
+            raw_samples=200,
+            options={},
+            sequential=True
+        )
+        new_pts = denormalize_input(new_normalized_pts).cpu().detach().numpy()
+        ax.vlines(new_pts[:, 0], 0, 1, transform=ax.get_xaxis_transform(), colors='g')
+
+
+        input("\nNext Batch? [Enter]")
+        ax.clear()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -84,8 +161,11 @@ if __name__ == "__main__":
 
     pts = pts_rfactors[:, :-1]
     rfactors = pts_rfactors[:, -1]
-    if pts.shape[1] != 2:
-        raise ValueError("Currently, this script only supports 2D searches")
-
-    print("Beginning emulated optimization, with {} points and batch size {}".format(len(pts), args.batch))
-    emulate_search(pts, rfactors, args.batch, justpoints=args.justpoints)
+    if pts.shape[1] == 1:
+        print("Beginning emulated optimization, with {} points and batch size {}".format(len(pts), args.batch))
+        emulate1D(pts, rfactors, args.batch, justpoints=args.justpoints)
+    elif pts.shape[1] == 2:
+        print("Beginning emulated optimization, with {} points and batch size {}".format(len(pts), args.batch))
+        emulate2D(pts, rfactors, args.batch, justpoints=args.justpoints)
+    else:
+        raise ValueError("Currently, this script only supports 1D or 2D searches")

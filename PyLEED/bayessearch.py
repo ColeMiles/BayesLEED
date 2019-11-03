@@ -90,7 +90,7 @@ def random_unit_vecs(num_vecs, vec_dim):
     return vecs / np.linalg.norm(vecs, axis=1, keepdims=True)
 
 
-def random_sample(npts):
+def random_start(npts):
     """ Return npts number of points, randomly sampled across the entire
          search space.
     """
@@ -106,6 +106,15 @@ def warm_start(npts, dist):
     rand_disps = dist * random_unit_vecs(npts, len(TRUE_SOL))
     sample_pts = TRUE_SOL + rand_disps
     sample_pts = np.clip(sample_pts, SEARCH_SPACE[0], SEARCH_SPACE[1])
+    
+    # If pts have run up against the boundary of the search space, subtract
+    #  off a random distance drawn from uniform [0, dist**(1/dim)]
+    backshift_dist = dist ** (1.0 / len(TRUE_SOL))
+    randshifts = np.random.random(sample_pts.shape) * backshift_dist
+    np.add(sample_pts, randshifts, out=sample_pts, where=sample_pts==SEARCH_SPACE[0])
+    randshifts = np.random.random(sample_pts.shape) * backshift_dist
+    np.subtract(sample_pts, randshifts, out=sample_pts, where=sample_pts==SEARCH_SPACE[1])
+
     return sample_pts
 
 
@@ -149,8 +158,8 @@ def restricted_problem(workdir, ncores, nepochs, ndims, warm=None):
         # Fit the kernel hyperparameters
         logging.info("Fitting Kernel hyperparameters...")
         botorch.fit.fit_gpytorch_model(mll)
-        torch.save(model, "finalmodel.pt")
-        logging.info("Saved model to finalmodel.pt")
+        torch.save(model.state_dict(), "finalmodel.pt")
+        logging.info("Saved model state_dict to finalmodel.pt")
 
         sampler = botorch.sampling.SobolQMCNormalSampler(
             num_samples=2500, 
@@ -231,7 +240,7 @@ def main(workdir, ncores, nepochs, warm=None):
         # Fit the kernel hyperparameters
         logging.info("Fitting Kernel hyperparameters...")
         botorch.fit.fit_gpytorch_model(mll)
-        torch.save(model, "finalmodel.pt")
+        torch.save(model.state_dict(), "finalmodel.pt")
         logging.info("Saved model state dict to finalmodel.pt")
 
         sampler = botorch.sampling.SobolQMCNormalSampler(
@@ -293,7 +302,7 @@ if __name__ == "__main__":
     parser.add_argument("--nepochs", type=int, default=100,
         help="The number of epochs to run."
     )
-    parser.add_argument("--warm", type=float, default=0.03,
+    parser.add_argument("--warm", type=float,
         help="Warm start with points a given distance from the true solution"
     )
     parser.add_argument("--seed", type=int,
