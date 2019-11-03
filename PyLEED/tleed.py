@@ -8,24 +8,24 @@ import logging
 import numpy as np
 
 """ The section which will be inserted into FIN with each perturbative change,
-      which is ready to be .format()'d with the final coordinates in x (z?)
+      which is ready to be .format()'d with the final coordinates in z
 """
 COORD_SECT = """
   1                       LAY = 1: layer type no. 1 has overlayer lateral periodicity
  10                       number of Bravais sublayers, 1st layer
-  1 {:.4f} 1.8955 1.8955  sublayer no. 1 is of site type 1 (La)
-  7 {:.4f} 0.0000 0.0000  sublayer no. 2 is of site type 7 (apO)
-  4 {:.4f} 0.0000 0.0000  sublayer no. 3 is of site type 4 (Ni)
- 10 {:.4f} 1.8955 0.0000  sublayer no. 4 is of site type 10 (eqO)
- 10 {:.4f} 0.0000 1.8955  sublayer no. 5 is of site type 10 (eqO)
-  2 {:.4f} 1.8955 1.8955  sublayer no. 6 is of site type 2 (La)
-  8 {:.4f} 0.0000 0.0000  sublayer no. 7 is of site type 8 (apO)
-  5 {:.4f} 0.0000 0.0000  sublayer no. 8 is of site type 5 (Ni)
- 11 {:.4f} 1.8955 0.0000  sublayer no. 9 is of site type 11 (eqO)
- 11 {:.4f} 0.0000 1.8955  sublayer no.10 is of site type 11 (eqO)
+  1{:>7.4f} 1.8955 1.8955  sublayer no. 1 is of site type 1 (La)
+  7{:>7.4f} 0.0000 0.0000  sublayer no. 2 is of site type 7 (apO)
+  4{:>7.4f} 0.0000 0.0000  sublayer no. 3 is of site type 4 (Ni)
+ 10{:>7.4f} 1.8955 0.0000  sublayer no. 4 is of site type 10 (eqO)
+ 10{:>7.4f} 0.0000 1.8955  sublayer no. 5 is of site type 10 (eqO)
+  2{:>7.4f} 1.8955 1.8955  sublayer no. 6 is of site type 2 (La)
+  8{:>7.4f} 0.0000 0.0000  sublayer no. 7 is of site type 8 (apO)
+  5{:>7.4f} 0.0000 0.0000  sublayer no. 8 is of site type 5 (Ni)
+ 11{:>7.4f} 1.8955 0.0000  sublayer no. 9 is of site type 11 (eqO)
+ 11{:>7.4f} 0.0000 1.8955  sublayer no.10 is of site type 11 (eqO)
 """[1:] # Remove that initial newline
 
-""" The unperturbed x (z?) coordinates
+""" The unperturbed z coordinates
 """
 UNPERTURBED = np.array(
     [0.0000, 0.0000, 1.9500, 1.9500, 1.9500, 3.9000, 3.9000, 5.8500, 5.8500, 5.8500]
