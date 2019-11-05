@@ -118,7 +118,7 @@ def warm_start(npts, dist):
     return sample_pts
 
 
-def restricted_problem(workdir, ncores, nepochs, search_inds, warm=None):
+def restricted_problem(workdir, ncores, nepochs, search_inds, warm=None, seed=None):
     """ Searches only over the coordinates in search_inds rather than all 8.
         The indices not searched over are set to the 'optimal' solution.
     """
@@ -159,7 +159,9 @@ def restricted_problem(workdir, ncores, nepochs, search_inds, warm=None):
     rfactor_progress = [best_rfactor]
     with open("restricted_points.txt", "w") as ptfile:
         header_str = "DIPLACEMENT" + " " * (ndims * 9 - 12) + "RFACTOR"
-        header_str += "    SEARCH_INDS: " + str(search_inds) + "\n"
+        header_str += "    SEARCH_INDS: " + str(search_inds)
+        if seed is not None:
+            header_str += "    SEED: " + str(seed) + "\n"
         ptfile.write(header_str)
     append_arrays_to_file("restricted_points.txt", pts[:, search_inds], rfactors)
     logging.info("Best r-factor from initial set: {:.4f}".format(best_rfactor))
@@ -220,7 +222,7 @@ def restricted_problem(workdir, ncores, nepochs, search_inds, warm=None):
         model, mll = create_model(normalized_pts, rfactors, state_dict=model.state_dict())
         logging.info("Botorch model updated with new evaluated points")
 
-def main(workdir, ncores, nepochs, warm=None):
+def main(workdir, ncores, nepochs, warm=None, seed=None):
     num_eval = min(ncores, mp.cpu_count())
     manager = create_manager(workdir)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -244,7 +246,10 @@ def main(workdir, ncores, nepochs, warm=None):
     best_rfactor = rfactors[best_idx]
     rfactor_progress = [best_rfactor]
     with open("tested_points.txt", "w") as ptfile:
-        ptfile.write("DISPLACEMENT" + " " * 52 + "RFACTOR\n")
+        header_str = "DISPLACEMENT" + " " * 52 + "RFACTOR"
+        if seed is not None:
+            header_str += "    SEED: " + str(seed) + "\n"
+        ptfile.write(header_str)
     append_arrays_to_file("tested_points.txt", pts, rfactors)
     logging.info("Best r-factor from initial set: {:.4f}".format(best_rfactor))
 
@@ -341,6 +346,6 @@ if __name__ == "__main__":
         torch.manual_seed(seed=args.seed)
 
     if args.restrict is not None and 1 <= len(args.restrict) <= 7:
-        restricted_problem(args.workdir, args.ncores, args.nepochs, args.restrict, args.warm)
+        restricted_problem(args.workdir, args.ncores, args.nepochs, args.restrict, args.warm, seed=args.seed)
     else:
-        main(args.workdir, args.ncores, args.nepochs, args.warm)
+        main(args.workdir, args.ncores, args.nepochs, args.warm, seed=args.seed)

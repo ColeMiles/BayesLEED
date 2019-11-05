@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-#TLEED_RFACTOR = 0.229
 TLEED_RFACTOR = 0.2794
 
 rfactor_progress = np.loadtxt("rfactor_progress.txt")
