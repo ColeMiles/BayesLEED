@@ -11,7 +11,8 @@ import botorch
 from bayessearch import create_model, normalize_input, denormalize_input
 
 X1LIM = [-0.25, 0.25]
-X2LIM = [-0.25, 0.0]
+X2LIM = [-0.25, 0.25]
+
 
 def emulate2D(pts, rfactors, batch_size, justpoints=False):
     """ Given an array of pts and their corresponding r-factors, steps through training botorch
@@ -25,6 +26,8 @@ def emulate2D(pts, rfactors, batch_size, justpoints=False):
     ax.set_xlim(*X1LIM)
     ax.set_ylim(*X2LIM)
     ax.set_zlim(0.0, 1.5)
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if justpoints:
         ax.scatter(pts[:, 0], pts[:, 1], rfactors)
@@ -43,7 +46,7 @@ def emulate2D(pts, rfactors, batch_size, justpoints=False):
         print("{} points evaluated".format(batch_size))
 
         idx1, idx2 = batch_size * i, batch_size * (i + 1)
-        ax.scatter(pts[:idx2, 0], pts[:idx2, 1], rfactors[:idx2], c="blue", depthshade=False)
+        ax.scatter(pts[:idx2, 0], pts[:idx2, 1], rfactors[:idx2], c="black", linewidths=5, depthshade=False)
         plt.draw()
         input("Fit Model? [Enter]")
 
@@ -54,10 +57,10 @@ def emulate2D(pts, rfactors, batch_size, justpoints=False):
         # Plot mean function
         model.eval()
         X, Y = torch.meshgrid(torch.linspace(*X1LIM), torch.linspace(*X2LIM))
-        eval_pts = torch.stack((X, Y), axis=-1).type(torch.float64).cuda()
+        eval_pts = torch.stack((X, Y), axis=-1).type(torch.float64).to(device=device)
         posterior = model(eval_pts)
         mean_func = -posterior.mean.detach().cpu().numpy()
-        surf = ax.plot_surface(X, Y, mean_func, cmap="plasma")
+        surf = ax.plot_surface(X, Y, mean_func, cmap="plasma", alpha=0.75)
         if cbar is None:
             cbar = fig.colorbar(surf)
         else:
@@ -98,7 +101,7 @@ def emulate1D(pts, rfactors, batch_size, justpoints=False):
         print("{} points evaluated".format(batch_size))
 
         idx1, idx2 = batch_size * i, batch_size * (i + 1)
-        ax.scatter(pts[:idx2, 0], rfactors[:idx2], c="blue")
+        ax.scatter(pts[:idx2, 0], rfactors[:idx2], c="black")
         plt.draw()
         input("Fit Model? [Enter]")
 
@@ -109,7 +112,7 @@ def emulate1D(pts, rfactors, batch_size, justpoints=False):
 
         # Plot mean function
         model.eval()
-        eval_pts = torch.linspace(*X1LIM, dtype=torch.float64, steps=500)[:, None].cuda()
+        eval_pts = torch.linspace(*X1LIM, dtype=torch.float64, steps=500)[:, None].to(device=device)
         posterior = model(normalize_input(eval_pts))
         mean_func = -posterior.mean.detach().cpu().numpy()
         lower_conf, upper_conf = posterior.confidence_region()
