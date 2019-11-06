@@ -10,6 +10,8 @@ import botorch
 
 from bayessearch import create_model, normalize_input, denormalize_input
 
+plt.style.use("seaborn-talk")
+
 X1LIM = [-0.25, 0.25]
 X2LIM = [-0.25, 0.25]
 
@@ -50,7 +52,8 @@ def emulate2D(pts, rfactors, batch_size, justpoints=False):
         plt.draw()
         input("Fit Model? [Enter]")
 
-        model, mll = create_model(pts[:idx2, :], rfactors[:idx2], state_dict=state_dict)
+        normalized_pts = normalize_input(pts[:idx2, :])
+        model, mll = create_model(normalized_pts, rfactors[:idx2], state_dict=state_dict)
         botorch.fit.fit_gpytorch_model(mll)
         state_dict = model.state_dict()
 
@@ -58,7 +61,7 @@ def emulate2D(pts, rfactors, batch_size, justpoints=False):
         model.eval()
         X, Y = torch.meshgrid(torch.linspace(*X1LIM), torch.linspace(*X2LIM))
         eval_pts = torch.stack((X, Y), axis=-1).type(torch.float64).to(device=device)
-        posterior = model(eval_pts)
+        posterior = model(normalize_input(eval_pts))
         mean_func = -posterior.mean.detach().cpu().numpy()
         surf = ax.plot_surface(X, Y, mean_func, cmap="plasma", alpha=0.75)
         if cbar is None:
@@ -68,9 +71,27 @@ def emulate2D(pts, rfactors, batch_size, justpoints=False):
             cbar.draw_all()
 
         input("Calculate Acquisition Function? [Enter]")
+        best_rfactor = np.min(rfactors[:idx2])
+        acq = botorch.acquisition.ExpectedImprovement(model, -best_rfactor)
+        acq_values = acq(normalize_input(eval_pts)[:, :, None]).cpu().detach().numpy()
+        ax.plot_surface(X, Y, acq_values, cmap="seismic")
 
+        # I'm plotting the analytic single-point acquisition function but in reality I optimize qEI
+        sampler = botorch.sampling.SobolQMCNormalSampler(num_samples=2500, resample=False)
+        qacq = botorch.acquisition.qExpectedImprovement(model, -best_rfactor, sampler)
+        new_normalized_pts, _ = botorch.optim.optimize_acqf(
+            acq_function=qacq,
+            bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=torch.float64),
+            q=batch_size,
+            num_restarts=20,
+            raw_samples=200,
+            options={},
+            sequential=True
+        )
+        new_pts = denormalize_input(new_normalized_pts).cpu().detach().numpy()
+        for pt in new_pts:
+            ax.plot((pt[0], pt[0]), (pt[1], pt[1]), (0.0, 1.4), linewidth=4, color="green")
         input("\nNext Batch? [Enter]")
-        # fig.clear()
         ax.clear()
 
 def emulate1D(pts, rfactors, batch_size, justpoints=False):
@@ -149,6 +170,10 @@ def emulate1D(pts, rfactors, batch_size, justpoints=False):
 
         input("\nNext Batch? [Enter]")
         ax.clear()
+        ax.set_xlabel(r"$x_1$")
+        ax.set_ylabel("R-Factor")
+        ax.set_xlim(*X1LIM)
+        ax.set_ylim(0.0, 1.2)
 
 
 if __name__ == "__main__":
