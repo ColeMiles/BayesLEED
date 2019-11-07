@@ -64,11 +64,11 @@ def emulate2D(pts, rfactors, batch_size, justpoints=False):
         posterior = model(normalize_input(eval_pts))
         mean_func = -posterior.mean.detach().cpu().numpy()
         surf = ax.plot_surface(X, Y, mean_func, cmap="plasma", alpha=0.75)
-        if cbar is None:
-            cbar = fig.colorbar(surf)
-        else:
-            cbar.mappable.set_clim(vmin=mean_func.min(), vmax=mean_func.max())
-            cbar.draw_all()
+#        if cbar is None:
+#            cbar = fig.colorbar(surf)
+#        else:
+#            cbar.mappable.set_clim(vmin=mean_func.min(), vmax=mean_func.max())
+#            cbar.draw_all()
 
         input("Calculate Acquisition Function? [Enter]")
         best_rfactor = np.min(rfactors[:idx2])
@@ -93,6 +93,12 @@ def emulate2D(pts, rfactors, batch_size, justpoints=False):
             ax.plot((pt[0], pt[0]), (pt[1], pt[1]), (0.0, 1.4), linewidth=4, color="green")
         input("\nNext Batch? [Enter]")
         ax.clear()
+        ax.set_xlabel(r"$x_1$")
+        ax.set_ylabel(r"$x_2$")
+        ax.set_zlabel("R-Factor")
+        ax.set_xlim(*X1LIM)
+        ax.set_ylim(*X2LIM)
+        ax.set_zlim(0.0, 1.5)
 
 def emulate1D(pts, rfactors, batch_size, justpoints=False):
     """ Given an array of pts and their corresponding r-factors, steps through training botorch

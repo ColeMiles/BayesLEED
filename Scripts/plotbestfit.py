@@ -3,6 +3,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 
+plt.style.use("seaborn-talk")
 
 def plot_data(arr):
     """ Plots an array of I(E) data, assuming that every two columns
@@ -24,7 +25,7 @@ def plot_data(arr):
 
     plt.xlabel(r"$E$")
     plt.ylabel(r"$I$")
-    plt.legend()
+    #plt.legend()
     plt.show()
 
 

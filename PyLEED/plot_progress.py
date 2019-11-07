@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+plt.style.use("seaborn-talk")
 
 TLEED_RFACTOR = 0.2794
 
