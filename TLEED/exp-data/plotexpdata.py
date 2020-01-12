@@ -1,9 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
 
-# Lol hardcoded
 
-with open("Data.LaNiO3-10uc-1x1-7IntBeams-LT325eV", "r") as f:
+parser = argparse.ArgumentParser(description="Plots experimental I(E) curves")
+parser.add_argument("datafile", type=str, help="File to plot")
+args = parser.parse_args()
+
+with open(args.datafile, "r") as f:
     lines = f.readlines()
     del lines[0:5]
     line = lines[0]

@@ -1,0 +1,94 @@
+Differences from Xray diffraction
+    - Out-of-plane momentum not conserved at all (while in-plane still follows reciprocal lattice)
+
+LEED-IV can only handle 10-15 independent parameters
+
+"Integrate over chunks of E to get points instead of raw values and normalize"
+    - Is this done for the data I have?
+    - How should I normalize? (Integrate to 1?)
+
+How to calculate phase shifts? (Atomic scattering amplitudes) "Don't worry too much about this"
+"Pendry's R-factor"
+R-factors of each IV curve are weighted by the width of the energy range they cover
+
+How to calculate the beamlists?
+
+What is a "layer"?
+    - Idk. Splitting into layers improves efficiency, but for simplicity just put MNSTACK = 1.
+    - Layer type: One for top, one for bulk. Different than the stacking?
+        subplane : Actual atomic site where things sit. Only in surface?
+        site     : A TYPE of site. Here, count bulk sites.
+
+    Ex for LaNiO3 from Jacob:
+
+  --------------- surface
+    La apO
+    Ni eqO(x2)
+    La apO
+    Ni eqO(x2)
+  --------------- bulk
+    La apO
+    Ni eqO
+    ...
+
+    We can count 10 distinct locations in the surface layer where atoms sit.
+    However, there are 12 "site types"
+        top layer La, Ni, apO, eqO
+        2nd layer La, Ni, apO, eqO
+        bulk      La, Ni, apO, eqO
+
+FIN parameters
+
+ara1, ara2 - bulk cell unit vectors
+arb1, arb2 - surface cell unit vectors -- will have to change for reconstructions!
+npu        - which beams from beamlist to use
+liter      - "computational parameter you won't have to change"
+pfqex      - (hkl) reciproal lattice vectors of beams used
+
+for the sites, you have to describe each site as a combination of the possible elements,
+  IN THE SAME ORDER AS IN PHASESHIFTS FILE
+Debye-Waller vibrational amplitudes are second numbers "ad-hoc chosen ????"
+  First guess: Use bulk values (which I guess I can look up somewhere?)
+    "Results don't depend very strongly on this. Doesn't change final optimal locations, but
+       gives worse R-factors if you're wrong"
+
+
+In FIN:
+    - Layer 1 is surface, layer 2 is bulk
+    - Coords are (z, x, y) in Angstroms
+    - Everything is absolute coordinates
+    Bulk stacking is ... unit vector to stack bulk layers
+
+Positive coordinates are into the bulk (I think)
+
+Inner potential (muftin.f) -- something like the work function?
+    - Material specific - how to get for FeSe? "Around 10eV for most things"
+        Getting wrong will "stretch" IV curves?
+
+R-factor of 0.3 or below is "good"
+R-factor calculations are independent of global scale factors, relative intensities within simulated values are meaningful though
+
+TLEED usually alright within a 0.2A radius around reference calculations
+
+
+run.delta
+----------
+Input: Tensors computed from run.ref-calc in file called `AMP`
+Computes a (something) for a list of variations of a single atomic site. Repeats for each site, outputs to DEL.<sitenume>.<sitetype>
+Change in amplitude from moving the atoms is completely uncorellated in the TLEED approx
+
+run.search
+----------
+mnprmk: Total number of parameters of the system (coord, vib, conc per site, and "domain fraction" overall. coord is "single parameter")
+But, the number of search-able parameters is set differently below? In `search.steu`.
+In site specifications:
+    - number of each parameter present in the delta files produced. Set to 1 to not look over.
+
+IMPORTANT: Search is only over the discrete set of values in the delta file! Is this all TLEED codes? Is there a fundamental reason why?
+
+Use the imaginary part of the internal potential given by Jacob. (5eV) Given by FWHM of ideal Bragg peak in I(V) curve
+TLEED calcs fundamentally cannot do searches over lattice parameters. (!)
+
+Jacob is searching over vibrational amplitudes too -- maybe I can squeak more R-factor out by doing that?
+
+Write Andrew to ask about multi-task-ish problem of the reconstructions
