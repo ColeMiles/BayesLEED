@@ -9,12 +9,8 @@ import torch
 import gpytorch
 import botorch
 import tleed
+import problems
 
-SEARCH_SPACE = np.array([-0.25, 0.25])
-# True, target solution, with symmetric pts taken out
-TRUE_SOL = np.array(
-    [0.2200, -0.1800, 0.0000, -0.0500, 0.0900, -0.0800, -0.0100, -0.0100]
-)
 
 def append_arrays_to_file(filename, pts, rfactors):
     assert len(pts.shape) == 2, "append_array_to_file only handles dim-2 pts array"
@@ -24,14 +20,14 @@ def append_arrays_to_file(filename, pts, rfactors):
         for pt, rfactor in zip(pts, rfactors):
             f.write(row_format_string.format(*pt, rfactor) + "\n")
 
-def create_manager(workdir):
-    """ Makes a LEEDManager working in the given directory. This should be
-         the only function which has hard-programmed constants.
+
+def create_manager(workdir, executable='ref-calc.LaNiO3'):
+    """ Makes a LEEDManager working in the given directory
     """
-    leed_executable = "../TLEED/work/ref-calc.LaNiO3"
-    rfact_executable = "../TLEED/work/rf.x"
-    expdatafile = "../TLEED/work/WEXPEL"
-    templatefile = "../TLEED/work/FIN"
+    leed_executable = os.path.join(workdir, executable)
+    rfact_executable = os.path.join(workdir, 'rf.x')
+    expdatafile = os.path.join(workdir, 'WEXPEL')
+    templatefile = os.path.join(workdir, 'FIN')
     return tleed.LEEDManager(
        workdir,
        leed_executable,
@@ -40,14 +36,6 @@ def create_manager(workdir):
        templatefile
     )
 
-# The search space is +- some small value, but the default kernel parameters
-#   work best for inputs normalized to the unit cube. So, just do that mapping.
-def normalize_input(disp):
-    return (disp - SEARCH_SPACE[0]) / (SEARCH_SPACE[1] - SEARCH_SPACE[0])
-
-# Just the reverse operation: Unit cube -> search space in each dimension
-def denormalize_input(norm_disp):
-    return ((SEARCH_SPACE[1] - SEARCH_SPACE[0]) * norm_disp) + SEARCH_SPACE[0]
 
 def create_model(pts, rfactors, state_dict=None):
     """ Create / update a botorch model using the given points
@@ -83,177 +71,48 @@ def create_model(pts, rfactors, state_dict=None):
     return model, mll
 
 
-def random_unit_vecs(num_vecs, vec_dim):
-    """ Samples num_vecs number of random unit vectors, in vec_dim-dimensional space
-    """
-    vecs = np.random.random((num_vecs, vec_dim))
-    return vecs / np.linalg.norm(vecs, axis=1, keepdims=True)
+def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
+    workdir, executable = os.path.split(leed_executable)
+    tested_filename = os.path.join(workdir, "tested_point.txt")
+    model_filename = os.path.join(workdir, "finalmodel.pt")
+    rfactor_filename = os.path.join(workdir, "rfactorprogress.txt")
 
-
-def random_start(npts):
-    """ Return npts number of points, randomly sampled across the entire
-         search space.
-    """
-    random_unit_cube = np.random.random((npts, len(TRUE_SOL)))
-    return denormalize_input(random_unit_cube)
-
-
-def warm_start(npts, dist):
-    """ Return npts number of points in search space, sampled close to the 
-         true solution. The distance from the true solution is given by dist.
-    """
-    # Sample npts random vectors on the unit sphere, then scale by dist
-    rand_disps = dist * random_unit_vecs(npts, len(TRUE_SOL))
-    sample_pts = TRUE_SOL + rand_disps
-    sample_pts = np.clip(sample_pts, SEARCH_SPACE[0], SEARCH_SPACE[1])
-    
-    # If pts have run up against the boundary of the search space, subtract
-    #  off a random distance drawn from uniform [0, dist**(1/dim)]
-    backshift_dist = dist ** (1.0 / len(TRUE_SOL))
-    randshifts = np.random.random(sample_pts.shape) * backshift_dist
-    np.add(sample_pts, randshifts, out=sample_pts, where=sample_pts==SEARCH_SPACE[0])
-    randshifts = np.random.random(sample_pts.shape) * backshift_dist
-    np.subtract(sample_pts, randshifts, out=sample_pts, where=sample_pts==SEARCH_SPACE[1])
-
-    return sample_pts
-
-
-def restricted_problem(workdir, ncores, nepochs, search_inds, warm=None, seed=None):
-    """ Searches only over the coordinates in search_inds rather than all 8.
-        The indices not searched over are set to the 'optimal' solution.
-    """
-    # Take out possible duplicates
-    search_inds = np.unique(search_inds)
-    ndims = len(search_inds)
-    # The indices to hold fixed to the true solution
-    fixed_inds = np.delete(np.arange(len(TRUE_SOL)), search_inds)
-
-    # Set up
     num_eval = min(ncores, mp.cpu_count())
-    manager = create_manager(workdir)
+    manager = create_manager(workdir, executable=executable)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    search_problem = problems.problems[problem]
+    num_params = search_problem.num_params
 
     # Initialize a model with random points in search space to begin
     if warm is None:
         logging.info("Performing random start with {} points".format(num_eval))
-        pts = random_start(num_eval)
-        #pts[:, ndims:] = TRUE_SOL[ndims:]
-        pts[:, fixed_inds] = TRUE_SOL[fixed_inds]
+        random_pts, random_structs = search_problem.random_points(num_eval)
     else:
+        print("Warm start is unimplemented as of right now")
+        return
         logging.info(
             "Performing warm start with {} points, {} from true solution".format(num_eval, warm)
         )
-        pts = warm_start(num_eval, warm)
-        #pts[:, ndims:] = TRUE_SOL[ndims:]
-        pts[:, fixed_inds] = TRUE_SOL[fixed_inds]
-    #normalized_pts = normalize_input(pts)[:, :ndims]
-    normalized_pts = normalize_input(pts)[:, search_inds]
-    rfactors = manager.batch_ref_calcs(pts)
-    model, mll = create_model(normalized_pts, rfactors)
+
+    rfactors = manager.batch_ref_calcs(random_structs)
+    model, mll = create_model(random_pts, rfactors)
 
     # Find the best out of these initial trial points
     best_idx = np.argmin(rfactors)
-    #best_pt = pts[best_idx, :ndims]
-    best_pt = pts[best_idx, search_inds]
+    best_pt = random_pts[best_idx]
     best_rfactor = rfactors[best_idx]
     rfactor_progress = [best_rfactor]
-    with open("restricted_points.txt", "w") as ptfile:
-        header_str = "DIPLACEMENT" + " " * (ndims * 9 - 12) + "RFACTOR"
-        header_str += "    SEARCH_INDS: " + str(search_inds)
-        if seed is not None:
-            header_str += "    SEED: " + str(seed) + "\n"
-        ptfile.write(header_str)
-    append_arrays_to_file("restricted_points.txt", pts[:, search_inds], rfactors)
-    logging.info("Best r-factor from initial set: {:.4f}".format(best_rfactor))
-
-    normalized_pts = torch.tensor(normalized_pts, device=device, dtype=torch.float64)
-    rfactors = torch.tensor(rfactors, device=device, dtype=torch.float64)
-    # Main Bayesian Optimization Loop
-    for epoch in range(nepochs):
-        logging.info("Starting Epoch {}".format(epoch))
-        # Fit the kernel hyperparameters
-        logging.info("Fitting Kernel hyperparameters...")
-        botorch.fit.fit_gpytorch_model(mll)
-        torch.save(model.state_dict(), "finalmodel.pt")
-        logging.info("Saved model state_dict to finalmodel.pt")
-
-        sampler = botorch.sampling.SobolQMCNormalSampler(
-            num_samples=2500, 
-            resample=False
-        )
-        acquisition = botorch.acquisition.qExpectedImprovement(
-           model,
-           -best_rfactor,
-           sampler
-        )
-        logging.info("Optimizing acquisition function to generate new test points...")
-        new_normalized_pts, _ = botorch.optim.optimize_acqf(
-            acq_function=acquisition,
-            bounds=torch.tensor([[0.0] * ndims, [1.0] * ndims], device=device, dtype=torch.float64),
-            q=num_eval,
-            num_restarts=20,
-            raw_samples=200,
-            options={},
-            sequential=True
-        )
-        logging.info("New test points generated")
-        pts = denormalize_input(new_normalized_pts.cpu().numpy())
-        # Add on the other fixed coordinates -- two scatters needed
-        full_pts = np.zeros((len(pts), len(TRUE_SOL)))
-        full_pts[:, search_inds] = pts
-        full_pts[:, fixed_inds] = np.repeat(TRUE_SOL[np.newaxis, fixed_inds], len(pts), axis=0)
-        new_rfactors = manager.batch_ref_calcs(full_pts)
-
-        # Get the new best pt, rfactor
-        best_new_idx = np.argmin(new_rfactors)
-        best_new_rfactor = new_rfactors[best_new_idx]
-        if best_new_rfactor < best_rfactor:
-            best_rfactor = best_new_rfactor
-            best_pt = pts[best_new_idx]
-        append_arrays_to_file("restricted_points.txt", pts, new_rfactors)
-        rfactor_progress.append(best_rfactor)
-        np.savetxt("rfactor_progress.txt", rfactor_progress)
-        logging.info("Current best rfactor = {}".format(best_rfactor))
-        
-        # Update the model with the new (point, rfactor) values
-        new_rfactors_tensor = torch.tensor(new_rfactors, device=device, dtype=torch.float64)
-        normalized_pts = torch.cat((normalized_pts, new_normalized_pts))
-        rfactors = torch.cat((rfactors, new_rfactors_tensor))
-        model, mll = create_model(normalized_pts, rfactors, state_dict=model.state_dict())
-        logging.info("Botorch model updated with new evaluated points")
-
-def main(workdir, ncores, nepochs, warm=None, seed=None):
-    num_eval = min(ncores, mp.cpu_count())
-    manager = create_manager(workdir)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    # Initialize a model with random points in search space to begin
-    if warm is None:
-        logging.info("Performing random start with {} points".format(num_eval))
-        pts = random_start(num_eval)
-    else:
-        logging.info(
-            "Performing warm start with {} points, {} from true solution".format(num_eval, warm)
-        )
-        pts = warm_start(num_eval, warm)
-    normalized_pts = normalize_input(pts)
-    rfactors = manager.batch_ref_calcs(pts)
-    model, mll = create_model(normalized_pts, rfactors)
-
-    # Find the best out of these initial trial points
-    best_idx = np.argmin(rfactors)
-    best_pt = pts[best_idx]
-    best_rfactor = rfactors[best_idx]
-    rfactor_progress = [best_rfactor]
-    with open("tested_points.txt", "w") as ptfile:
+    with open(tested_filename, "w") as ptfile:
         header_str = "DISPLACEMENT" + " " * 52 + "RFACTOR"
         if seed is not None:
-            header_str += "    SEED: " + str(seed) + "\n"
+            header_str += "    SEED: " + str(seed)
+        header_str += "\n"
         ptfile.write(header_str)
-    append_arrays_to_file("tested_points.txt", pts, rfactors)
+    append_arrays_to_file(tested_filename, random_pts, rfactors)
     logging.info("Best r-factor from initial set: {:.4f}".format(best_rfactor))
 
-    normalized_pts = torch.tensor(normalized_pts, device=device, dtype=torch.float64)
+    normalized_pts = torch.tensor(random_pts, device=device, dtype=torch.float64)
     rfactors = torch.tensor(rfactors, device=device, dtype=torch.float64)
     # Main Bayesian Optimization Loop
     for epoch in range(nepochs):
@@ -261,8 +120,8 @@ def main(workdir, ncores, nepochs, warm=None, seed=None):
         # Fit the kernel hyperparameters
         logging.info("Fitting Kernel hyperparameters...")
         botorch.fit.fit_gpytorch_model(mll)
-        torch.save(model.state_dict(), "finalmodel.pt")
-        logging.info("Saved model state dict to finalmodel.pt")
+        torch.save(model.state_dict(), model_filename)
+        logging.info("Saved model state dict to " + str(model_filename))
 
         sampler = botorch.sampling.SobolQMCNormalSampler(
             num_samples=2500, 
@@ -276,7 +135,7 @@ def main(workdir, ncores, nepochs, warm=None, seed=None):
         logging.info("Optimizing acquisition function to generate new test points...")
         new_normalized_pts, _ = botorch.optim.optimize_acqf(
             acq_function=acquisition,
-            bounds=torch.tensor([[0.0] * 8, [1.0] * 8], device=device, dtype=torch.float64),
+            bounds=torch.tensor([[0.0] * num_params, [1.0] * num_params], device=device, dtype=torch.float64),
             q=num_eval,
             num_restarts=20,
             raw_samples=200,
@@ -284,19 +143,19 @@ def main(workdir, ncores, nepochs, warm=None, seed=None):
             sequential=True
         )
         logging.info("New test points generated")
-        pts = denormalize_input(new_normalized_pts.cpu().numpy())
-        new_rfactors = manager.batch_ref_calcs(pts)
+        new_normalized_pts_np = new_normalized_pts.cpu().numpy()
+        structs = search_problem.to_structures(new_normalized_pts_np)
+        new_rfactors = manager.batch_ref_calcs(structs)
 
         # Get the new best pt, rfactor
         best_new_idx = np.argmin(new_rfactors)
         best_new_rfactor = new_rfactors[best_new_idx]
         if best_new_rfactor < best_rfactor:
             best_rfactor = best_new_rfactor
-            best_pt = pts[best_new_idx]
-            np.savetxt("bestpt.txt", best_pt)
-        append_arrays_to_file("tested_points.txt", pts, new_rfactors)
+            best_pt = new_normalized_pts_np[best_new_idx]
+        append_arrays_to_file(tested_filename, new_normalized_pts_np, new_rfactors)
         rfactor_progress.append(best_rfactor)
-        np.savetxt("rfactor_progress.txt", rfactor_progress)
+        np.savetxt(rfactor_filename, rfactor_progress)
         logging.info("Current best rfactor = {}".format(best_rfactor))
         
         # Update the model with the new (point, rfactor) values
@@ -305,6 +164,8 @@ def main(workdir, ncores, nepochs, warm=None, seed=None):
         rfactors = torch.cat((rfactors, new_rfactors_tensor))
         model, mll = create_model(normalized_pts, rfactors, state_dict=model.state_dict())
         logging.info("Botorch model updated with new evaluated points")
+
+    return model, normalized_pts, rfactors
 
 
 if __name__ == "__main__":
@@ -314,23 +175,26 @@ if __name__ == "__main__":
         level=logging.INFO
     )
     parser = argparse.ArgumentParser()
-    parser.add_argument("workdir", 
-        help="The directory where calculations will be carried out and stored."
+    parser.add_argument("leed_executable", 
+        help="Path to LEED executable. Directory containing it treated as work directory."
+    )
+    parser.add_argument("--problem", type=str, default="LANIO3",
+        help="Name of problem to run (from problems.py)"
     )
     parser.add_argument("--ncores", type=int, default=5,
         help="The number of cores to use == the number of parallel evaluations each iteration."
     )
-    parser.add_argument("--nepochs", type=int, default=100,
+    parser.add_argument("--nepochs", type=int, default=25,
         help="The number of epochs to run."
     )
     parser.add_argument("--warm", type=float,
-        help="Warm start with points a given distance from the true solution"
+        help="Warm start with points a given distance from the true solution (in normalized space). (Unimplemented)."
     )
     parser.add_argument("--seed", type=int,
         help="Set the seed for the RNGs"
     )
     parser.add_argument("--restrict", nargs="+", type=int,
-        help="Restricts the search space to include only the coordinates provided"
+        help="Restricts the search space to include only the coordinates provided. (Unimplemented)."
     )
     args = parser.parse_args()
 
@@ -346,6 +210,6 @@ if __name__ == "__main__":
         torch.manual_seed(seed=args.seed)
 
     if args.restrict is not None and 1 <= len(args.restrict) <= 7:
-        restricted_problem(args.workdir, args.ncores, args.nepochs, args.restrict, args.warm, seed=args.seed)
-    else:
-        main(args.workdir, args.ncores, args.nepochs, args.warm, seed=args.seed)
+        print("Restricted problem not implemented yet, just running full problem")
+
+    main(args.leed_executable, args.problem, args.ncores, args.nepochs, args.warm, seed=args.seed)

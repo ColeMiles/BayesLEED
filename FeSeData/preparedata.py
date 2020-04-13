@@ -15,6 +15,27 @@ def find(lst, val):
             return i
     return None
 
+def isclose(a, b, eps=1e-6):
+    return abs(a - b) < eps
+
+def interpolate_holes(E_data, I_data, E_step):
+    """ Finds holes in the E_data greater than E_step,
+         and fills them by linearly interpolating between
+         values we have
+    """
+    i = 1
+    while i < len(E_data):
+        diff = E_data[i] - E_data[i-1]
+        if not isclose(diff, E_step):
+            E_data.insert(i, E_data[i-1] + E_step)
+            I_data.insert(
+                i, 
+                I_data[i-1] + (I_data[i] - I_data[i-1]) * E_step / diff
+            )
+        i += 1
+    return E_data, I_data
+
+
 with open(args.outfile, "w") as ofile:
     ofile.write("FeSe (20 u.c.) 7 beams\n")
     ofile.write("  1  2  3  4  5  6  7\n")
@@ -23,7 +44,7 @@ with open(args.outfile, "w") as ofile:
     for ifilename in sorted(filter(lambda x: x.endswith("csv"), os.listdir(args.sourcedir))):
         filename = os.path.splitext(ifilename)[0]
         beamx, beamy = int(filename[-2]), int(filename[-1])
-        with open(ifilename, "r") as ifile:
+        with open(os.path.join(args.sourcedir, ifilename), "r") as ifile:
             reader = csv.reader(ifile)
 
             # Look at header, find correct columns
@@ -39,6 +60,8 @@ with open(args.outfile, "w") as ofile:
             for row in reader:
                 E_data.append(float(row[E_idx]))
                 I_data.append(float(row[I_idx]))
+
+            E_data, I_data = interpolate_holes(E_data, I_data, 2.0)
 
             # Write back to combined output file
             ofile.write("({:3.1f},{:3.1f})\n".format(float(beamx), float(beamy)))

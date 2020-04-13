@@ -5,36 +5,224 @@ import shutil
 import subprocess
 import re
 import logging
+import enum
+from copy import deepcopy
+from typing import List, Dict, Tuple
+
 import numpy as np
-
-""" The section which will be inserted into FIN with each perturbative change,
-      which is ready to be .format()'d with the final coordinates in z
-"""
-COORD_SECT = """
-  1                       LAY = 1: layer type no. 1 has overlayer lateral periodicity
- 10                       number of Bravais sublayers, 1st layer
-  1{:>7.4f} 1.8955 1.8955  sublayer no. 1 is of site type 1 (La)
-  7{:>7.4f} 0.0000 0.0000  sublayer no. 2 is of site type 7 (apO)
-  4{:>7.4f} 0.0000 0.0000  sublayer no. 3 is of site type 4 (Ni)
- 10{:>7.4f} 1.8955 0.0000  sublayer no. 4 is of site type 10 (eqO)
- 10{:>7.4f} 0.0000 1.8955  sublayer no. 5 is of site type 10 (eqO)
-  2{:>7.4f} 1.8955 1.8955  sublayer no. 6 is of site type 2 (La)
-  8{:>7.4f} 0.0000 0.0000  sublayer no. 7 is of site type 8 (apO)
-  5{:>7.4f} 0.0000 0.0000  sublayer no. 8 is of site type 5 (Ni)
- 11{:>7.4f} 1.8955 0.0000  sublayer no. 9 is of site type 11 (eqO)
- 11{:>7.4f} 0.0000 1.8955  sublayer no.10 is of site type 11 (eqO)
-"""[1:] # Remove that initial newline
-
-""" The unperturbed z coordinates
-"""
-UNPERTURBED = np.array(
-    [0.0000, 0.0000, 1.9500, 1.9500, 1.9500, 3.9000, 3.9000, 5.8500, 5.8500, 5.8500]
-)
 
 SOL_RFACTOR = 0.2794
 
+
+# TODO: Make this and all the search machinery work for searching over concentrations /
+#       vibrational parameters for more than two element types
+class Site:
+    def __init__(self, concs: List[float], vib: float,
+                 elems: List[str], name: str = ""):
+        self.concs = concs
+        self.vib = vib
+        self.elems = elems
+        self.name = name
+
+    def __str__(self) -> str:
+        output = ""
+        for conc, elem in zip(self.concs, self.elems):
+            output += "{:>7.4f}{:>7.4f}            element {}\n".format(
+                conc, self.vib, elem
+            )
+        return output
+
+
+class Atom:
+    def __init__(self, sitenum: int, x: float, y: float, z: float):
+        self.sitenum = sitenum
+        self.x = x
+        self.y = y
+        self.z = z
+
+
+class Layer:
+    def __init__(self, atoms: List[Atom], name: str = ""):
+        self.sitenums = np.array([a.sitenum for a in atoms])
+        self.xs = np.array([a.x for a in atoms])
+        self.ys = np.array([a.y for a in atoms])
+        self.zs = np.array([a.z for a in atoms])
+        self.name = name
+
+    def __len__(self):
+        return len(self.sitenums)
+
+    def __str__(self) -> str:
+        output = "{:>3d}".format(len(self.sitenums))
+        output += 23 * " " + "number of sublayers\n"
+        for sitenum, z, x, y in zip(self.sitenums, self.zs, self.xs, self.ys):
+            output += "{:>3d}{:>7.4f}{:>7.4f}{:>7.4f}\n".format(
+                sitenum, z, x, y
+            )
+        return output
+
+
+class AtomicStructure:
+    """ Class holding all of the information needed to write the structure
+         section of the input LEED script
+    """
+
+    def __init__(self, sites: List[Site], layers: List[Layer]):
+        self.sites = sites
+        self.layers = layers
+
+    def to_script(self):
+        """ Writes to a string the section to be placed inside
+            of the LEED script
+        """
+        # Site description section
+        output = (
+            "-------------------------------------------------------------------\n"
+            "--- define chem. and vib. properties for different atomic sites ---\n"
+            "-------------------------------------------------------------------\n"
+        )
+        output += "{:>3d}".format(len(self.sites))
+        output += 23 * " " + "NSITE: number of different site types\n"
+        for i, site in enumerate(self.sites):
+            output += "-   site type {}  {}---\n".format(i + 1, site.name)
+            output += str(site)
+
+        # Layer description section
+        output += (
+            "-------------------------------------------------------------------\n"
+            "--- define different layer types                            *   ---\n"
+            "-------------------------------------------------------------------\n"
+        )
+        output += "{:>3d}".format(len(self.layers))
+        output += 23 * " " + "NLTYPE: number of different layer types\n"
+        for i, layer in enumerate(self.layers):
+            output += "-   layer type {}  {}---\n".format(i + 1, layer.name)
+            output += "{:>3d}".format(i + 1)
+            output += 23 * " " + "LAY = {}\n".format(i + 1)
+            output += str(layer)
+
+        return output
+
+
+class SearchKey(enum.Enum):
+    """ Enumeration defining the types of parameters which can be searched over
+    """
+    CONC = enum.auto()
+    VIB = enum.auto()
+    ATOMX = enum.auto()
+    ATOMY = enum.auto()
+    ATOMZ = enum.auto()
+
+
+SearchDim = Tuple[SearchKey, int, Tuple[float, float]]
+class SearchSpace:
+    """ Defines which parameters of an AtomicStructure should be held fixed / 
+        searched over in an optimization problem, as well as the domain to
+        search over.
+
+        Should be initialized with an AtomicStructure, as well as a dictionary,
+         where the keys specify parameters to be searched over, and the values
+         are tuples of the intervals defining the search domain (minval, maxval).
+        Note these intervals are interpreted as deviations from the values given
+         by the atomic structure, not absolute coordinates.
+        Also note that this assumes that all atoms to search over are in the
+         first layer.
+    """
+
+    def __init__(self, atomic_structure: AtomicStructure,
+                 search_params: List[SearchDim]):
+        self.atomic_structure = deepcopy(atomic_structure)
+        self.search_params = search_params
+        self.num_params = len(self.search_params)
+
+        # Check validity of search_params
+        for key, idx, _ in search_params:
+            if key == SearchKey.CONC:
+                raise NotImplementedError("SearchKey.CONC not implemented yet.")
+            elif key == SearchKey.VIB:
+                if idx > len(self.atomic_structure.sites):
+                    raise ValueError("SearchSpace idx out of bounds")
+            else:
+                if idx > len(self.atomic_structure.layers[0]):
+                    raise ValueError("SearchSpace idx out of bounds")
+            if idx < 0:
+                raise ValueError("SearchSpace idx out of bounds")
+
+    def random_points(self, num_pts: int) -> Tuple[np.ndarray, List[AtomicStructure]]:
+        """ Returns num_pts number of random structures in the search space
+        """
+        random_unit_cube = np.random.random((num_pts, self.num_params))
+        return random_unit_cube, self.to_structures(random_unit_cube)
+
+    # TODO
+    def warm_start(self, num_pts: int,
+                   dist: float, sol: AtomicStructure) -> Tuple[np.ndarray, List[AtomicStructure]]:
+        """ Returns n_pts number of random structures which are close to a
+             known solution. Note dist is distance in normalized space!
+        """
+        random_unit_vecs = np.random.random((num_pts, len(self.num_params)))
+        random_unit_vecs /= np.linalg.norm(random_unit_vecs, axis=1, keepdims=True)
+        sol_vec = self.to_normalized([sol])
+        random_pts = sol + dist * random_unit_vecs
+        return self.to_structures(sol + random_unit_vecs)
+
+    def _normal_to_structure(self, norm_vec) -> AtomicStructure:
+        new_struct = deepcopy(self.atomic_structure)
+
+        for val, (key, idx, lims) in zip(norm_vec, self.search_params):
+            idx = idx - 1
+            if key == SearchKey.VIB:
+                new_struct.sites[idx].vib += lims[0] + val * (lims[1] - lims[0])
+            elif key == SearchKey.ATOMX:
+                new_struct.layers[0].xs[idx] += lims[0] + val * (lims[1] - lims[0])
+            elif key == SearchKey.ATOMY:
+                new_struct.layers[0].ys[idx] += lims[0] + val * (lims[1] - lims[0])
+            elif key == SearchKey.ATOMZ:
+                new_struct.layers[0].zs[idx] += lims[0] + val * (lims[1] - lims[0])
+
+        return new_struct
+
+    def to_structures(self, norm_vecs) -> AtomicStructure:
+        """ Converts a normalized feature vector to the corresponding AtomicStructure.
+            If norm_vecs is a single vector, returns a single AtomicStructure, if
+               norm_vecs is a list of vectors or 2D array, returns a list of AtomicStructures
+        """
+        if len(norm_vecs.shape) == 1:
+            return self._normal_to_structure(norm_vecs)
+        structs = [self._normal_to_structure(vec) for vec in norm_vecs]
+        return structs
+
+    def to_normalized(self, struct: AtomicStructure) -> np.ndarray:
+        """ Converts a single AtomicStructure to a normalized feature vector.
+            TODO: Should this also work on list of structures?
+        """
+        norm_vec = np.empty(self.num_params)
+        for i, (key, idx, lims) in enumerate(self.search_params):
+            idx = idx - 1
+            # TODO: Maybe make vib, xs, ys, zs properties of AtomicStructure instead of digging down
+            if key == SearchKey.VIB:
+                norm_vec[i] = (struct.sites[idx].vib
+                               - self.atomic_structure.sites[idx].vib
+                               - lims[0]) / (lims[1] - lims[0])
+            elif key == SearchKey.ATOMX:
+                norm_vec[i] = (struct.layers[0].xs[idx]
+                               - self.atomic_structure.layers[0].xs[idx]
+                               - lims[0]) / (lims[1] - lims[0])
+            elif key == SearchKey.ATOMY:
+                norm_vec[i] = (struct.layers[0].ys[idx]
+                               - self.atomic_structure.layers[0].ys[idx]
+                               - lims[0]) / (lims[1] - lims[0])
+            elif key == SearchKey.ATOMZ:
+                norm_vec[i] = (struct.layers[0].zs[idx]
+                               - self.atomic_structure.layers[0].zs[idx]
+                               - lims[0]) / (lims[1] - lims[0])
+
+        return norm_vec
+
+
 class LEEDManager:
-    def __init__(self, basedir, leed_executable, rfactor_executable, exp_datafile, templatefile):
+    def __init__(self, basedir, leed_executable, rfactor_executable,
+                 exp_datafile, templatefile):
         """ Create a LEEDManager to keep track of TensErLEED components.
                 basedir: The base directory to do computation in
                 leed_executable: Path to the LEED executable
@@ -50,7 +238,10 @@ class LEEDManager:
         self.rfactor_exe = os.path.abspath(rfactor_executable)
         self.exp_datafile = os.path.abspath(exp_datafile)
         # Copy the exp datafile to the working directory if not already there
-        copy_exp_datafile = os.path.join(self.basedir, os.path.split(self.exp_datafile)[1])
+        copy_exp_datafile = os.path.join(
+            self.basedir,
+            os.path.split(self.exp_datafile)[1]
+        )
         try:
             shutil.copyfile(self.exp_datafile, copy_exp_datafile)
         except shutil.SameFileError:
@@ -59,18 +250,37 @@ class LEEDManager:
             self.input_template = f.readlines()
         self.calc_number = 0
 
-    def _start_calc(self, displacements, calcid):
+    def _write_structure(self, structure, filename):
+        new_coord_sect = structure.to_script()
+
+        # Find line before where new coordinates need to be inserted, as well as the
+        #  line which marks the following section
+        indbefore, indafter = -1, -1
+        for i, line in enumerate(self.input_template):
+            if line.find("define chem. and vib. properties") != -1:
+                indbefore = i - 1
+            elif line.find("define bulk stacking sequence") != -1:
+                indafter = i - 1
+        # Check that both lines were found
+        if indbefore == -1 or indafter == -1:
+            raise ValueError("LEED input file does not contain section marker lines")
+        with open(filename, "w") as ofile:
+            ofile.writelines(self.input_template[:indbefore])
+            ofile.write(new_coord_sect)
+            ofile.writelines(self.input_template[indafter:])
+
+    def _start_calc(self, structure: AtomicStructure, calcid: int):
         """ Start a new process running TLEED, and return the subprocess
               handle and working directory without waiting for it to finish
         """
         newdir = os.path.join(self.basedir, "ref-calc" + str(calcid))
         os.makedirs(newdir, exist_ok=True)
-        #shutil.copy(self.exp_datafile, os.path.join(newdir, "WEXPEL"))
+        # shutil.copy(self.exp_datafile, os.path.join(newdir, "WEXPEL"))
         input_filename = os.path.join(newdir, "FIN")
         stdout_filename = os.path.join(newdir, "protocol")
-        write_displacements(self.input_template, displacements, input_filename)
+        self._write_structure(structure, input_filename)
         process = subprocess.Popen(
-            [self.leed_exe], 
+            [self.leed_exe],
             stdin=open(input_filename, "r"),
             stdout=open(stdout_filename, "w"),
             cwd=newdir,
@@ -91,39 +301,31 @@ class LEEDManager:
         )
         return extract_rfactor(result.stdout)
 
-    def ref_calc(self, displacements):
+    def ref_calc(self, structure: AtomicStructure):
         """ Do the full process of performing a reference calculation.
-                displacements: A length 8 np.array of atomic displacements.
             NOTE: Do not call this function in parallel, as there is a race
                 condition on self.calc_number. Instead, use batch_ref_calcs.
         """
         self.calc_number += 1
-        calc_process, pdir = self._start_calc(displacements, self.calc_number)
+        calc_process, pdir = self._start_calc(structure, self.calc_number)
         calc_process.wait()
         result_filename = os.path.join(pdir, "fd.out")
         return self._rfactor_calc(result_filename)
-        #result = subprocess.run(
-        #    [self.rfactor_exe],
-        #    stdin=open(result_filename, "r"),
-        #    capture_output=True,
-        #    text=True
-        #)
-        #return extract_rfactor(result.stdout)
-    
-    def batch_ref_calcs(self, displacements):
+
+    def batch_ref_calcs(self, structures: List[AtomicStructure]):
         """ Run multiple reference calculations in parallel, one for each
              row of displacements.
         """
-        if len(displacements.shape) != 2:
-            raise ValueError("LEEDManager.batch_ref_calcs expects a 2-dimensional argument")
-        num_evals = displacements.shape[0]
+        num_structs = len(structures)
 
         # Start up all of the calculation processes
-        logging.info("Starting {} reference calculations...".format(num_evals))
+        logging.info("Starting {} reference calculations...".format(num_structs))
         processes = []
-        for i in range(num_evals):
+        for i in range(num_structs):
             self.calc_number += 1
-            processes.append(self._start_calc(displacements[i], self.calc_number))
+            processes.append(
+                self._start_calc(structures[i], self.calc_number)
+            )
 
         # Wait for all of them to complete, calculate r-factors for each
         # The r-factor calculations are fast enough that we may as well run
@@ -133,50 +335,9 @@ class LEEDManager:
             p.wait()
             result_filename = os.path.join(pdir, "fd.out")
             rfactors.append(self._rfactor_calc(result_filename))
-            #result = subprocess.run(
-            #    [self.rfactor_exe],
-            #    cwd=pdir,
-            #    stdin=open(result_filename, "r"),
-            #    capture_output=True,
-            #    text=True
-            #)
-            #rfactors.append(extract_rfactor(result.stdout))
         logging.info("Reference calculations completed.")
         return np.array(rfactors)
 
-
-def write_displacements(input_template, displacements, newfilename):
-    """ Edits a TLEED input script to contain updated coordinates.
-        displacements should be a np.array of length 8
-    """
-    # Repeat the displacements that Jordan does to make a length-10 array
-    displacements = np.concatenate((
-        displacements[0:4],
-        [displacements[3]],
-        displacements[4:],
-        [displacements[-1]]
-    ))
-
-    new_coords = np.round(UNPERTURBED + displacements, 4)
-    new_coord_sect = COORD_SECT.format(*new_coords)
-
-    # Find line before where new coordinates need to be inserted, as well as the
-    #  line which marks the following section
-    indbefore, indafter = -1, -1
-    for i, line in enumerate(input_template):
-        if line == "-   layer type 1 ---\n":
-            indbefore = i+1
-        elif line == "-   layer type 2 ---\n":
-            indafter = i
-    # Check that both lines were found
-    if indbefore == -1 or indafter == -1:
-        raise ValueError("LEED input file does not contain section marker lines")
-
-    # Write new script as 1st section, then new coords, then 2nd section
-    with open(newfilename, "w") as newfile:
-        newfile.writelines(input_template[:indbefore])
-        newfile.write(new_coord_sect)
-        newfile.writelines(input_template[indafter:])
 
 def extract_rfactor(output):
     p = re.compile(r"AVERAGE R-FACTOR =  (\d\.\d+)")

@@ -31,7 +31,8 @@ Misc. Notes
         Changed to -0.25 to 0.25
 - If you're looking for the raw/actual parameter explanation:
 https://gpytorch.readthedocs.io/en/latest/examples/00_Basic_Usage/Hyperparameters.html#Defining-an-example-model
-
+- GOTCHA: Beam numbers in ref calc input file (param NPU(K)) must be in
+            ascending order!! Otherwise, the next beams aren't output.
 
 TLEED Library Structure
 =======================
