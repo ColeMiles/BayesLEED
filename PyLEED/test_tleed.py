@@ -104,3 +104,63 @@ def test_random_points():
         np.allclose(pt, search_space.to_normalized(st))
         for pt, st in zip(random_pts, random_structs)
     )
+
+
+def test_struct_getitem():
+    struct = problems.FESE_20UC
+
+    assert struct[SearchKey.VIB, 3] == struct.sites[2].vib
+    assert struct[SearchKey.ATOMX, 6] == struct.layers[0].xs[5]
+    assert struct[SearchKey.ATOMY, 1] == struct.layers[0].ys[0]
+    assert struct[SearchKey.ATOMZ, 2] == struct.layers[0].zs[1]
+
+
+def test_constraints():
+    struct = problems.FESE_20UC
+
+    constraints = [
+        (SearchKey.VIB, 3, 1),
+        (SearchKey.ATOMX, 6, 2),
+        (SearchKey.ATOMZ, 4, 5)
+    ]
+
+    search_space = tleed.SearchSpace(
+        struct,
+        [
+            (SearchKey.VIB, 3, (-0.025, 0.025)),
+            (SearchKey.ATOMX, 6, (-0.2, 0.2)),
+            (SearchKey.ATOMY, 2, (-0.2, 0.2)),
+            (SearchKey.ATOMZ, 4, (-0.4, 0.4))
+        ],
+        constraints=constraints
+    )
+
+    num_pts = 20
+    random_pts, random_structs = search_space.random_points(num_pts)
+
+    # Confirm that variables are bound together correctly
+    for struct in random_structs:
+        for key, search_idx, bound_idx in constraints:
+            assert struct[key, bound_idx] == struct[key, search_idx]
+
+
+@pytest.mark.slow
+def test_refcalc():
+    origdir = "test_files/LaNiO2test"
+    newdir = "test_files/LaNiO2test_active"
+    executable = os.path.join(newdir, "ref-calc.LaNiO2")
+    shutil.copytree(origdir, newdir)
+
+    manager = bayessearch.create_manager(newdir, executable)
+
+    struct = problems.LANIO3
+    solution = problems.LANIO3_SOLUTION.tolist()
+    solution.insert(4, solution[3])
+    solution.insert(len(solution), solution[-1])
+    for i, delta in enumerate(solution):
+        struct[SearchKey.ATOMZ, i+1] += delta
+
+    rfactor = manager.ref_calc(struct)
+    shutil.rmtree(newdir)
+
+    assert isclose(rfactor, problems.LANIO3_SOLUTION_RFACTOR)

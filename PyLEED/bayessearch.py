@@ -25,9 +25,9 @@ def create_manager(workdir, executable='ref-calc.LaNiO3'):
     """ Makes a LEEDManager working in the given directory
     """
     leed_executable = os.path.join(workdir, executable)
-    rfact_executable = os.path.join(workdir, 'rf.x')
-    expdatafile = os.path.join(workdir, 'WEXPEL')
-    templatefile = os.path.join(workdir, 'FIN')
+    rfact_executable = os.path.join(workdir, "rf.x")
+    expdatafile = os.path.join(workdir, "WEXPEL")
+    templatefile = os.path.join(workdir, "FIN")
     return tleed.LEEDManager(
        workdir,
        leed_executable,

@@ -11,8 +11,6 @@ from typing import List, Dict, Tuple
 
 import numpy as np
 
-SOL_RFACTOR = 0.2794
-
 
 # TODO: Make this and all the search machinery work for searching over concentrations /
 #       vibrational parameters for more than two element types
@@ -62,6 +60,16 @@ class Layer:
         return output
 
 
+class SearchKey(enum.Enum):
+    """ Enumeration defining the types of parameters which can be searched over
+    """
+    CONC = enum.auto()
+    VIB = enum.auto()
+    ATOMX = enum.auto()
+    ATOMY = enum.auto()
+    ATOMZ = enum.auto()
+
+
 class AtomicStructure:
     """ Class holding all of the information needed to write the structure
          section of the input LEED script
@@ -103,18 +111,42 @@ class AtomicStructure:
 
         return output
 
+    def __getitem__(self, keyidx: Tuple[SearchKey, int]):
+        """ Retrieve a structural parameter. NOTE: 1-based indexing!
+        """
+        key, idx = keyidx
+        idx -= 1
+        if key == SearchKey.VIB:
+            return self.sites[idx].vib
+        elif key == SearchKey.CONC:
+            return self.sites[idx].concs
+        elif key == SearchKey.ATOMX:
+            return self.layers[0].xs[idx]
+        elif key == SearchKey.ATOMY:
+            return self.layers[0].ys[idx]
+        elif key == SearchKey.ATOMZ:
+            return self.layers[0].zs[idx]
 
-class SearchKey(enum.Enum):
-    """ Enumeration defining the types of parameters which can be searched over
-    """
-    CONC = enum.auto()
-    VIB = enum.auto()
-    ATOMX = enum.auto()
-    ATOMY = enum.auto()
-    ATOMZ = enum.auto()
+    def __setitem__(self, keyidx: Tuple[SearchKey, int], value: float):
+        """ Set a structural parameter. NOTE: 1-based indexing!
+        """
+        key, idx = keyidx
+        idx -= 1
+        if key == SearchKey.VIB:
+            self.sites[idx].vib = value
+        elif key == SearchKey.CONC:
+            self.sites[idx].concs = value
+        elif key == SearchKey.ATOMX:
+            self.layers[0].xs[idx] = value
+        elif key == SearchKey.ATOMY:
+            self.layers[0].ys[idx] = value
+        elif key == SearchKey.ATOMZ:
+            self.layers[0].zs[idx] = value
 
 
+SearchParam = Tuple[SearchKey, int]
 SearchDim = Tuple[SearchKey, int, Tuple[float, float]]
+SearchConstraint = Tuple[SearchKey, int, int]
 class SearchSpace:
     """ Defines which parameters of an AtomicStructure should be held fixed / 
         searched over in an optimization problem, as well as the domain to
@@ -127,16 +159,25 @@ class SearchSpace:
          by the atomic structure, not absolute coordinates.
         Also note that this assumes that all atoms to search over are in the
          first layer.
+
+        Constraints can be provided as a list of tuples of the form
+            (SEARCH_KEY, SEARCH_IDX, BOUND_IDX)
+        which will make it so that whenever the search parameter (SEARCH_KEY, SEARCH_IDX)
+         is sampled/changed, the variable at idx BOUND_IDX is changed to be equal.
     """
 
     def __init__(self, atomic_structure: AtomicStructure,
-                 search_params: List[SearchDim]):
+                 search_dims: List[SearchDim],
+                 constraints: List[SearchConstraint] = None):
+        if constraints is None:
+            constraints = []
         self.atomic_structure = deepcopy(atomic_structure)
-        self.search_params = search_params
+        self.search_params = [(key, idx) for key, idx, _ in search_dims]
+        self.search_bounds = [bounds for _, _, bounds in search_dims]
         self.num_params = len(self.search_params)
 
         # Check validity of search_params
-        for key, idx, _ in search_params:
+        for key, idx in self.search_params:
             if key == SearchKey.CONC:
                 raise NotImplementedError("SearchKey.CONC not implemented yet.")
             elif key == SearchKey.VIB:
@@ -147,6 +188,14 @@ class SearchSpace:
                     raise ValueError("SearchSpace idx out of bounds")
             if idx < 0:
                 raise ValueError("SearchSpace idx out of bounds")
+
+        self.constraints = {param: [] for param in self.search_params}
+        for key, search_idx, bound_idx in constraints:
+            if (key, search_idx) not in self.search_params:
+                raise ValueError("Search parameter in constraint not present")
+            elif bound_idx in [idx for skey, idx in self.search_params if skey == key]:
+                raise ValueError("Bound parameter is in search parameter list")
+            self.constraints[(key, search_idx)].append(bound_idx)
 
     def random_points(self, num_pts: int) -> Tuple[np.ndarray, List[AtomicStructure]]:
         """ Returns num_pts number of random structures in the search space
@@ -169,16 +218,12 @@ class SearchSpace:
     def _normal_to_structure(self, norm_vec) -> AtomicStructure:
         new_struct = deepcopy(self.atomic_structure)
 
-        for val, (key, idx, lims) in zip(norm_vec, self.search_params):
-            idx = idx - 1
-            if key == SearchKey.VIB:
-                new_struct.sites[idx].vib += lims[0] + val * (lims[1] - lims[0])
-            elif key == SearchKey.ATOMX:
-                new_struct.layers[0].xs[idx] += lims[0] + val * (lims[1] - lims[0])
-            elif key == SearchKey.ATOMY:
-                new_struct.layers[0].ys[idx] += lims[0] + val * (lims[1] - lims[0])
-            elif key == SearchKey.ATOMZ:
-                new_struct.layers[0].zs[idx] += lims[0] + val * (lims[1] - lims[0])
+        for val, param, lims in zip(norm_vec, self.search_params, self.search_bounds):
+            key, idx = param
+            bound_idxs = self.constraints[param]
+            new_struct[key, idx] += lims[0] + val * (lims[1] - lims[0])
+            for b_idx in bound_idxs:
+                new_struct[key, b_idx] = new_struct[key, idx]
 
         return new_struct
 
@@ -197,25 +242,10 @@ class SearchSpace:
             TODO: Should this also work on list of structures?
         """
         norm_vec = np.empty(self.num_params)
-        for i, (key, idx, lims) in enumerate(self.search_params):
-            idx = idx - 1
-            # TODO: Maybe make vib, xs, ys, zs properties of AtomicStructure instead of digging down
-            if key == SearchKey.VIB:
-                norm_vec[i] = (struct.sites[idx].vib
-                               - self.atomic_structure.sites[idx].vib
-                               - lims[0]) / (lims[1] - lims[0])
-            elif key == SearchKey.ATOMX:
-                norm_vec[i] = (struct.layers[0].xs[idx]
-                               - self.atomic_structure.layers[0].xs[idx]
-                               - lims[0]) / (lims[1] - lims[0])
-            elif key == SearchKey.ATOMY:
-                norm_vec[i] = (struct.layers[0].ys[idx]
-                               - self.atomic_structure.layers[0].ys[idx]
-                               - lims[0]) / (lims[1] - lims[0])
-            elif key == SearchKey.ATOMZ:
-                norm_vec[i] = (struct.layers[0].zs[idx]
-                               - self.atomic_structure.layers[0].zs[idx]
-                               - lims[0]) / (lims[1] - lims[0])
+        for i, (param, lims) in enumerate(zip(self.search_params, self.search_bounds)):
+            key, idx = param
+            norm_vec[i] = ((struct[key, idx] - self.atomic_structure[key, idx] - lims[0])
+                           / (lims[1] - lims[0]))
 
         return norm_vec
 
