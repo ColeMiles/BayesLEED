@@ -7,6 +7,8 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("outfile", help="Name of collated file")
 parser.add_argument("sourcedir", nargs="?", default=".", help="Directory containing csvs")
+parser.add_argument("--smooth", type=int, default=None, help="Smooth the data with a Gaussian kernel of size N")
+parser.add_argument("--interpolate", action="store_true", help="If set, interpolates data at 1eV steps")
 args = parser.parse_args()
 
 def find(lst, val):
@@ -37,8 +39,15 @@ def interpolate_holes(E_data, I_data, E_step):
 
 
 with open(args.outfile, "w") as ofile:
-    ofile.write("FeSe (20 u.c.) 7 beams\n")
-    ofile.write("  1  2  3  4  5  6  7\n")
+    datafiles = list(sorted(filter(lambda x: x.endswith("csv"), os.listdir(args.sourcedir))))
+    num_beams = len(datafiles)
+
+    ofile.write("FeSe (20 u.c.) {} beams\n".format(num_beams))
+    beamnums = ""
+    for i in range(num_beams):
+        beamnums += "{:>3d}".format(i)
+    beamnums += "\n"
+    ofile.write(beamnums)
     ofile.write("(F7.2,F10.6)\n")
 
     for ifilename in sorted(filter(lambda x: x.endswith("csv"), os.listdir(args.sourcedir))):

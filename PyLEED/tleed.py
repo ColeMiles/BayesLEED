@@ -7,7 +7,7 @@ import re
 import logging
 import enum
 from copy import deepcopy
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 
 import numpy as np
 
@@ -34,9 +34,31 @@ class Site:
 class Atom:
     def __init__(self, sitenum: int, x: float, y: float, z: float):
         self.sitenum = sitenum
-        self.x = x
-        self.y = y
-        self.z = z
+        self.coord = np.array([x, y, z])
+
+    @property
+    def x(self):
+        return self.coord[0]
+
+    @x.setter
+    def x(self, value):
+        self.coord[0] = value
+
+    @property
+    def y(self):
+        return self.coord[1]
+
+    @y.setter
+    def y(self, value):
+        self.coord[1] = value
+
+    @property
+    def z(self):
+        return self.coord[2]
+
+    @z.setter
+    def z(self, value):
+        self.coord[2] = value
 
 
 class Layer:
@@ -50,12 +72,13 @@ class Layer:
     def __len__(self):
         return len(self.sitenums)
 
-    def __str__(self) -> str:
+    def to_string(self, lat_params) -> str:
+        lat_a, lat_b, lat_c = lat_params
         output = "{:>3d}".format(len(self.sitenums))
         output += 23 * " " + "number of sublayers\n"
         for sitenum, z, x, y in zip(self.sitenums, self.zs, self.xs, self.ys):
             output += "{:>3d}{:>7.4f}{:>7.4f}{:>7.4f}\n".format(
-                sitenum, z, x, y
+                sitenum, z * lat_c, x * lat_a, y * lat_b
             )
         return output
 
@@ -68,16 +91,21 @@ class SearchKey(enum.Enum):
     ATOMX = enum.auto()
     ATOMY = enum.auto()
     ATOMZ = enum.auto()
+    CELLA = enum.auto()
+    CELLB = enum.auto()
+    CELLC = enum.auto()
 
 
 class AtomicStructure:
     """ Class holding all of the information needed to write the structure
-         section of the input LEED script
+         sections of the input LEED script. Layer coordinates should be in
+         fractional coordinates. (This currently assumes orthorhombic unit cells).
     """
 
-    def __init__(self, sites: List[Site], layers: List[Layer]):
+    def __init__(self, sites: List[Site], layers: List[Layer], cell_params: List[float]):
         self.sites = sites
         self.layers = layers
+        self.cell_params = np.array(cell_params)
 
     def to_script(self):
         """ Writes to a string the section to be placed inside
@@ -107,12 +135,13 @@ class AtomicStructure:
             output += "-   layer type {}  {}---\n".format(i + 1, layer.name)
             output += "{:>3d}".format(i + 1)
             output += 23 * " " + "LAY = {}\n".format(i + 1)
-            output += str(layer)
+            output += layer.to_string(self.cell_params)
 
         return output
 
     def __getitem__(self, keyidx: Tuple[SearchKey, int]):
         """ Retrieve a structural parameter. NOTE: 1-based indexing!
+            TODO: Move this logic into SearchSpace?
         """
         key, idx = keyidx
         idx -= 1
@@ -126,6 +155,12 @@ class AtomicStructure:
             return self.layers[0].ys[idx]
         elif key == SearchKey.ATOMZ:
             return self.layers[0].zs[idx]
+        elif key == SearchKey.CELLA:
+            return self.cell_params[0]
+        elif key == SearchKey.CELLB:
+            return self.cell_params[1]
+        elif key == SearchKey.CELLC:
+            return self.cell_params[2]
 
     def __setitem__(self, keyidx: Tuple[SearchKey, int], value: float):
         """ Set a structural parameter. NOTE: 1-based indexing!
@@ -142,11 +177,17 @@ class AtomicStructure:
             self.layers[0].ys[idx] = value
         elif key == SearchKey.ATOMZ:
             self.layers[0].zs[idx] = value
+        elif key == SearchKey.CELLA:
+            self.cell_params[0] = value
+        elif key == SearchKey.CELLB:
+            self.cell_params[1] = value
+        elif key == SearchKey.CELLC:
+            self.cell_params[2] = value
 
 
 SearchParam = Tuple[SearchKey, int]
 SearchDim = Tuple[SearchKey, int, Tuple[float, float]]
-SearchConstraint = Tuple[SearchKey, int, int]
+SearchConstraint = Tuple[SearchKey, int, SearchKey, int]
 class SearchSpace:
     """ Defines which parameters of an AtomicStructure should be held fixed / 
         searched over in an optimization problem, as well as the domain to
@@ -158,7 +199,7 @@ class SearchSpace:
         Note these intervals are interpreted as deviations from the values given
          by the atomic structure, not absolute coordinates.
         Also note that this assumes that all atoms to search over are in the
-         first layer.
+         first layer. (Except for lattice parameters, which also apply to the bulk)
 
         Constraints can be provided as a list of tuples of the form
             (SEARCH_KEY, SEARCH_IDX, BOUND_IDX)
@@ -176,10 +217,12 @@ class SearchSpace:
         self.search_bounds = [bounds for _, _, bounds in search_dims]
         self.num_params = len(self.search_params)
 
-        # Check validity of search_params
+        # Validate search parameters
         for key, idx in self.search_params:
             if key == SearchKey.CONC:
                 raise NotImplementedError("SearchKey.CONC not implemented yet.")
+            elif key in [SearchKey.CELLA, SearchKey.CELLB, SearchKey.CELLC]:
+                continue
             elif key == SearchKey.VIB:
                 if idx > len(self.atomic_structure.sites):
                     raise ValueError("SearchSpace idx out of bounds")
@@ -190,12 +233,18 @@ class SearchSpace:
                 raise ValueError("SearchSpace idx out of bounds")
 
         self.constraints = {param: [] for param in self.search_params}
-        for key, search_idx, bound_idx in constraints:
-            if (key, search_idx) not in self.search_params:
+        # Validate constraints
+        for search_key, search_idx, bound_key, bound_idx in constraints:
+            if (search_key, search_idx) not in self.search_params:
                 raise ValueError("Search parameter in constraint not present")
-            elif bound_idx in [idx for skey, idx in self.search_params if skey == key]:
+            elif bound_key in [SearchKey.CELLA, SearchKey.CELLB, SearchKey.CELLC]:
+                if bound_key in [skey for skey, idx in self.search_params]:
+                    raise ValueError("Bound parameter is in search parameter list")
+                self.constraints[(search_key, search_idx)].append((bound_key, bound_idx))
+                continue
+            elif bound_idx in [idx for skey, idx in self.search_params if skey == search_key]:
                 raise ValueError("Bound parameter is in search parameter list")
-            self.constraints[(key, search_idx)].append(bound_idx)
+            self.constraints[(search_key, search_idx)].append((bound_key, bound_idx))
 
     def random_points(self, num_pts: int) -> Tuple[np.ndarray, List[AtomicStructure]]:
         """ Returns num_pts number of random structures in the search space
@@ -215,20 +264,20 @@ class SearchSpace:
         random_pts = sol + dist * random_unit_vecs
         return self.to_structures(sol + random_unit_vecs)
 
-    def _normal_to_structure(self, norm_vec) -> AtomicStructure:
+    def _normal_to_structure(self, norm_vec: np.ndarray) -> Union[AtomicStructure, List[AtomicStructure]]:
         new_struct = deepcopy(self.atomic_structure)
 
         for val, param, lims in zip(norm_vec, self.search_params, self.search_bounds):
             key, idx = param
-            bound_idxs = self.constraints[param]
+            bound_params = self.constraints[param]
             new_struct[key, idx] += lims[0] + val * (lims[1] - lims[0])
-            for b_idx in bound_idxs:
-                new_struct[key, b_idx] = new_struct[key, idx]
+            for b_key, b_idx in bound_params:
+                new_struct[b_key, b_idx] = new_struct[key, idx]
 
         return new_struct
 
-    def to_structures(self, norm_vecs) -> AtomicStructure:
-        """ Converts a normalized feature vector to the corresponding AtomicStructure.
+    def to_structures(self, norm_vecs) -> List[AtomicStructure]:
+        """ Converts normalized feature vectors to the corresponding AtomicStructures.
             If norm_vecs is a single vector, returns a single AtomicStructure, if
                norm_vecs is a list of vectors or 2D array, returns a list of AtomicStructures
         """
@@ -281,22 +330,93 @@ class LEEDManager:
         self.calc_number = 0
 
     def _write_structure(self, structure, filename):
-        new_coord_sect = structure.to_script()
-
-        # Find line before where new coordinates need to be inserted, as well as the
-        #  line which marks the following section
-        indbefore, indafter = -1, -1
-        for i, line in enumerate(self.input_template):
-            if line.find("define chem. and vib. properties") != -1:
-                indbefore = i - 1
-            elif line.find("define bulk stacking sequence") != -1:
-                indafter = i - 1
-        # Check that both lines were found
-        if indbefore == -1 or indafter == -1:
-            raise ValueError("LEED input file does not contain section marker lines")
         with open(filename, "w") as ofile:
-            ofile.writelines(self.input_template[:indbefore])
-            ofile.write(new_coord_sect)
+            # File title and energy range
+            ofile.writelines(self.input_template[:2])
+
+            ofile.write("{:>7.4f} 0.0000          ARA1 *\n".format(structure.cell_params[0]))
+            ofile.write(" 0.0000{:>7.4f}          ARA2 *\n".format(structure.cell_params[1]))
+
+            # (Unused) registry shift lines
+            ofile.writelines(self.input_template[4:8])
+
+            ofile.write("{:>7.4f} 0.0000          ARB1 *\n".format(structure.cell_params[0]))
+            ofile.write(" 0.0000{:>7.4f}          ARB2 *\n".format(structure.cell_params[1]))
+
+            # Find line before where new coordinates need to be inserted, as well as the
+            #  line which marks the following section
+            indbefore, indafter = -1, -1
+            for i, line in enumerate(self.input_template):
+                if line.find("define chem. and vib. properties") != -1:
+                    indbefore = i - 1
+                elif line.find("Tensor output is required") != -1:
+                    indafter = i
+            # Check that both lines were found
+            if indbefore == -1 or indafter == -1:
+                raise ValueError("LEED input file does not contain section marker lines")
+            ofile.writelines(self.input_template[10:indbefore])
+
+            # Site description section
+            output = (
+                "-------------------------------------------------------------------\n"
+                "--- define chem. and vib. properties for different atomic sites ---\n"
+                "-------------------------------------------------------------------\n"
+            )
+            output += "{:>3d}".format(len(structure.sites))
+            output += 23 * " " + "NSITE: number of different site types\n"
+            for i, site in enumerate(structure.sites):
+                output += "-   site type {}  {}---\n".format(i + 1, site.name)
+                output += str(site)
+
+            # Layer description section
+            output += (
+                "-------------------------------------------------------------------\n"
+                "--- define different layer types                            *   ---\n"
+                "-------------------------------------------------------------------\n"
+            )
+            output += "{:>3d}".format(len(structure.layers))
+            output += 23 * " " + "NLTYPE: number of different layer types\n"
+            for i, layer in enumerate(structure.layers):
+                output += "-   layer type {}  {}---\n".format(i + 1, layer.name)
+                output += "{:>3d}".format(i + 1)
+                output += 23 * " " + "LAY = {}\n".format(i + 1)
+                output += layer.to_string(structure.cell_params)
+
+            # Bulk stacking section
+            output += (
+                "-------------------------------------------------------------------\n"
+                "--- define bulk stacking sequence                           *   ---\n"
+                "-------------------------------------------------------------------\n"
+            )
+            # Find bulk interlayer vector from bottom atom of bulk layer
+            bulk_maxz = max(structure.layers[1].zs)
+            num_cells = np.ceil(bulk_maxz)
+            bulk_interlayer_dist = (num_cells - bulk_maxz) * structure.cell_params[2]
+
+            output += "  0" + 23 * " " + "TSLAB = 0: compute bulk using subras\n"
+            output += "{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist)
+            output += "     ASA interlayer vector between different bulk units *\n"
+            output += "  2" + 23 * " " + "top layer of bulk unit: type 2\n"
+            output += "  2" + 23 * " " + "bottom layer of bulk unit: type 2\n"
+            output += "{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist)
+            output += "     ASBULK between the two bulk unit layers (may differ from ASA)\n"
+
+            # Surface layer stacking sequence
+            output += (
+                "-------------------------------------------------------------------\n"
+                "--- define layer stacking sequence and Tensor LEED output   *   ---\n"
+                "-------------------------------------------------------------------\n"
+            )
+            # Find surface interlayer vector from bottom atom to bulk
+            layer_maxz = max(structure.layers[0].zs)
+            num_cells = np.ceil(layer_maxz)
+            surf_interlayer_dist = (num_cells - layer_maxz) * structure.cell_params[2]
+            output += "  1\n"
+            output += "  1{:>7.4f} 0.0000 0.0000".format(surf_interlayer_dist)
+            output += "  surface layer is of type 1: interlayer vector connecting it to bulk\n"
+            output += "  0" + 23 * " " + "Tensor output is NOT required for this layer\n"
+
+            ofile.write(output)
             ofile.writelines(self.input_template[indafter:])
 
     def _start_calc(self, structure: AtomicStructure, calcid: int):

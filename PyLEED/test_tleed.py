@@ -23,6 +23,29 @@ def test_to_script():
     assert struct.to_script() == answer
 
 
+def test_write_structure():
+    struct = problems.FESE_20UC
+
+    basedir = "test_files/FeSetest/"
+    exe = os.path.join(basedir, "ref-calc.FeSe")
+    rfact = os.path.join(basedir, "rf.x")
+    expfile = os.path.join(basedir, "WEXPEL")
+    template = os.path.join(basedir, "FIN")
+
+    with open(template, "r") as f:
+        answer = f.read()
+
+    manager = tleed.LEEDManager(basedir, exe, rfact, expfile, template)
+    manager._write_structure(struct, "test_files/FeSetest/comp_FIN")
+
+    with open("test_files/FeSetest/comp_FIN", "r") as f:
+        output = f.read()
+
+    assert output == answer
+
+    os.remove("test_files/FeSetest/comp_FIN")
+
+
 def test_to_structures():
     struct = problems.FESE_20UC
 

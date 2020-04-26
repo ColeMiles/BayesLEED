@@ -3,6 +3,7 @@ import os
 import time
 import logging
 import multiprocessing as mp
+import gc
 
 import numpy as np
 import torch
@@ -124,25 +125,34 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
         logging.info("Saved model state dict to " + str(model_filename))
 
         sampler = botorch.sampling.SobolQMCNormalSampler(
-            num_samples=2500, 
+            num_samples=1024,
             resample=False
         )
-        acquisition = botorch.acquisition.qExpectedImprovement(
-           model,
-           -best_rfactor,
-           sampler
+        # acquisition = botorch.acquisition.qExpectedImprovement(
+        #    model,
+        #    -best_rfactor,
+        #    sampler
+        # )
+        acquisition = botorch.acquisition.qKnowledgeGradient(
+            model,
+            num_fantasies=128,
+            sampler=sampler,
         )
         logging.info("Optimizing acquisition function to generate new test points...")
+
+        # The next step uses a lot of GPU memory. Free all tensors we don't need
+        gc.collect()
+
         new_normalized_pts, _ = botorch.optim.optimize_acqf(
             acq_function=acquisition,
             bounds=torch.tensor([[0.0] * num_params, [1.0] * num_params], device=device, dtype=torch.float64),
             q=num_eval,
             num_restarts=20,
-            raw_samples=200,
+            raw_samples=128,
             options={},
-            sequential=True
+            sequential=False
         )
-        logging.info("New test points generated")
+        logging.info("New test points generated. Running TLEED.")
         new_normalized_pts_np = new_normalized_pts.cpu().numpy()
         structs = search_problem.to_structures(new_normalized_pts_np)
         new_rfactors = manager.batch_ref_calcs(structs)
@@ -179,13 +189,13 @@ if __name__ == "__main__":
         help="Path to LEED executable. Directory containing it treated as work directory."
     )
     parser.add_argument("--problem", type=str, default="LANIO3",
-        help="Name of problem to run (from problems.py)"
+        help="Name of problem to run (from problems.py). [Options: `LANIO3`, `FESE_20UC`]"
     )
     parser.add_argument("--ncores", type=int, default=5,
         help="The number of cores to use == the number of parallel evaluations each iteration."
     )
     parser.add_argument("--nepochs", type=int, default=25,
-        help="The number of epochs to run."
+        help="The number of epochs to run. [Default = 25]"
     )
     parser.add_argument("--warm", type=float,
         help="Warm start with points a given distance from the true solution (in normalized space). (Unimplemented)."
