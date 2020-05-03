@@ -1169,23 +1169,23 @@ alpha-FeSe, two bilayers on bulk with zero buckling
 -------------------------------------------------------------------
   6                       NSITE: number of different site types
 -   site type 1  Fe top layer---
- 1.0000 0.0528            element Fe
- 0.0000 0.0528            element Se
+ 1.0000 0.1000            element Fe
+ 0.0000 0.1000            element Se
 -   site type 2  Fe 2nd layer---
- 1.0000 0.0528            element Fe
- 0.0000 0.0528            element Se
+ 1.0000 0.1000            element Fe
+ 0.0000 0.1000            element Se
 -   site type 3  Fe bulk---
- 1.0000 0.0528            element Fe
- 0.0000 0.0528            element Se
+ 1.0000 0.1000            element Fe
+ 0.0000 0.1000            element Se
 -   site type 4  Se top layer---
- 0.0000 0.0298            element Fe
- 1.0000 0.0298            element Se
+ 0.0000 0.1000            element Fe
+ 1.0000 0.1000            element Se
 -   site type 5  Se 2nd layer---
- 0.0000 0.0298            element Fe
- 1.0000 0.0298            element Se
+ 0.0000 0.1000            element Fe
+ 1.0000 0.1000            element Se
 -   site type 6  Se bulk---
- 0.0000 0.0298            element Fe
- 1.0000 0.0298            element Se
+ 0.0000 0.1000            element Fe
+ 1.0000 0.1000            element Se
 -------------------------------------------------------------------
 --- define different layer types                            *   ---
 -------------------------------------------------------------------

@@ -38,32 +38,29 @@ def create_manager(workdir, executable='ref-calc.LaNiO3'):
     )
 
 
-def create_model(pts, rfactors, state_dict=None):
+def create_model(pts, targets, state_dict=None):
     """ Create / update a botorch model using the given points
     """
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if type(pts) is not torch.Tensor:
         pts = torch.tensor(pts, device=device)
-    if type(rfactors) is not torch.Tensor:
-        rfactors = torch.tensor(rfactors, device=device)
-    if len(rfactors.shape) < 2:
-        rfactors = rfactors.unsqueeze(1)
+    if type(targets) is not torch.Tensor:
+        targets = torch.tensor(targets, device=device)
+    if len(targets.shape) < 2:
+        targets = targets.unsqueeze(1)
     # Botorch assumes a maximization problem, so we will regress the
     #   negative r-factor to minimize it
     # In addition, our LEED evaluations are noiseless, so assert a
     #   noise level of zero
     model = botorch.models.FixedNoiseGP(
         pts, 
-        -rfactors, 
-        torch.zeros_like(rfactors)
+        -targets,
+        torch.zeros_like(targets)
     )
 
     # Set the prior for the rfactor mean to be at a reasonable level
-    model.mean_module.register_parameter(
-        name="constant",
-        parameter=torch.nn.Parameter(
-            torch.tensor([-0.65], device=device, dtype=torch.float64)
-        )
+    model.mean_module.load_state_dict(
+        {'constant': torch.tensor([-0.65], device=device, dtype=torch.float64)}
     )
 
     if state_dict is not None:
@@ -89,6 +86,9 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
     if warm is None:
         logging.info("Performing random start with {} points".format(num_eval))
         random_pts, random_structs = search_problem.random_points(num_eval)
+        # Replace one of the random pts with the "ideal" structure (no perturbations)
+        random_pts[0] = search_problem.to_normalized(search_problem.atomic_structure)
+        random_structs[0] = search_problem.atomic_structure
     else:
         print("Warm start is unimplemented as of right now")
         return
@@ -97,12 +97,15 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
         )
 
     rfactors = manager.batch_ref_calcs(random_structs)
-    model, mll = create_model(random_pts, rfactors)
+    # Normalize rfactors to zero mean, unit variance
+    normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std(ddof=1)
+    model, mll = create_model(random_pts, normalized_rfactors)
 
     # Find the best out of these initial trial points
     best_idx = np.argmin(rfactors)
     best_pt = random_pts[best_idx]
     best_rfactor = rfactors[best_idx]
+    best_normalized_rfactor = normalized_rfactors[best_idx]
     rfactor_progress = [best_rfactor]
     with open(tested_filename, "w") as ptfile:
         header_str = "DISPLACEMENT" + " " * 52 + "RFACTOR"
@@ -115,6 +118,7 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
 
     normalized_pts = torch.tensor(random_pts, device=device, dtype=torch.float64)
     rfactors = torch.tensor(rfactors, device=device, dtype=torch.float64)
+    normalized_rfactors = torch.tensor(normalized_rfactors, device=device, dtype=torch.float64)
     # Main Bayesian Optimization Loop
     for epoch in range(nepochs):
         logging.info("Starting Epoch {}".format(epoch))
@@ -128,16 +132,18 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
             num_samples=1024,
             resample=False
         )
-        # acquisition = botorch.acquisition.qExpectedImprovement(
-        #    model,
-        #    -best_rfactor,
-        #    sampler
-        # )
-        acquisition = botorch.acquisition.qKnowledgeGradient(
-            model,
-            num_fantasies=128,
-            sampler=sampler,
+
+        best_normalized_rfactor = torch.min(normalized_rfactors).item()
+        acquisition = botorch.acquisition.qExpectedImprovement(
+           model,
+           -best_normalized_rfactor,
+           sampler
         )
+        # acquisition = botorch.acquisition.qKnowledgeGradient(
+        #     model,
+        #     num_fantasies=128,
+        #     sampler=sampler,
+        # )
         logging.info("Optimizing acquisition function to generate new test points...")
 
         # The next step uses a lot of GPU memory. Free all tensors we don't need
@@ -147,8 +153,8 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
             acq_function=acquisition,
             bounds=torch.tensor([[0.0] * num_params, [1.0] * num_params], device=device, dtype=torch.float64),
             q=num_eval,
-            num_restarts=20,
-            raw_samples=128,
+            num_restarts=40,
+            raw_samples=256,
             options={},
             sequential=False
         )
@@ -172,7 +178,8 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
         new_rfactors_tensor = torch.tensor(new_rfactors, device=device, dtype=torch.float64)
         normalized_pts = torch.cat((normalized_pts, new_normalized_pts))
         rfactors = torch.cat((rfactors, new_rfactors_tensor))
-        model, mll = create_model(normalized_pts, rfactors, state_dict=model.state_dict())
+        normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std()
+        model, mll = create_model(normalized_pts, normalized_rfactors, state_dict=model.state_dict())
         logging.info("Botorch model updated with new evaluated points")
 
     return model, normalized_pts, rfactors
@@ -203,9 +210,6 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int,
         help="Set the seed for the RNGs"
     )
-    parser.add_argument("--restrict", nargs="+", type=int,
-        help="Restricts the search space to include only the coordinates provided. (Unimplemented)."
-    )
     args = parser.parse_args()
 
     # Check for GPU presence
@@ -218,8 +222,5 @@ if __name__ == "__main__":
     if args.seed is not None:
         np.random.seed(args.seed)
         torch.manual_seed(seed=args.seed)
-
-    if args.restrict is not None and 1 <= len(args.restrict) <= 7:
-        print("Restricted problem not implemented yet, just running full problem")
 
     main(args.leed_executable, args.problem, args.ncores, args.nepochs, args.warm, seed=args.seed)

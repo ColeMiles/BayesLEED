@@ -5,7 +5,7 @@ import shutil
 import numpy as np
 
 import tleed
-from tleed import SearchKey
+from tleed import SearchKey, AtomicStructure, Site, Layer, Atom
 import bayessearch
 import problems
 
@@ -14,8 +14,46 @@ def isclose(a, b, eps=1e-6):
     return abs(a - b) < eps
 
 
+TEST_STRUCT = AtomicStructure(
+    # Atomic sites
+    [
+        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe top layer"),
+        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe 2nd layer"),
+        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe bulk"),
+        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se top layer"),
+        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se 2nd layer"),
+        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se bulk")
+    ],
+    # Layer definitions (fractional coordinates)
+    [
+        Layer([
+            Atom(1, 0.25, 0.75, 0.25),  # Top Layer Fe
+            Atom(1, 0.75, 0.25, 0.25),  # Top Layer Fe
+            Atom(2, 0.25, 0.75, 1.25),  # 2nd Layer Fe
+            Atom(2, 0.75, 0.25, 1.25),  # 2nd Layer Fe
+            Atom(4, 0.25, 0.25, 0.00),  # Top Layer Se
+            Atom(4, 0.75, 0.75, 0.50),  # Top Layer Se
+            Atom(5, 0.25, 0.25, 1.00),  # 2nd Layer Se
+            Atom(5, 0.75, 0.75, 1.50),  # 2nd Layer Se
+        ],
+            "Top 2 unit cells"
+        ),
+        Layer([
+            Atom(3, 0.25, 0.75, 0.25),  # Bulk Fe
+            Atom(3, 0.75, 0.25, 0.25),  # Bulk Fe
+            Atom(6, 0.25, 0.25, 0.00),  # Bulk Se
+            Atom(6, 0.75, 0.75, 0.50),  # Bulk Se
+        ],
+            "Bulk"
+        )
+    ],
+    # Unit cell parameters
+    [3.7676, 3.7676, 5.5180]
+)
+
+
 def test_to_script():
-    struct = problems.FESE_20UC
+    struct = TEST_STRUCT
 
     with open("test_files/fese_answer.txt", "r") as f:
         answer = f.read()
@@ -24,7 +62,7 @@ def test_to_script():
 
 
 def test_write_structure():
-    struct = problems.FESE_20UC
+    struct = TEST_STRUCT
 
     basedir = "test_files/FeSetest/"
     exe = os.path.join(basedir, "ref-calc.FeSe")
@@ -142,9 +180,11 @@ def test_constraints():
     struct = problems.FESE_20UC
 
     constraints = [
-        (SearchKey.VIB, 3, 1),
-        (SearchKey.ATOMX, 6, 2),
-        (SearchKey.ATOMZ, 4, 5)
+        tleed.EqualityConstraint(SearchKey.VIB, 3, SearchKey.VIB, 1),
+        tleed.EqualityConstraint(SearchKey.ATOMX, 6, SearchKey.ATOMX, 2),
+        tleed.EqualityConstraint(SearchKey.ATOMZ, 4, SearchKey.ATOMZ, 5),
+        tleed.EqualShiftConstraint(SearchKey.ATOMZ, 4, SearchKey.ATOMZ, 7),
+        tleed.EqualShiftConstraint(SearchKey.CELLA, -1, SearchKey.CELLC, -1)
     ]
 
     search_space = tleed.SearchSpace(
@@ -153,7 +193,8 @@ def test_constraints():
             (SearchKey.VIB, 3, (-0.025, 0.025)),
             (SearchKey.ATOMX, 6, (-0.2, 0.2)),
             (SearchKey.ATOMY, 2, (-0.2, 0.2)),
-            (SearchKey.ATOMZ, 4, (-0.4, 0.4))
+            (SearchKey.ATOMZ, 4, (-0.4, 0.4)),
+            (SearchKey.CELLA, -1, (-0.2, 0.2)),
         ],
         constraints=constraints
     )
@@ -162,9 +203,17 @@ def test_constraints():
     random_pts, random_structs = search_space.random_points(num_pts)
 
     # Confirm that variables are bound together correctly
-    for struct in random_structs:
-        for key, search_idx, bound_idx in constraints:
-            assert struct[key, bound_idx] == struct[key, search_idx]
+    for r_struct in random_structs:
+        for constraint in constraints:
+            b_key = constraint.bound_key
+            b_idx = constraint.bound_idx
+            s_key = constraint.search_key
+            s_idx = constraint.search_idx
+            if isinstance(constraint, tleed.EqualityConstraint):
+                assert r_struct[b_key, b_idx] == r_struct[s_key, s_idx]
+            if isinstance(constraint, tleed.EqualShiftConstraint):
+                assert isclose(r_struct[b_key, b_idx] - struct[b_key, b_idx],
+                               r_struct[s_key, s_idx] - struct[s_key, s_idx])
 
 
 @pytest.mark.slow

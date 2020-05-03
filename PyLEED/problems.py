@@ -1,15 +1,15 @@
-from tleed import AtomicStructure, Site, Layer, Atom, SearchKey, SearchSpace
+from tleed import *
 import numpy as np
 
 FESE_20UC = AtomicStructure(
     # Atomic sites
     [
-     Site([1.0, 0.0], 0.0528, ["Fe", "Se"], "Fe top layer"),
-     Site([1.0, 0.0], 0.0528, ["Fe", "Se"], "Fe 2nd layer"),
-     Site([1.0, 0.0], 0.0528, ["Fe", "Se"], "Fe bulk"),
-     Site([0.0, 1.0], 0.0298, ["Fe", "Se"], "Se top layer"),
-     Site([0.0, 1.0], 0.0298, ["Fe", "Se"], "Se 2nd layer"),
-     Site([0.0, 1.0], 0.0298, ["Fe", "Se"], "Se bulk")
+     Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe top layer"),
+     Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe 2nd layer"),
+     Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe bulk"),
+     Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se top layer"),
+     Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se 2nd layer"),
+     Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se bulk")
     ],
     # Layer definitions (fractional coordinates)
     [
@@ -22,7 +22,7 @@ FESE_20UC = AtomicStructure(
         Atom(4, 0.75, 0.75, 0.50),  # Top Layer Se
         Atom(5, 0.25, 0.25, 1.00),  # 2nd Layer Se
         Atom(5, 0.75, 0.75, 1.50),  # 2nd Layer Se
-     ],
+        ],
         "Top 2 unit cells"
      ),
      Layer([
@@ -30,7 +30,7 @@ FESE_20UC = AtomicStructure(
         Atom(3, 0.75, 0.25, 0.25),  # Bulk Fe
         Atom(6, 0.25, 0.25, 0.00),  # Bulk Se
         Atom(6, 0.75, 0.75, 0.50),  # Bulk Se
-     ],
+        ],
         "Bulk"
      )
     ],
@@ -97,8 +97,8 @@ LANIO3_PROBLEM = SearchSpace(
         (SearchKey.ATOMZ,  9, (-0.066, 0.066)),
     ],
     constraints=[  # Bind matching eqOs to be equal in z coordinate
-        (SearchKey.ATOMZ, 4, 5),
-        (SearchKey.ATOMZ, 9, 10),
+        EqualityConstraint(SearchKey.ATOMZ, 4, SearchKey.ATOMZ, 5),
+        EqualityConstraint(SearchKey.ATOMZ, 9, SearchKey.ATOMZ, 10),
     ]
 )
 
@@ -112,14 +112,18 @@ LANIO3_SOLUTION_RFACTOR = 0.2794
 FESE_20UC_PROBLEM = SearchSpace(
     FESE_20UC,
     [
-        (SearchKey.ATOMZ, 1, (-0.066, 0.066)),
-        (SearchKey.ATOMZ, 2, (-0.066, 0.066)),
-        (SearchKey.ATOMZ, 3, (-0.066, 0.066)),
-        (SearchKey.ATOMZ, 4, (-0.066, 0.066)),
-        (SearchKey.ATOMZ, 5, (-0.066, 0.066)),
-        (SearchKey.ATOMZ, 6, (-0.066, 0.066)),
-        (SearchKey.ATOMZ, 7, (-0.066, 0.066)),
-        (SearchKey.ATOMZ, 8, (-0.066, 0.066)),
+        (SearchKey.ATOMZ, 1, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 2, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 3, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 4, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 5, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 6, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 7, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 8, (-0.1, 0.1)),
+        (SearchKey.VIB,   1, (-0.08, 0.1)),
+        (SearchKey.VIB,   4, (-0.08, 0.1)),
+        (SearchKey.CELLA, -1, (-0.001, 0.001)),
+        (SearchKey.CELLC, -1, (-0.010, 0.010)),
         # (SearchKey.ATOMY, 1, (-0.25, 0.25)),
         # (SearchKey.ATOMY, 2, (-0.25, 0.25)),
         # (SearchKey.ATOMY, 3, (-0.25, 0.25)),
@@ -136,10 +140,41 @@ FESE_20UC_PROBLEM = SearchSpace(
         # (SearchKey.ATOMX, 6, (-0.25, 0.25)),
         # (SearchKey.ATOMX, 7, (-0.25, 0.25)),
         # (SearchKey.ATOMX, 8, (-0.25, 0.25)),
+    ],
+    constraints=[   # Bind cell's a and b axes, and vertical displacement of Se atoms
+        EqualityConstraint(SearchKey.CELLA, -1, SearchKey.CELLB, -1),
+        EqualityConstraint(SearchKey.VIB, 1, SearchKey.VIB, 2),
+        EqualityConstraint(SearchKey.VIB, 1, SearchKey.VIB, 3),
+        EqualityConstraint(SearchKey.VIB, 4, SearchKey.VIB, 5),
+        EqualityConstraint(SearchKey.VIB, 4, SearchKey.VIB, 6),
+        # (SearchKey.ATOMZ,  5, SearchKey.ATOMZ,  7),
+        # (SearchKey.ATOMZ,  6, SearchKey.ATOMZ,  8),
+    ]
+)
+
+FESE_20UC_PROBLEM2 = SearchSpace(
+    FESE_20UC,
+    [
+        (SearchKey.ATOMZ, 1, (-0.066, 0.066)),
+        (SearchKey.ATOMZ, 2, (-0.066, 0.066)),
+        (SearchKey.ATOMZ, 3, (-0.066, 0.066)),
+        (SearchKey.ATOMZ, 4, (-0.066, 0.066)),
+        (SearchKey.ATOMZ, 5, (-0.066, 0.066)),
+        (SearchKey.ATOMZ, 6, (-0.066, 0.066)),
+        (SearchKey.CELLA, -1, (-0.100, 0.100)),
+        (SearchKey.CELLC, -1, (-0.200, 0.200)),
+    ],
+    constraints=[   # Bind cell's a and b axes, and vertical displacement of Se atoms
+        EqualityConstraint(SearchKey.CELLA, -1, SearchKey.CELLB, -1),
+        EqualShiftConstraint(SearchKey.ATOMZ, 5, SearchKey.ATOMZ, 7),
+        EqualShiftConstraint(SearchKey.ATOMZ, 6, SearchKey.ATOMZ, 8),
+        # (SearchKey.ATOMZ,  5, SearchKey.ATOMZ,  7),
+        # (SearchKey.ATOMZ,  6, SearchKey.ATOMZ,  8),
     ]
 )
 
 problems = {
     "LANIO3":    LANIO3_PROBLEM,
     "FESE_20UC": FESE_20UC_PROBLEM,
+    "FESE_20UC_2": FESE_20UC_PROBLEM2
 }
