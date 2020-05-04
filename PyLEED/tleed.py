@@ -382,8 +382,8 @@ class LEEDManager:
             for i, line in enumerate(self.input_template):
                 if line.find("define chem. and vib. properties") != -1:
                     indbefore = i - 1
-                elif line.find("Tensor output is required") != -1:
-                    indafter = i
+                elif line.find("Tensor output is") != -1:
+                    indafter = i+1
             # Check that both lines were found
             if indbefore == -1 or indafter == -1:
                 raise ValueError("LEED input file does not contain section marker lines")

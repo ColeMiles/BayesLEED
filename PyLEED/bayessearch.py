@@ -53,10 +53,14 @@ def create_model(pts, targets, state_dict=None):
     # In addition, our LEED evaluations are noiseless, so assert a
     #   noise level of zero
     model = botorch.models.FixedNoiseGP(
-        pts, 
+        pts,
         -targets,
         torch.zeros_like(targets)
     )
+    # model = botorch.models.SingleTaskGP(
+    #     pts,
+    #     -targets,
+    # )
 
     # Set the prior for the rfactor mean to be at a reasonable level
     model.mean_module.load_state_dict(
@@ -69,7 +73,8 @@ def create_model(pts, targets, state_dict=None):
     return model, mll
 
 
-def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
+def main(leed_executable, problem, ncores, nepochs,
+         warm=None, seed=None, start_pts_file=None, early_stop=None):
     workdir, executable = os.path.split(leed_executable)
     tested_filename = os.path.join(workdir, "tested_point.txt")
     model_filename = os.path.join(workdir, "finalmodel.pt")
@@ -82,30 +87,35 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
     search_problem = problems.problems[problem]
     num_params = search_problem.num_params
 
-    # Initialize a model with random points in search space to begin
-    if warm is None:
-        logging.info("Performing random start with {} points".format(num_eval))
-        random_pts, random_structs = search_problem.random_points(num_eval)
-        # Replace one of the random pts with the "ideal" structure (no perturbations)
-        random_pts[0] = search_problem.to_normalized(search_problem.atomic_structure)
-        random_structs[0] = search_problem.atomic_structure
+    if start_pts_file is not None:
+        logging.info("Loading points from file: {}".format(start_pts_file))
+        data = np.loadtxt(start_pts_file, skiprows=1)
+        start_pts = data[:, :-1]
+        rfactors = data[:, -1]
     else:
-        print("Warm start is unimplemented as of right now")
-        return
-        logging.info(
-            "Performing warm start with {} points, {} from true solution".format(num_eval, warm)
-        )
+        # Initialize a model with random points in search space to begin
+        if warm is None:
+            logging.info("Performing random start with {} points".format(num_eval))
+            start_pts, random_structs = search_problem.random_points(num_eval)
+            # Replace one of the random pts with the "ideal" structure (no perturbations)
+            start_pts[0] = search_problem.to_normalized(search_problem.atomic_structure)
+            random_structs[0] = search_problem.atomic_structure
+        else:
+            print("Warm start is unimplemented as of right now")
+            return
+            logging.info(
+                "Performing warm start with {} points, {} from true solution".format(num_eval, warm)
+            )
+        rfactors = manager.batch_ref_calcs(random_structs)
 
-    rfactors = manager.batch_ref_calcs(random_structs)
     # Normalize rfactors to zero mean, unit variance
     normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std(ddof=1)
-    model, mll = create_model(random_pts, normalized_rfactors)
+    model, mll = create_model(start_pts, normalized_rfactors)
 
     # Find the best out of these initial trial points
     best_idx = np.argmin(rfactors)
-    best_pt = random_pts[best_idx]
+    best_pt = start_pts[best_idx]
     best_rfactor = rfactors[best_idx]
-    best_normalized_rfactor = normalized_rfactors[best_idx]
     rfactor_progress = [best_rfactor]
     with open(tested_filename, "w") as ptfile:
         header_str = "DISPLACEMENT" + " " * 52 + "RFACTOR"
@@ -113,10 +123,10 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
             header_str += "    SEED: " + str(seed)
         header_str += "\n"
         ptfile.write(header_str)
-    append_arrays_to_file(tested_filename, random_pts, rfactors)
+    append_arrays_to_file(tested_filename, start_pts, rfactors)
     logging.info("Best r-factor from initial set: {:.4f}".format(best_rfactor))
 
-    normalized_pts = torch.tensor(random_pts, device=device, dtype=torch.float64)
+    normalized_pts = torch.tensor(start_pts, device=device, dtype=torch.float64)
     rfactors = torch.tensor(rfactors, device=device, dtype=torch.float64)
     normalized_rfactors = torch.tensor(normalized_rfactors, device=device, dtype=torch.float64)
     # Main Bayesian Optimization Loop
@@ -124,12 +134,14 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
         logging.info("Starting Epoch {}".format(epoch))
         # Fit the kernel hyperparameters
         logging.info("Fitting Kernel hyperparameters...")
+        model.train()
         botorch.fit.fit_gpytorch_model(mll)
+        model.eval()
         torch.save(model.state_dict(), model_filename)
         logging.info("Saved model state dict to " + str(model_filename))
 
         sampler = botorch.sampling.SobolQMCNormalSampler(
-            num_samples=1024,
+            num_samples=4096,
             resample=False
         )
 
@@ -141,7 +153,7 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
         )
         # acquisition = botorch.acquisition.qKnowledgeGradient(
         #     model,
-        #     num_fantasies=128,
+        #     num_fantasies=32,
         #     sampler=sampler,
         # )
         logging.info("Optimizing acquisition function to generate new test points...")
@@ -153,8 +165,8 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
             acq_function=acquisition,
             bounds=torch.tensor([[0.0] * num_params, [1.0] * num_params], device=device, dtype=torch.float64),
             q=num_eval,
-            num_restarts=40,
-            raw_samples=256,
+            num_restarts=30,
+            raw_samples=4096,
             options={},
             sequential=False
         )
@@ -173,7 +185,11 @@ def main(leed_executable, problem, ncores, nepochs, warm=None, seed=None):
         rfactor_progress.append(best_rfactor)
         np.savetxt(rfactor_filename, rfactor_progress)
         logging.info("Current best rfactor = {}".format(best_rfactor))
-        
+
+        # Early stop if we get a "good enough" solution
+        if early_stop is not None and best_rfactor < early_stop:
+            return model, normalized_pts, rfactors
+
         # Update the model with the new (point, rfactor) values
         new_rfactors_tensor = torch.tensor(new_rfactors, device=device, dtype=torch.float64)
         normalized_pts = torch.cat((normalized_pts, new_normalized_pts))
@@ -210,6 +226,9 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int,
         help="Set the seed for the RNGs"
     )
+    parser.add_argument('--start-pts', type=str, default=None,
+        help="Given a file of tested points, continues from there"
+    )
     args = parser.parse_args()
 
     # Check for GPU presence
@@ -223,4 +242,5 @@ if __name__ == "__main__":
         np.random.seed(args.seed)
         torch.manual_seed(seed=args.seed)
 
-    main(args.leed_executable, args.problem, args.ncores, args.nepochs, args.warm, seed=args.seed)
+    main(args.leed_executable, args.problem, args.ncores, args.nepochs, args.warm,
+         seed=args.seed, start_pts_file=args.start_pts)

@@ -1222,7 +1222,6 @@ alpha-FeSe, two bilayers on bulk with zero buckling
   1
   1 2.7590 0.0000 0.0000  surface layer is of type 1: interlayer vector connecting it to bulk
   0                       Tensor output is NOT required for this layer
-  1                       1: Tensor output is required for this layer
 LAY11                      Tensor file name, current layer, sublayer 1
 LAY12                      Tensor file name, current layer, sublayer 2
 LAY13                      Tensor file name, current layer, sublayer 3

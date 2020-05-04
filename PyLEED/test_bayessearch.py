@@ -11,13 +11,15 @@ def test_lanio3_convergence():
     origdir = "test_files/LaNiO3test"
     newdir = "test_files/LaNiO3test_active"
     executable = os.path.join(newdir, 'ref-calc.LaNiO3')
+    if os.path.exists(newdir):
+        shutil.rmtree(newdir)
     shutil.copytree(origdir, newdir)
 
     _, _, rfactors = bayessearch.main(
-        executable, "LANIO3_PROBLEM", 8, 20
+        executable, "LANIO3", 8, 20, early_stop=0.3
     )
 
-    assert np.min(rfactors) < -1.3
+    assert np.min(rfactors) < 0.3
 
     shutil.rmtree(newdir)
 
