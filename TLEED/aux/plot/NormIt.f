@@ -8,7 +8,7 @@ C  MNBEAMS is maximum number of beams - Note output format to Spec.out MUST
 C          be large enough to handle all beams!!
 C  MN_ENER is maximum number of energies
 
-      PARAMETER (MNBEAMS=27,MN_ENER=200)
+      PARAMETER (MNBEAMS=27,MN_ENER=300)
 
 C  NBEAMS is actual number of beams
 C  KBEAMS is number of beams as given by NormIt.steu

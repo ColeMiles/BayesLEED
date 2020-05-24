@@ -6,6 +6,7 @@ import subprocess
 import re
 import logging
 import enum
+import itertools
 from copy import deepcopy
 from typing import List, Dict, Tuple, Union
 
@@ -71,6 +72,10 @@ class Layer:
 
     def __len__(self):
         return len(self.sitenums)
+
+    def __iter__(self):
+        for sitenum, x, y, z in zip(self.sitenums, self.xs, self.ys, self.zs):
+            yield Atom(sitenum, x, y, z)
 
     def to_string(self, lat_params) -> str:
         lat_a, lat_b, lat_c = lat_params
@@ -206,6 +211,26 @@ class AtomicStructure:
             self.cell_params[1] = value
         elif key == SearchKey.CELLC:
             self.cell_params[2] = value
+
+    def write_xyz(self, filename: str, comment: str = ""):
+        """ Writes the atomic structure to an XYZ file. Overwrites file if it
+             already exists.
+        """
+        with open(filename, "w") as f:
+            f.write(str(sum(map(len, self.layers))) + "\n")
+            f.write(comment + "\n")
+            current_z = 0.0
+            for layer in self.layers:
+                for atom in layer:
+                    site = self.sites[atom.sitenum-1]
+                    elem = site.elems[np.argmax(site.concs).item()]
+                    f.write("{:>3s}{:>10.5f}{:>10.5f}{:>10.5f}\n".format(
+                        elem,
+                        atom.x * self.cell_params[0],
+                        atom.y * self.cell_params[1],
+                        (current_z + atom.z) * self.cell_params[2]
+                    ))
+                current_z += np.ceil(max(layer.zs))
 
 
 SearchParam = Tuple[SearchKey, int]

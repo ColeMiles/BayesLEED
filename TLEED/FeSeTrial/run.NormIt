@@ -1,0 +1,94 @@
+################################################################################
+#
+#  Small shell script that compiles and runs the NormIt.f utility, a program
+#  that converts a VHT style I(E) output file (such as those produced by 
+#  ref-calc.f and superpos.f) to a normalised and plotable column format. 
+#  I(E) spectra for all beams are written to a single file, organized in 
+#  columns to provide
+#  E(1),I(1),E(2),I(2),E(3),I(3),....
+#  Since some graphing programs require each column to have the same number
+#  of lines, for energy values for which a beam does not exist pairs of
+#  zeroes are written.
+#
+################################################################################
+
+################################################################################
+#  set environment variables
+################################################################################
+
+################################################################################
+#
+#  $TLEED:     top level directory of Tensor LEED directory tree
+#  $WORK:      working directory (removed upon termination)
+#  $SOURCE:    r-factor prg. source file
+#  $EXPFILE:   file containing experimental I(E) data, as used for search.f
+#  $SPECTRUM:  calculated I(E) data file as written by ref-calc.f, superpos.f
+#  $OUTPUT:    file name to store r-factor output in
+#
+#  $FC:        name of FORTRAN compiler command
+#  $FCOPT:     FORTRAN command line options (e.g., code optimization!)
+#
+################################################################################
+
+  TLEED=/home/cole/ProgScratch/BayesLEED/TLEED
+  WORK=$TLEED/work/tmp.$$
+  SOURCE=$TLEED/aux/plot/NormIt.f
+  EXE=NormIt.x
+
+  SPECTRUM=$TLEED/work/ref-calc129/fd.out
+
+  OUTPUT=/home/cole/ProgScratch/BayesLEED/PyLEED/FeSeProgress/NicePt/opt_curves.spec
+
+   FC=gfortran
+   FCOPT=''
+
+################################################################################
+#  create working directory
+################################################################################
+
+  mkdir $WORK
+  cd $WORK
+
+################################################################################
+#  create input file NormIt.steu - contains all controlling input for
+#  NormIt.f
+################################################################################
+
+  cat > NormIt.steu << '/EOF'
+  5                                           Number of beams in I(E) data file
+  1  2  3  4  5                               beam groups for possible averaging
+  50.00 292.00   energy range to be considered for beam 1 (2F7.2)
+  66.00 458.00   energy range to be considered for beam 2 (2F7.2)
+ 124.00 458.00   energy range to be considered for beam 3 (2F7.2)
+ 254.00 498.00   energy range to be considered for beam 4 (2F7.2)
+ 278.00 498.00   energy range to be considered for beam 5 (2F7.2)
+ 10.7            constant part of inner potential from calculation, VvH
+  5.5            inner potential after shift by r-factor subroutine, Vrf
+  0              do energy-dependent shift (0=no/1=linear/2=Rundgren-type) 
+ 150.00          quot for energy-dept inner potential E = E - Vrf + VvH + E/quot (F7.2)
+  18.10          highest peak intensity after normalisation of each beam - (F7.2)
+  0              do normalisation for integral intensities of spectra? (0/1)
+ 00.00           Offset for intensities to be added after all normalisation etc.
+/EOF
+
+################################################################################
+#  compile and run NormIt
+################################################################################
+
+  $FC $FCOPT -o $EXE $SOURCE
+
+  ./$EXE < $SPECTRUM
+
+################################################################################
+#  save output and clean
+################################################################################
+
+  mv Spec.out $OUTPUT
+
+#  cd ..
+#  rm -r $WORK
+
+################################################################################
+#  now display output data using a conventional graphing program
+################################################################################
+
