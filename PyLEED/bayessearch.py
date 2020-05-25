@@ -54,7 +54,7 @@ def create_model(pts, targets, state_dict=None):
     #   noise level of zero
     model = botorch.models.FixedNoiseGP(
         pts,
-        -targets,
+        targets,
         torch.zeros_like(targets)
     )
     # model = botorch.models.SingleTaskGP(
@@ -73,8 +73,65 @@ def create_model(pts, targets, state_dict=None):
     return model, mll
 
 
+def optimize_EI(obs_pts, obs_objectives, q=5, state_dict=None, save_model=None, device="cuda"):
+    """ Sample q more pts from the search space, by optimizing
+         expected improvement using a model and current observations.
+        Note: Assumes, like botorch, a maximization problem!
+    """
+    model, mll = create_model(obs_pts, obs_objectives, state_dict=state_dict)
+    logging.info("Botorch model updated with new evaluated points")
+
+    logging.info("Fitting Kernel hyperparameters...")
+    model.train()
+    botorch.fit.fit_gpytorch_model(mll)
+    model.eval()
+    if save_model is not None:
+        torch.save(model.state_dict(), save_model)
+        logging.info("Saved model state dict to " + str(save_model))
+
+    num_params = obs_pts.shape[1]
+    sampler = botorch.sampling.SobolQMCNormalSampler(
+        num_samples=4096,
+        resample=False
+    )
+
+    best_objective = torch.max(obs_objectives).item()
+    acquisition = botorch.acquisition.qExpectedImprovement(
+        model,
+        best_objective,
+        sampler
+    )
+    # acquisition = botorch.acquisition.qKnowledgeGradient(
+    #     model,
+    #     num_fantasies=32,
+    #     sampler=sampler,
+    # )
+    logging.info("Optimizing acquisition function to generate new test points...")
+
+    # The next step uses a lot of GPU memory. Free everything we can
+    gc.collect()
+
+    new_normalized_pts, _ = botorch.optim.optimize_acqf(
+        acq_function=acquisition,
+        bounds=torch.tensor([[0.0] * num_params, [1.0] * num_params], device=device, dtype=torch.float64),
+        q=q,
+        num_restarts=50,
+        raw_samples=8192,
+        options={},
+        sequential=True
+    )
+
+    return new_normalized_pts
+
+
+def random_sample(q, num_params, device="cuda"):
+    """ Sample q more pts randomly from the search space
+    """
+    return torch.rand(q, num_params, dtype=torch.float64, device=device)
+
+
 def main(leed_executable, problem, ncores, nepochs,
-         warm=None, seed=None, start_pts_file=None, early_stop=None):
+         warm=None, seed=None, start_pts_file=None, early_stop=None, random=False):
     workdir, executable = os.path.split(leed_executable)
     tested_filename = os.path.join(workdir, "tested_point.txt")
     model_filename = os.path.join(workdir, "finalmodel.pt")
@@ -117,6 +174,8 @@ def main(leed_executable, problem, ncores, nepochs,
     best_pt = start_pts[best_idx]
     best_rfactor = rfactors[best_idx]
     rfactor_progress = [best_rfactor]
+
+    # Create header for tested points file
     with open(tested_filename, "w") as ptfile:
         header_str = "DISPLACEMENT" + " " * 52 + "RFACTOR"
         if seed is not None:
@@ -129,48 +188,23 @@ def main(leed_executable, problem, ncores, nepochs,
     normalized_pts = torch.tensor(start_pts, device=device, dtype=torch.float64)
     rfactors = torch.tensor(rfactors, device=device, dtype=torch.float64)
     normalized_rfactors = torch.tensor(normalized_rfactors, device=device, dtype=torch.float64)
+
     # Main Bayesian Optimization Loop
     for epoch in range(nepochs):
         logging.info("Starting Epoch {}".format(epoch))
-        # Fit the kernel hyperparameters
-        logging.info("Fitting Kernel hyperparameters...")
-        model.train()
-        botorch.fit.fit_gpytorch_model(mll)
-        model.eval()
-        torch.save(model.state_dict(), model_filename)
-        logging.info("Saved model state dict to " + str(model_filename))
 
-        sampler = botorch.sampling.SobolQMCNormalSampler(
-            num_samples=4096,
-            resample=False
-        )
+        # Sample new points from the search space
+        if not random:
+            new_normalized_pts = optimize_EI(
+                normalized_pts, -normalized_rfactors,
+                q=ncores, state_dict=model.state_dict(), save_model=model_filename, device=device,
+            )
+        else:
+            new_normalized_pts = random_sample(ncores, num_params, device=device)
 
-        best_normalized_rfactor = torch.min(normalized_rfactors).item()
-        acquisition = botorch.acquisition.qExpectedImprovement(
-           model,
-           -best_normalized_rfactor,
-           sampler
-        )
-        # acquisition = botorch.acquisition.qKnowledgeGradient(
-        #     model,
-        #     num_fantasies=32,
-        #     sampler=sampler,
-        # )
-        logging.info("Optimizing acquisition function to generate new test points...")
-
-        # The next step uses a lot of GPU memory. Free all tensors we don't need
-        gc.collect()
-
-        new_normalized_pts, _ = botorch.optim.optimize_acqf(
-            acq_function=acquisition,
-            bounds=torch.tensor([[0.0] * num_params, [1.0] * num_params], device=device, dtype=torch.float64),
-            q=num_eval,
-            num_restarts=30,
-            raw_samples=4096,
-            options={},
-            sequential=False
-        )
         logging.info("New test points generated. Running TLEED.")
+
+        # Perform the reference calculations at those points
         new_normalized_pts_np = new_normalized_pts.cpu().numpy()
         structs = search_problem.to_structures(new_normalized_pts_np)
         new_rfactors = manager.batch_ref_calcs(structs)
@@ -195,8 +229,6 @@ def main(leed_executable, problem, ncores, nepochs,
         normalized_pts = torch.cat((normalized_pts, new_normalized_pts))
         rfactors = torch.cat((rfactors, new_rfactors_tensor))
         normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std()
-        model, mll = create_model(normalized_pts, normalized_rfactors, state_dict=model.state_dict())
-        logging.info("Botorch model updated with new evaluated points")
 
     return model, normalized_pts, rfactors
 
@@ -229,6 +261,9 @@ if __name__ == "__main__":
     parser.add_argument('--start-pts', type=str, default=None,
         help="Given a file of tested points, continues from there"
     )
+    parser.add_argument('--random', action='store_true',
+        help="If set, performs random search rather than Bayesian Optimization"
+    )
     args = parser.parse_args()
 
     # Check for GPU presence
@@ -243,4 +278,4 @@ if __name__ == "__main__":
         torch.manual_seed(seed=args.seed)
 
     main(args.leed_executable, args.problem, args.ncores, args.nepochs, args.warm,
-         seed=args.seed, start_pts_file=args.start_pts)
+         seed=args.seed, start_pts_file=args.start_pts, random=args.random)

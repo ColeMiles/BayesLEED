@@ -38,43 +38,6 @@ FESE_20UC = AtomicStructure(
     [3.7676, 3.7676, 5.5180]
 )
 
-FESE_20UC_MATPROJ = AtomicStructure(
-    # Atomic sites
-    [
-        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe top layer"),
-        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe 2nd layer"),
-        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe bulk"),
-        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se top layer"),
-        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se 2nd layer"),
-        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se bulk")
-    ],
-    # Layer definitions (fractional coordinates)
-    [
-        Layer([
-            Atom(1, 0.25, 0.75, 0.2402),  # Top Layer Fe
-            Atom(1, 0.75, 0.25, 0.2402),  # Top Layer Fe
-            Atom(2, 0.25, 0.75, 1.2402),  # 2nd Layer Fe
-            Atom(2, 0.75, 0.25, 1.2402),  # 2nd Layer Fe
-            Atom(4, 0.25, 0.25, 0.0000),  # Top Layer Se
-            Atom(4, 0.75, 0.75, 0.4804),  # Top Layer Se
-            Atom(5, 0.25, 0.25, 1.0000),  # 2nd Layer Se
-            Atom(5, 0.75, 0.75, 1.4804),  # 2nd Layer Se
-        ],
-            "Top 2 unit cells"
-        ),
-        Layer([
-            Atom(3, 0.25, 0.75, 0.2402),  # Bulk Fe
-            Atom(3, 0.75, 0.25, 0.2402),  # Bulk Fe
-            Atom(6, 0.25, 0.25, 0.0000),  # Bulk Se
-            Atom(6, 0.75, 0.75, 0.4804),  # Bulk Se
-        ],
-            "Bulk"
-        )
-    ],
-    # Unit cell parameters
-    [3.6717, 3.6717, 5.7857]
-)
-
 FESE_20UC_SINGLEZREGRESSED = AtomicStructure(
     # Atomic sites
     [
@@ -91,9 +54,9 @@ FESE_20UC_SINGLEZREGRESSED = AtomicStructure(
             Atom(1, 0.25, 0.75, 0.26255),  # Top Layer Fe
             Atom(1, 0.75, 0.25, 0.26387),  # Top Layer Fe
             Atom(2, 0.25, 0.75, 1.2500),  # 2nd Layer Fe
-            Atom(2, 0.75, 0.25, 1.2502),  # 2nd Layer Fe
-            Atom(4, 0.25, 0.25, 0.0000),  # Top Layer Se
-            Atom(4, 0.75, 0.75, 0.5000),  # Top Layer Se
+            Atom(2, 0.75, 0.25, 1.2500),  # 2nd Layer Fe
+            Atom(4, 0.25, 0.25, 0.00655),  # Top Layer Se
+            Atom(4, 0.75, 0.75, 0.5322),  # Top Layer Se
             Atom(5, 0.25, 0.25, 1.0000),  # 2nd Layer Se
             Atom(5, 0.75, 0.75, 1.5000),  # 2nd Layer Se
         ],
@@ -109,44 +72,7 @@ FESE_20UC_SINGLEZREGRESSED = AtomicStructure(
         )
     ],
     # Unit cell parameters
-    [3.6717, 3.6717, 5.7857]
-)
-
-FESE_20UC_MATPROJ_SINGLEZREGRESSED = AtomicStructure(
-    # Atomic sites
-    [
-        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe top layer"),
-        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe 2nd layer"),
-        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe bulk"),
-        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se top layer"),
-        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se 2nd layer"),
-        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se bulk")
-    ],
-    # Layer definitions (fractional coordinates)
-    [
-        Layer([
-            Atom(1, 0.25, 0.75, 0.25384),  # Top Layer Fe
-            Atom(1, 0.75, 0.25, 0.2456),  # Top Layer Fe
-            Atom(2, 0.25, 0.75, 1.2402),  # 2nd Layer Fe
-            Atom(2, 0.75, 0.25, 1.2402),  # 2nd Layer Fe
-            Atom(4, 0.25, 0.25, 0.00981),  # Top Layer Se
-            Atom(4, 0.75, 0.75, 0.49757),  # Top Layer Se
-            Atom(5, 0.25, 0.25, 1.0000),  # 2nd Layer Se
-            Atom(5, 0.75, 0.75, 1.4804),  # 2nd Layer Se
-        ],
-            "Top 2 unit cells"
-        ),
-        Layer([
-            Atom(3, 0.25, 0.75, 0.2402),  # Bulk Fe
-            Atom(3, 0.75, 0.25, 0.2402),  # Bulk Fe
-            Atom(6, 0.25, 0.25, 0.0000),  # Bulk Se
-            Atom(6, 0.75, 0.75, 0.4804),  # Bulk Se
-        ],
-            "Bulk"
-        )
-    ],
-    # Unit cell parameters
-    [3.6714, 3.6714, 5.787664]
+    [3.7659, 3.7659, 5.51547]
 )
 
 FESE_20UC_CLOSE = AtomicStructure(
@@ -322,7 +248,7 @@ FESE_20UC_PROBLEM = SearchSpace(
     ]
 )
 
-ACCIDENT_FESE_20UC_PROBLEM = SearchSpace(
+FESE_20UC_SINGLEZ_PROBLEM = SearchSpace(
     FESE_20UC,
     [
         (SearchKey.ATOMZ, 1, (-0.05, 0.05)),
@@ -331,7 +257,7 @@ ACCIDENT_FESE_20UC_PROBLEM = SearchSpace(
         (SearchKey.ATOMZ, 6, (-0.05, 0.05)),
         (SearchKey.VIB,   1, (-0.08, 0.1)),
         (SearchKey.VIB,   4, (-0.08, 0.1)),
-        (SearchKey.CELLA, -1, (-0.002, 0.002)),
+        (SearchKey.CELLA, -1, (-0.010, 0.010)),
         (SearchKey.CELLC, -1, (-0.010, 0.010)),
     ],
     constraints=[
@@ -343,42 +269,9 @@ ACCIDENT_FESE_20UC_PROBLEM = SearchSpace(
     ]
 )
 
-FESE_20UC_MATPROJ_PROBLEM = SearchSpace(
-    FESE_20UC_MATPROJ,
-    [
-        (SearchKey.ATOMZ, 1, (-0.05, 0.05)),
-        (SearchKey.ATOMZ, 2, (-0.05, 0.05)),
-        (SearchKey.ATOMZ, 5, (-0.05, 0.05)),
-        (SearchKey.ATOMZ, 6, (-0.05, 0.05)),
-        (SearchKey.VIB,   1, (-0.08, 0.1)),
-        (SearchKey.VIB,   4, (-0.08, 0.1)),
-        (SearchKey.CELLA, -1, (-0.002, 0.002)),
-        (SearchKey.CELLC, -1, (-0.010, 0.010)),
-    ],
-    constraints=[
-        EqualityConstraint(SearchKey.CELLA, -1, SearchKey.CELLB, -1),
-        EqualityConstraint(SearchKey.VIB, 1, SearchKey.VIB, 2),
-        EqualityConstraint(SearchKey.VIB, 1, SearchKey.VIB, 3),
-        EqualityConstraint(SearchKey.VIB, 4, SearchKey.VIB, 5),
-        EqualityConstraint(SearchKey.VIB, 4, SearchKey.VIB, 6),
-    ]
-)
 
-FESE_20UC_MATPROJ_SECONDZ_PROBLEM = SearchSpace(
-    FESE_20UC_MATPROJ_SINGLEZREGRESSED,
-    [
-        (SearchKey.ATOMZ, 3, (-0.05, 0.05)),
-        (SearchKey.ATOMZ, 4, (-0.05, 0.05)),
-        (SearchKey.ATOMZ, 7, (-0.05, 0.05)),
-        (SearchKey.ATOMZ, 8, (-0.05, 0.05)),
-    ],
-    constraints=[
-    ]
-)
-
-
-FESE_20UC_MATPROJ_PROBLEM2 = SearchSpace(
-    FESE_20UC_MATPROJ_SINGLEZREGRESSED,
+FESE_20UC_SECOND_SINGLEXY_PROBLEM = SearchSpace(
+    FESE_20UC_SINGLEZREGRESSED,
     [
         (SearchKey.ATOMX, 1, (-0.05, 0.05)),
         (SearchKey.ATOMX, 2, (-0.05, 0.05)),
@@ -388,10 +281,10 @@ FESE_20UC_MATPROJ_PROBLEM2 = SearchSpace(
         (SearchKey.ATOMY, 2, (-0.05, 0.05)),
         (SearchKey.ATOMY, 5, (-0.05, 0.05)),
         (SearchKey.ATOMY, 6, (-0.05, 0.05)),
-        (SearchKey.CELLA, -1, (-0.002, 0.002)),
+        (SearchKey.CELLA, -1, (-0.010, 0.010)),
         (SearchKey.CELLC, -1, (-0.010, 0.010)),
     ],
-    constraints=[   # Bind cell's a and b axes, and vertical displacement of Se atoms
+    constraints=[
         EqualityConstraint(SearchKey.CELLA, -1, SearchKey.CELLB, -1),
     ]
 )
@@ -427,6 +320,6 @@ problems = {
     "LANIO3":    LANIO3_PROBLEM,
     "FESE_20UC": FESE_20UC_PROBLEM,
     "FESE_20UC_2": FESE_20UC_PROBLEM2,
-    "FESE_MATPROJ_20UC": FESE_20UC_MATPROJ_PROBLEM,
-    "FESE_MATPROJ_20UC_2": FESE_20UC_MATPROJ_SECONDZ_PROBLEM,
+    "FESE_20UC_SINGLEZ": FESE_20UC_SINGLEZ_PROBLEM,
+    "FESE_20UC_SECOND_SINGLEXY": FESE_20UC_SECOND_SINGLEXY_PROBLEM,
 }
