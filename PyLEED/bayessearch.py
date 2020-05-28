@@ -116,7 +116,7 @@ def optimize_EI(obs_pts, obs_objectives, q=5, state_dict=None, save_model=None, 
         bounds=torch.tensor([[0.0] * num_params, [1.0] * num_params], device=device, dtype=torch.float64),
         q=q,
         num_restarts=50,
-        raw_samples=8192,
+        raw_samples=4096,
         options={},
         sequential=True
     )

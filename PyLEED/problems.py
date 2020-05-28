@@ -75,6 +75,45 @@ FESE_20UC_SINGLEZREGRESSED = AtomicStructure(
     [3.7659, 3.7659, 5.51547]
 )
 
+
+TEST_FESE_20UC_FOR2D = AtomicStructure(
+    # Atomic sites
+    [
+        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe top layer"),
+        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe 2nd layer"),
+        Site([1.0, 0.0], 0.1000, ["Fe", "Se"], "Fe bulk"),
+        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se top layer"),
+        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se 2nd layer"),
+        Site([0.0, 1.0], 0.1000, ["Fe", "Se"], "Se bulk")
+    ],
+    # Layer definitions (fractional coordinates)
+    [
+        Layer([
+            Atom(1, 0.25, 0.75, 0.25000),  # Top Layer Fe  <-------- Search over these two
+            Atom(1, 0.75, 0.25, 0.25000),  # Top Layer Fe  <----|
+            Atom(2, 0.25, 0.75, 1.2500),  # 2nd Layer Fe
+            Atom(2, 0.75, 0.25, 1.2500),  # 2nd Layer Fe
+            Atom(4, 0.25, 0.25, 0.00655),  # Top Layer Se
+            Atom(4, 0.75, 0.75, 0.5322),  # Top Layer Se
+            Atom(5, 0.25, 0.25, 1.0000),  # 2nd Layer Se
+            Atom(5, 0.75, 0.75, 1.5000),  # 2nd Layer Se
+        ],
+            "Top 2 unit cells"
+        ),
+        Layer([
+            Atom(3, 0.25, 0.75, 0.2500),  # Bulk Fe
+            Atom(3, 0.75, 0.25, 0.2500),  # Bulk Fe
+            Atom(6, 0.25, 0.25, 0.0000),  # Bulk Se
+            Atom(6, 0.75, 0.75, 0.5000),  # Bulk Se
+        ],
+            "Bulk"
+        )
+    ],
+    # Unit cell parameters
+    [3.7659, 3.7659, 5.51547]
+)
+
+
 FESE_20UC_CLOSE = AtomicStructure(
     # Atomic sites
     [
@@ -290,6 +329,17 @@ FESE_20UC_SECOND_SINGLEXY_PROBLEM = SearchSpace(
 )
 
 
+TEST_FESE_20UC_2D_PROBLEM = SearchSpace(
+    TEST_FESE_20UC_FOR2D,
+    [
+        (SearchKey.ATOMZ, 1, (-0.05, 0.05)),
+        (SearchKey.ATOMZ, 2, (-0.05, 0.05)),
+    ],
+    constraints=[
+    ]
+)
+
+
 FESE_20UC_PROBLEM2 = SearchSpace(
     FESE_20UC_CLOSE,
     [
@@ -322,4 +372,5 @@ problems = {
     "FESE_20UC_2": FESE_20UC_PROBLEM2,
     "FESE_20UC_SINGLEZ": FESE_20UC_SINGLEZ_PROBLEM,
     "FESE_20UC_SECOND_SINGLEXY": FESE_20UC_SECOND_SINGLEXY_PROBLEM,
+    "TEST_FESE_2D": TEST_FESE_20UC_2D_PROBLEM,
 }

@@ -5,7 +5,7 @@ import numpy as np
 
 plt.style.use("seaborn-talk")
 
-def plot_data(exp_data, sim_data, title="", rfactors=None):
+def plot_data(exp_data, sim_data, title="", rfactors=None, scale=False):
     """ Plots an array of I(E) data, assuming that every two columns
          forms an (E, I) curve to plot.
     """
@@ -19,8 +19,10 @@ def plot_data(exp_data, sim_data, title="", rfactors=None):
     if rfactors is not None and len(rfactors) != num_exp_curves:
         raise ValueError("Number of rfactors does not match number of beams")
 
+    curve_scales = []
     for i in range(num_exp_curves):
         # Data ends in a stream of zeros - find where that is to avoid plotting it
+        curve_scales.append(np.max(exp_data[:, 2*i+1]))
         plt.plot(
             np.trim_zeros(exp_data[:, 2*i], 'b'), 
             np.trim_zeros(exp_data[:, 2*i+1], 'b') + 20 * i, 
@@ -33,7 +35,15 @@ def plot_data(exp_data, sim_data, title="", rfactors=None):
         chop = len(np.trim_zeros(exp_data[:, 2*i], 'b'))
         # Data ends in a stream of zeros - find where that is to avoid plotting it
         E_data = np.trim_zeros(sim_data[:chop, 2*i], 'b')
-        I_data = np.trim_zeros(sim_data[:chop, 2*i+1], 'b') + 20 * i
+        I_data = np.trim_zeros(sim_data[:chop, 2*i+1], 'b')
+
+        # Scale maxima to match if scale=True
+        if scale:
+            max_I = np.max(I_data)
+            I_data *= curve_scales[i] / max_I
+
+        # Rigid shift to separate curves
+        I_data += 20 * i
         plt.plot(
             E_data,
             I_data,
@@ -61,7 +71,8 @@ if __name__ == "__main__":
     parser.add_argument("sim_datafile", type=str)
     parser.add_argument("--title", type=str, default="")
     parser.add_argument("--rfactors", nargs="+", type=float)
+    parser.add_argument("--scale", action="store_true", help="If set, scales curves to match maxima heights")
     args = parser.parse_args()
     exp_data = np.loadtxt(args.exp_datafile)
     sim_data = np.loadtxt(args.sim_datafile)
-    plot_data(exp_data, sim_data, title=args.title, rfactors=args.rfactors)
+    plot_data(exp_data, sim_data, title=args.title, rfactors=args.rfactors, scale=args.scale)
