@@ -23,7 +23,10 @@ class Site:
         self.elems = elems
         self.name = name
 
-    def __str__(self) -> str:
+    def __repr__(self):
+        return "Site({}, {}, {}, {})".format(repr(self.concs), repr(self.vib), repr(self.elems), repr(self.name))
+
+    def to_script(self) -> str:
         output = ""
         for conc, elem in zip(self.concs, self.elems):
             output += "{:>7.4f}{:>7.4f}            element {}\n".format(
@@ -36,6 +39,9 @@ class Atom:
     def __init__(self, sitenum: int, x: float, y: float, z: float):
         self.sitenum = sitenum
         self.coord = np.array([x, y, z])
+
+    def __repr__(self):
+        return "Atom({}, {}, {}, {})".format(self.sitenum, *self.coord)
 
     @property
     def x(self):
@@ -77,7 +83,16 @@ class Layer:
         for sitenum, x, y, z in zip(self.sitenums, self.xs, self.ys, self.zs):
             yield Atom(sitenum, x, y, z)
 
-    def to_string(self, lat_params) -> str:
+    def __repr__(self):
+        result = "Layer([\n"
+        for atom in iter(self):
+            result += "    " + repr(atom) + ",\n"
+        result += "],\n"
+        result += "    " + repr(self.name) + "\n"
+        result += ")"
+        return result
+
+    def to_script(self, lat_params) -> str:
         lat_a, lat_b, lat_c = lat_params
         output = "{:>3d}".format(len(self.sitenums))
         output += 23 * " " + "number of sublayers\n"
@@ -130,6 +145,21 @@ class AtomicStructure:
         self.layers = layers
         self.cell_params = np.array(cell_params)
 
+    def __repr__(self):
+        result = "AtomicStructure(\n"
+        result += "    [\n"
+        for site in self.sites:
+            result += 8 * " " + repr(site) + ",\n"
+        result += "    ],\n"
+        result += "    [\n"
+        for layer in self.layers:
+            layer_repr_lines = [8 * " " + line for line in repr(layer).splitlines(keepends=True)]
+            result += "".join(layer_repr_lines) + ",\n"
+        result += "    ],\n"
+        result += "    " + repr(self.cell_params.tolist()) + "\n"
+        result += ")"
+        return result
+
     def to_script(self):
         """ Writes to a string the section to be placed inside
             of the LEED script
@@ -144,7 +174,7 @@ class AtomicStructure:
         output += 23 * " " + "NSITE: number of different site types\n"
         for i, site in enumerate(self.sites):
             output += "-   site type {}  {}---\n".format(i + 1, site.name)
-            output += str(site)
+            output += site.to_script()
 
         # Layer description section
         output += (
@@ -158,7 +188,7 @@ class AtomicStructure:
             output += "-   layer type {}  {}---\n".format(i + 1, layer.name)
             output += "{:>3d}".format(i + 1)
             output += 23 * " " + "LAY = {}\n".format(i + 1)
-            output += layer.to_string(self.cell_params)
+            output += layer.to_script(self.cell_params)
 
         return output
 
@@ -231,6 +261,57 @@ class AtomicStructure:
                         (current_z + atom.z) * self.cell_params[2]
                     ))
                 current_z += np.ceil(max(layer.zs))
+
+    def write_cif(self, filename: str, comment: str = ""):
+        """ Writes the atomic structure to a CIF file. Overwrites files if it
+             already exists.
+            Note: All layers are put into a single unit cell, where the c parameters
+             is made large enough to fit all layers.
+        """
+        # Number of unit cells along the c axis spanned by each layer
+        layer_num_cells = [np.ceil(np.max(layer.zs)) for layer in self.layers]
+        tot_num_cells = sum(layer_num_cells)
+
+        with open(filename, "w") as f:
+            f.writelines([
+                comment + "\n",
+                "_symmetry_space_group_name_H-M   'P 1'\n",
+                "_cell_length_a {:>12.8f}\n".format(self.cell_params[0]),
+                "_cell_length_b {:>12.8f}\n".format(self.cell_params[1]),
+                "_cell_length_c {:>12.8f}\n".format(tot_num_cells * self.cell_params[2]),
+                "_cell_length_alpha {:>12.8f}\n".format(90.0),
+                "_cell_length_beta {:>12.8f}\n".format(90.0),
+                "_cell_length_gamma {:>12.8f}\n".format(90.0),
+                "_symmetry_Int_Tables_number   1\n",
+                "_chemical_formula_structural\n",
+                "_chemical_formula_sum\n",
+                "_cell_volume {:>12.8f}\n".format(tot_num_cells * np.prod(self.cell_params)),
+                "_cell_formula_unitz_Z   2\n",
+                "loop_\n",
+                " _symmetry_equiv_pos_site_id\n",
+                " _symmetry_equiv_pos_as_xyz\n",
+                "  1  'x, y, z'\n",
+                "loop_\n",
+                " _atom_site_type_symbol\n",
+                " _atom_site_label\n",
+                " _atom_site_symmetry_multiplicity\n",
+                " _atom_site_fract_x\n",
+                " _atom_site_fract_y\n",
+                " _atom_site_fract_z\n",
+                " _atom_site_occupancy\n",
+            ])
+            atom_num = 0
+            cell_num = 0
+            for layer_idx, layer in enumerate(self.layers):
+                for atom in layer:
+                    site = self.sites[atom.sitenum-1]
+                    elem = site.elems[np.argmax(site.concs).item()]
+                    f.write("{:>4s} {:>5s} {:>3d} {:>10.6f} {:>10.6f} {:>10.6f} {:>3d}\n".format(
+                        elem, elem + str(atom_num), 1,
+                        atom.x, atom.y, (atom.z + cell_num) / tot_num_cells, 1
+                    ))
+                    atom_num += 1
+                cell_num += layer_num_cells[layer_idx]
 
 
 SearchParam = Tuple[SearchKey, int]
@@ -424,7 +505,7 @@ class LEEDManager:
             output += 23 * " " + "NSITE: number of different site types\n"
             for i, site in enumerate(structure.sites):
                 output += "-   site type {}  {}---\n".format(i + 1, site.name)
-                output += str(site)
+                output += site.to_script()
 
             # Layer description section
             output += (
@@ -438,7 +519,7 @@ class LEEDManager:
                 output += "-   layer type {}  {}---\n".format(i + 1, layer.name)
                 output += "{:>3d}".format(i + 1)
                 output += 23 * " " + "LAY = {}\n".format(i + 1)
-                output += layer.to_string(structure.cell_params)
+                output += layer.to_script(structure.cell_params)
 
             # Bulk stacking section
             output += (

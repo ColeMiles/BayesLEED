@@ -117,24 +117,24 @@ TEST_FESE_20UC_FOR2D = AtomicStructure(
 FESE_20UC_CLOSE = AtomicStructure(
     # Atomic sites
     [
-        Site([1.0, 0.0], 0.0855, ["Fe", "Se"], "Fe top layer"),
-        Site([1.0, 0.0], 0.0855, ["Fe", "Se"], "Fe 2nd layer"),
-        Site([1.0, 0.0], 0.0855, ["Fe", "Se"], "Fe bulk"),
-        Site([0.0, 1.0], 0.0863, ["Fe", "Se"], "Se top layer"),
-        Site([0.0, 1.0], 0.0863, ["Fe", "Se"], "Se 2nd layer"),
-        Site([0.0, 1.0], 0.0863, ["Fe", "Se"], "Se bulk")
+        Site([1.0, 0.0], 0.1319, ["Fe", "Se"], "Fe top layer"),
+        Site([1.0, 0.0], 0.1319, ["Fe", "Se"], "Fe 2nd layer"),
+        Site([1.0, 0.0], 0.1319, ["Fe", "Se"], "Fe bulk"),
+        Site([0.0, 1.0], 0.1204, ["Fe", "Se"], "Se top layer"),
+        Site([0.0, 1.0], 0.1204, ["Fe", "Se"], "Se 2nd layer"),
+        Site([0.0, 1.0], 0.1204, ["Fe", "Se"], "Se bulk")
     ],
     # Layer definitions (fractional coordinates)
     [
         Layer([
-            Atom(1, 0.25, 0.75, 0.24976),  # Top Layer Fe
-            Atom(1, 0.75, 0.25, 0.26092),  # Top Layer Fe
-            Atom(2, 0.25, 0.75, 1.23742),  # 2nd Layer Fe
-            Atom(2, 0.75, 0.25, 1.26382),  # 2nd Layer Fe
-            Atom(4, 0.25, 0.25, 0.00158),  # Top Layer Se
-            Atom(4, 0.75, 0.75, 0.52064),  # Top Layer Se
-            Atom(5, 0.25, 0.25, 0.99112),  # 2nd Layer Se
-            Atom(5, 0.75, 0.75, 1.50754),  # 2nd Layer Se
+            Atom(1, 0.25, 0.75, 0.26126),  # Top Layer Fe
+            Atom(1, 0.75, 0.25, 0.27046),  # Top Layer Fe
+            Atom(2, 0.25, 0.75, 1.24418),  # 2nd Layer Fe
+            Atom(2, 0.75, 0.25, 1.27062),  # 2nd Layer Fe
+            Atom(4, 0.25, 0.25, 0.00732),  # Top Layer Se
+            Atom(4, 0.75, 0.75, 0.53256),  # Top Layer Se
+            Atom(5, 0.25, 0.25, 0.99870),  # 2nd Layer Se
+            Atom(5, 0.75, 0.75, 1.51332),  # 2nd Layer Se
         ],
             "Top 2 unit cells"
         ),
@@ -148,45 +148,9 @@ FESE_20UC_CLOSE = AtomicStructure(
         )
     ],
     # Unit cell parameters
-    [3.7674228, 3.7674228, 5.518704]
+    [3.7667322, 3.7667322, 5.513444]
 )
 
-FESE_20UC_THIRD = AtomicStructure(
-    # Atomic sites
-    [
-        Site([1.0, 0.0], 0.0855, ["Fe", "Se"], "Fe top layer"),
-        Site([1.0, 0.0], 0.0855, ["Fe", "Se"], "Fe 2nd layer"),
-        Site([1.0, 0.0], 0.0855, ["Fe", "Se"], "Fe bulk"),
-        Site([0.0, 1.0], 0.0863, ["Fe", "Se"], "Se top layer"),
-        Site([0.0, 1.0], 0.0863, ["Fe", "Se"], "Se 2nd layer"),
-        Site([0.0, 1.0], 0.0863, ["Fe", "Se"], "Se bulk")
-    ],
-    # Layer definitions (fractional coordinates)
-    [
-        Layer([
-            Atom(1, 0.25, 0.75, 0.25),  # Top Layer Fe
-            Atom(1, 0.75, 0.25, 0.25),  # Top Layer Fe
-            Atom(2, 0.25, 0.75, 1.25),  # 2nd Layer Fe
-            Atom(2, 0.75, 0.25, 1.25),  # 2nd Layer Fe
-            Atom(4, 0.25, 0.25, 0.00),  # Top Layer Se
-            Atom(4, 0.75, 0.75, 0.50),  # Top Layer Se
-            Atom(5, 0.25, 0.25, 1.00),  # 2nd Layer Se
-            Atom(5, 0.75, 0.75, 1.50),  # 2nd Layer Se
-        ],
-            "Top 2 unit cells"
-        ),
-        Layer([
-            Atom(3, 0.25, 0.75, 0.25),  # Bulk Fe
-            Atom(3, 0.75, 0.25, 0.25),  # Bulk Fe
-            Atom(6, 0.25, 0.25, 0.00),  # Bulk Se
-            Atom(6, 0.75, 0.75, 0.50),  # Bulk Se
-        ],
-            "Bulk"
-        )
-    ],
-    # Unit cell parameters
-    [3.7676, 3.7676, 5.5180]
-)
 
 LANIO3 = AtomicStructure(
     # Atomic sites
@@ -340,10 +304,10 @@ TEST_FESE_20UC_2D_PROBLEM = SearchSpace(
 )
 
 
-FESE_20UC_PROBLEM2 = SearchSpace(
+FESE_20UC_PROBLEM_SECONDXY = SearchSpace(
     FESE_20UC_CLOSE,
     [
-        (SearchKey.CELLA, -1, (-0.002, 0.002)),
+        (SearchKey.CELLA, -1, (-0.01, 0.01)),
         (SearchKey.ATOMY, 1, (-0.1, 0.1)),
         (SearchKey.ATOMY, 2, (-0.1, 0.1)),
         (SearchKey.ATOMY, 3, (-0.1, 0.1)),
@@ -369,7 +333,7 @@ FESE_20UC_PROBLEM2 = SearchSpace(
 problems = {
     "LANIO3":    LANIO3_PROBLEM,
     "FESE_20UC": FESE_20UC_PROBLEM,
-    "FESE_20UC_2": FESE_20UC_PROBLEM2,
+    "FESE_20UC_SECONDXY": FESE_20UC_PROBLEM_SECONDXY,
     "FESE_20UC_SINGLEZ": FESE_20UC_SINGLEZ_PROBLEM,
     "FESE_20UC_SECOND_SINGLEXY": FESE_20UC_SECOND_SINGLEXY_PROBLEM,
     "TEST_FESE_2D": TEST_FESE_20UC_2D_PROBLEM,
