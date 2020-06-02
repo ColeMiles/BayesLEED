@@ -3,7 +3,7 @@ import os
 import shutil
 
 import numpy as np
-import bayessearch
+from pyleed import bayessearch
 
 
 @pytest.mark.slow
@@ -35,7 +35,7 @@ def test_create_model():
     assert np.allclose(normalized_rfactors.mean(), 0.0)
     assert np.allclose(normalized_rfactors.var(ddof=1), 1.0)
 
-    model, mll = bayessearch.create_model(pts, normalized_rfactors)
+    model, mll = bayessearch.create_model(pts, -normalized_rfactors)
 
     assert len(model.train_inputs) == 1
     assert np.all(model.train_inputs[0].cpu().numpy() == pts)

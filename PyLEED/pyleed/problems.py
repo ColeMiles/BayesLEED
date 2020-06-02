@@ -1,4 +1,4 @@
-from tleed import *
+from .tleed import *
 import numpy as np
 
 FESE_20UC = AtomicStructure(

@@ -4,14 +4,16 @@ import sys
 
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import torch
 import botorch
 import IPython
 
-from problems import problems
-from bayessearch import create_model
+scriptdir = os.path.dirname(os.path.realpath(__file__))
+packagedir = os.path.dirname(scriptdir)
+sys.path.insert(0, os.path.join(packagedir, "pyleed"))
+
+from pyleed.bayessearch import create_model
 
 plt.style.use("seaborn-talk")
 

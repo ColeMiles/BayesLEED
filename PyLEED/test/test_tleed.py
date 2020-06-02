@@ -1,13 +1,12 @@
-import pytest
 import os
 import shutil
+import pytest
 
 import numpy as np
 
-import tleed
-from tleed import SearchKey, AtomicStructure, Site, Layer, Atom
-import bayessearch
-import problems
+from pyleed import problems, tleed
+from pyleed.tleed import SearchKey, AtomicStructure, Site, Layer, Atom
+import pyleed.bayessearch as bayessearch
 
 
 def isclose(a, b, eps=1e-6):
@@ -55,7 +54,7 @@ TEST_STRUCT = AtomicStructure(
 def test_to_script():
     struct = TEST_STRUCT
 
-    with open("test_files/fese_answer.txt", "r") as f:
+    with open("test/test_files/fese_answer.txt", "r") as f:
         answer = f.read()
 
     assert struct.to_script() == answer
@@ -64,7 +63,7 @@ def test_to_script():
 def test_write_structure():
     struct = TEST_STRUCT
 
-    basedir = "test_files/FeSetest/"
+    basedir = "test/test_files/FeSetest/"
     exe = os.path.join(basedir, "ref-calc.FeSe")
     rfact = os.path.join(basedir, "rf.x")
     expfile = os.path.join(basedir, "WEXPEL")
@@ -74,14 +73,14 @@ def test_write_structure():
         answer = f.read()
 
     manager = tleed.LEEDManager(basedir, exe, rfact, expfile, template)
-    manager._write_structure(struct, "test_files/FeSetest/comp_FIN")
+    manager._write_structure(struct, "test/test_files/FeSetest/comp_FIN")
 
-    with open("test_files/FeSetest/comp_FIN", "r") as f:
+    with open("test/test_files/FeSetest/comp_FIN", "r") as f:
         output = f.read()
 
     assert output == answer
 
-    os.remove("test_files/FeSetest/comp_FIN")
+    os.remove("test/test_files/FeSetest/comp_FIN")
 
 
 def test_to_structures():
@@ -216,27 +215,27 @@ def test_constraints():
                                r_struct[s_key, s_idx] - struct[s_key, s_idx])
 
 
-# @pytest.mark.slow
-# def test_refcalc():
-#     origdir = "test_files/LaNiO3test"
-#     newdir = "test_files/LaNiO3test_active"
-#     executable = "ref-calc.LaNiO3"
-#     if os.path.exists(newdir):
-#         shutil.rmtree(newdir)
-#     shutil.copytree(origdir, newdir)
-#
-#     manager = bayessearch.create_manager(newdir, executable)
-#
-#     struct = problems.LANIO3
-#     solution = problems.LANIO3_SOLUTION.tolist()
-#     solution.insert(4, solution[3])
-#     solution.insert(len(solution), solution[-1])
-#     for i, delta in enumerate(solution):
-#         struct[SearchKey.ATOMZ, i+1] += delta / struct.cell_params[2]
-#
-#     rfactor = manager.ref_calc(struct)
-#     shutil.rmtree(newdir)
-#
-#     # I handle the surface-to-bulk distance slightly differently than
-#     #   Jacob did, so I don't get exactly the same rfactor. (Actually better)
-#     assert isclose(rfactor, problems.LANIO3_SOLUTION_RFACTOR, eps=0.01)
+@pytest.mark.slow
+def test_refcalc():
+    origdir = "test_files/LaNiO3test"
+    newdir = "test_files/LaNiO3test_active"
+    executable = "ref-calc.LaNiO3"
+    if os.path.exists(newdir):
+        shutil.rmtree(newdir)
+    shutil.copytree(origdir, newdir)
+
+    manager = bayessearch.create_manager(newdir, executable)
+
+    struct = problems.LANIO3
+    solution = problems.LANIO3_SOLUTION.tolist()
+    solution.insert(4, solution[3])
+    solution.insert(len(solution), solution[-1])
+    for i, delta in enumerate(solution):
+        struct[SearchKey.ATOMZ, i+1] += delta / struct.cell_params[2]
+
+    rfactor = manager.ref_calc(struct)
+    shutil.rmtree(newdir)
+
+    # I handle the surface-to-bulk distance slightly differently than
+    #   Jacob did, so I don't get exactly the same rfactor. (Actually better)
+    assert isclose(rfactor, problems.LANIO3_SOLUTION_RFACTOR, eps=0.01)

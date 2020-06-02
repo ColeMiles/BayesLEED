@@ -6,9 +6,8 @@ import subprocess
 import re
 import logging
 import enum
-import itertools
 from copy import deepcopy
-from typing import List, Dict, Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 

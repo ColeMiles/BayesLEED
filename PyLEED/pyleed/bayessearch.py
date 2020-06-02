@@ -1,6 +1,5 @@
 import argparse
 import os
-import time
 import logging
 import multiprocessing as mp
 import gc
@@ -9,8 +8,8 @@ import numpy as np
 import torch
 import gpytorch
 import botorch
-import tleed
-import problems
+
+from pyleed import problems, tleed
 
 
 def append_arrays_to_file(filename, pts, rfactors):
