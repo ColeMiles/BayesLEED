@@ -60,20 +60,19 @@ def test_to_script():
     assert struct.to_script() == answer
 
 
-def test_write_structure():
+def test_write_script():
     struct = TEST_STRUCT
 
     basedir = "test/test_files/FeSetest/"
     exe = os.path.join(basedir, "ref-calc.FeSe")
     rfact = os.path.join(basedir, "rf.x")
-    expfile = os.path.join(basedir, "WEXPEL")
     template = os.path.join(basedir, "FIN")
 
     with open(template, "r") as f:
         answer = f.read()
 
-    manager = tleed.LEEDManager(basedir, exe, rfact, expfile, template)
-    manager._write_structure(struct, "test/test_files/FeSetest/comp_FIN")
+    refcalc = tleed.RefCalc(struct, exe, answer, basedir)
+    refcalc._write_script("test/test_files/FeSetest/comp_FIN")
 
     with open("test/test_files/FeSetest/comp_FIN", "r") as f:
         output = f.read()

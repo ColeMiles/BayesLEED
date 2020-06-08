@@ -7,7 +7,7 @@ import re
 import logging
 import enum
 from copy import deepcopy
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Collection
 
 import numpy as np
 
@@ -437,6 +437,173 @@ class SearchSpace:
         return norm_vec
 
 
+class RefCalc:
+    """ Class representing a single reference calculation, responsible for orchestrating the
+        necessary scripts to run the calculation, as well as keeping track of Tensors needed
+        for perturbative calculations
+
+    """
+    def __init__(self, struct: AtomicStructure, leed_exe: str, rf_exe: str, template: str, workdir: str, produce_tensors=False):
+        self.struct = struct
+        self.leed_exe = os.path.abspath(leed_exe)
+        self.rf_exe = os.path.abspath(rf_exe)
+        self.template = template.splitlines(keepends=True)
+        self.workdir = os.path.abspath(workdir)
+        self.produce_tensors = produce_tensors
+
+        # TODO: Maybe an Enum for a state rather than this?
+        self.completed = False
+        self.in_progress = False
+
+        self.script_filename = os.path.join(self.workdir, "FIN")
+        self.result_filename = os.path.join(self.workdir, "fd.out")
+        self._process = None
+
+        if produce_tensors:
+            self.tensor_filenames = [
+                os.path.join(workdir, "LAY1{}".format(i+1)) for i in range(len(struct.layers[0]))
+            ]
+
+    def _write_script(self, filename):
+        with open(filename, "w") as ofile:
+            # File title and energy range
+            ofile.writelines(self.template[:2])
+
+            ofile.write("{:>7.4f} 0.0000          ARA1 *\n".format(self.struct.cell_params[0]))
+            ofile.write(" 0.0000{:>7.4f}          ARA2 *\n".format(self.struct.cell_params[1]))
+
+            # (Unused) registry shift lines
+            ofile.writelines(self.template[4:8])
+
+            ofile.write("{:>7.4f} 0.0000          ARB1 *\n".format(self.struct.cell_params[0]))
+            ofile.write(" 0.0000{:>7.4f}          ARB2 *\n".format(self.struct.cell_params[1]))
+
+            # Find line before where new coordinates need to be inserted, as well as the
+            #  line which marks the following section
+            indbefore, indafter = -1, -1
+            for i, line in enumerate(self.template):
+                if line.find("define chem. and vib. properties") != -1:
+                    indbefore = i - 1
+                elif line.find("Tensor output is") != -1:
+                    indafter = i+1
+            # Check that both lines were found
+            if indbefore == -1 or indafter == -1:
+                raise ValueError("LEED input file does not contain section marker lines")
+            ofile.writelines(self.template[10:indbefore])
+
+            # Site description section
+            output = (
+                "-------------------------------------------------------------------\n"
+                "--- define chem. and vib. properties for different atomic sites ---\n"
+                "-------------------------------------------------------------------\n"
+            )
+            output += "{:>3d}".format(len(self.struct.sites))
+            output += 23 * " " + "NSITE: number of different site types\n"
+            for i, site in enumerate(self.struct.sites):
+                output += "-   site type {}  {}---\n".format(i + 1, site.name)
+                output += site.to_script()
+
+            # Layer description section
+            output += (
+                "-------------------------------------------------------------------\n"
+                "--- define different layer types                            *   ---\n"
+                "-------------------------------------------------------------------\n"
+            )
+            output += "{:>3d}".format(len(self.struct.layers))
+            output += 23 * " " + "NLTYPE: number of different layer types\n"
+            for i, layer in enumerate(self.struct.layers):
+                output += "-   layer type {}  {}---\n".format(i + 1, layer.name)
+                output += "{:>3d}".format(i + 1)
+                output += 23 * " " + "LAY = {}\n".format(i + 1)
+                output += layer.to_script(self.struct.cell_params)
+
+            # Bulk stacking section
+            output += (
+                "-------------------------------------------------------------------\n"
+                "--- define bulk stacking sequence                           *   ---\n"
+                "-------------------------------------------------------------------\n"
+            )
+            # Find bulk interlayer vector from bottom atom of bulk layer
+            bulk_maxz = max(self.struct.layers[1].zs)
+            num_cells = np.ceil(bulk_maxz)
+            bulk_interlayer_dist = (num_cells - bulk_maxz) * self.struct.cell_params[2]
+
+            output += "  0" + 23 * " " + "TSLAB = 0: compute bulk using subras\n"
+            output += "{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist)
+            output += "     ASA interlayer vector between different bulk units *\n"
+            output += "  2" + 23 * " " + "top layer of bulk unit: type 2\n"
+            output += "  2" + 23 * " " + "bottom layer of bulk unit: type 2\n"
+            output += "{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist)
+            output += "     ASBULK between the two bulk unit layers (may differ from ASA)\n"
+
+            # Surface layer stacking sequence
+            output += (
+                "-------------------------------------------------------------------\n"
+                "--- define layer stacking sequence and Tensor LEED output   *   ---\n"
+                "-------------------------------------------------------------------\n"
+            )
+            # Find surface interlayer vector from bottom atom to bulk
+            layer_maxz = max(self.struct.layers[0].zs)
+            num_cells = np.ceil(layer_maxz)
+            surf_interlayer_dist = (num_cells - layer_maxz) * self.struct.cell_params[2]
+            output += "  1\n"
+            output += "  1{:>7.4f} 0.0000 0.0000".format(surf_interlayer_dist)
+            output += "  surface layer is of type 1: interlayer vector connecting it to bulk\n"
+            if self.produce_tensors:
+                output += "  1" + 23 * " " + "Tensor output is required for this layer\n"
+            else:
+                output += "  0" + 23 * " " + "Tensor output is NOT required for this layer\n"
+
+            ofile.write(output)
+            ofile.writelines(self.template[indafter:])
+
+    def _write_delta_script(self):
+        raise NotImplementedError()
+
+    def run(self):
+        self._write_script(self.script_filename)
+        stdout_filename = os.path.join(os.path.dirname(self.script_filename), "log.txt")
+        process = subprocess.Popen(
+            [self.leed_exe],
+            stdin=open(self.script_filename, "r"),
+            stdout=open(stdout_filename, "w"),
+            cwd=self.workdir,
+            text=True
+        )
+        self._process = process
+        self.in_progress = True
+
+    def wait(self):
+        """ Waits for completion.
+        """
+        self._process.wait()
+        # TODO: Can I make these update without a call to .wait()?
+        self.in_progress = False
+        self.completed = True
+
+    def rfactor(self):
+        if not self.completed:
+            raise ValueError("Called .rfactor() on a RefCalc which is not complete!")
+        if not os.path.exists(self.rf_exe):
+            raise FileNotFoundError("R-factor executable rf.x not found!")
+        if not os.path.exists(self.result_filename):
+            raise FileNotFoundError("Results from reference calculation, fd.out, not found!")
+
+        result = subprocess.run(
+            [self.rf_exe],
+            cwd=os.path.dirname(self.rf_exe),
+            stdin=open(self.result_filename, "r"),
+            capture_output=True,
+            text=True
+        )
+        return extract_rfactor(result.stdout)
+
+    def produce_curves(self):
+        # TODO: Returns an IVCurve class, which can normalize and plot itself!
+        raise NotImplementedError()
+
+
+
 class LEEDManager:
     def __init__(self, basedir, leed_executable, rfactor_executable,
                  exp_datafile, templatefile):
@@ -464,165 +631,53 @@ class LEEDManager:
         except shutil.SameFileError:
             pass
         with open(templatefile, "r") as f:
-            self.input_template = f.readlines()
+            self.input_template = f.read()
         self.calc_number = 0
+        self.ref_calcs = []
 
-    def _write_structure(self, structure, filename):
-        with open(filename, "w") as ofile:
-            # File title and energy range
-            ofile.writelines(self.input_template[:2])
-
-            ofile.write("{:>7.4f} 0.0000          ARA1 *\n".format(structure.cell_params[0]))
-            ofile.write(" 0.0000{:>7.4f}          ARA2 *\n".format(structure.cell_params[1]))
-
-            # (Unused) registry shift lines
-            ofile.writelines(self.input_template[4:8])
-
-            ofile.write("{:>7.4f} 0.0000          ARB1 *\n".format(structure.cell_params[0]))
-            ofile.write(" 0.0000{:>7.4f}          ARB2 *\n".format(structure.cell_params[1]))
-
-            # Find line before where new coordinates need to be inserted, as well as the
-            #  line which marks the following section
-            indbefore, indafter = -1, -1
-            for i, line in enumerate(self.input_template):
-                if line.find("define chem. and vib. properties") != -1:
-                    indbefore = i - 1
-                elif line.find("Tensor output is") != -1:
-                    indafter = i+1
-            # Check that both lines were found
-            if indbefore == -1 or indafter == -1:
-                raise ValueError("LEED input file does not contain section marker lines")
-            ofile.writelines(self.input_template[10:indbefore])
-
-            # Site description section
-            output = (
-                "-------------------------------------------------------------------\n"
-                "--- define chem. and vib. properties for different atomic sites ---\n"
-                "-------------------------------------------------------------------\n"
-            )
-            output += "{:>3d}".format(len(structure.sites))
-            output += 23 * " " + "NSITE: number of different site types\n"
-            for i, site in enumerate(structure.sites):
-                output += "-   site type {}  {}---\n".format(i + 1, site.name)
-                output += site.to_script()
-
-            # Layer description section
-            output += (
-                "-------------------------------------------------------------------\n"
-                "--- define different layer types                            *   ---\n"
-                "-------------------------------------------------------------------\n"
-            )
-            output += "{:>3d}".format(len(structure.layers))
-            output += 23 * " " + "NLTYPE: number of different layer types\n"
-            for i, layer in enumerate(structure.layers):
-                output += "-   layer type {}  {}---\n".format(i + 1, layer.name)
-                output += "{:>3d}".format(i + 1)
-                output += 23 * " " + "LAY = {}\n".format(i + 1)
-                output += layer.to_script(structure.cell_params)
-
-            # Bulk stacking section
-            output += (
-                "-------------------------------------------------------------------\n"
-                "--- define bulk stacking sequence                           *   ---\n"
-                "-------------------------------------------------------------------\n"
-            )
-            # Find bulk interlayer vector from bottom atom of bulk layer
-            bulk_maxz = max(structure.layers[1].zs)
-            num_cells = np.ceil(bulk_maxz)
-            bulk_interlayer_dist = (num_cells - bulk_maxz) * structure.cell_params[2]
-
-            output += "  0" + 23 * " " + "TSLAB = 0: compute bulk using subras\n"
-            output += "{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist)
-            output += "     ASA interlayer vector between different bulk units *\n"
-            output += "  2" + 23 * " " + "top layer of bulk unit: type 2\n"
-            output += "  2" + 23 * " " + "bottom layer of bulk unit: type 2\n"
-            output += "{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist)
-            output += "     ASBULK between the two bulk unit layers (may differ from ASA)\n"
-
-            # Surface layer stacking sequence
-            output += (
-                "-------------------------------------------------------------------\n"
-                "--- define layer stacking sequence and Tensor LEED output   *   ---\n"
-                "-------------------------------------------------------------------\n"
-            )
-            # Find surface interlayer vector from bottom atom to bulk
-            layer_maxz = max(structure.layers[0].zs)
-            num_cells = np.ceil(layer_maxz)
-            surf_interlayer_dist = (num_cells - layer_maxz) * structure.cell_params[2]
-            output += "  1\n"
-            output += "  1{:>7.4f} 0.0000 0.0000".format(surf_interlayer_dist)
-            output += "  surface layer is of type 1: interlayer vector connecting it to bulk\n"
-            output += "  0" + 23 * " " + "Tensor output is NOT required for this layer\n"
-
-            ofile.write(output)
-            ofile.writelines(self.input_template[indafter:])
-
-    def _start_calc(self, structure: AtomicStructure, calcid: int):
-        """ Start a new process running TLEED, and return the subprocess
-              handle and working directory without waiting for it to finish
-        """
-        newdir = os.path.join(self.basedir, "ref-calc" + str(calcid))
+    def _create_ref_calc(self, structure: AtomicStructure, produce_tensors=False):
+        newdir = os.path.join(self.basedir, "ref-calc" + str(self.calc_number))
         os.makedirs(newdir, exist_ok=True)
-        # shutil.copy(self.exp_datafile, os.path.join(newdir, "WEXPEL"))
-        input_filename = os.path.join(newdir, "FIN")
-        stdout_filename = os.path.join(newdir, "protocol")
-        self._write_structure(structure, input_filename)
-        process = subprocess.Popen(
-            [self.leed_exe],
-            stdin=open(input_filename, "r"),
-            stdout=open(stdout_filename, "w"),
-            cwd=newdir,
-            text=True
-        )
-        return process, newdir
+        ref_calc = RefCalc(structure, self.leed_exe, self.rfactor_exe, self.input_template, newdir,
+                           produce_tensors=produce_tensors)
+        self.ref_calcs.append(ref_calc)
+        self.calc_number += 1
+        return ref_calc
 
-    def _rfactor_calc(self, refcalc_outfile):
-        """ Runs the r-factor calculation, and parses the output,
-             returning the result
-        """
-        result = subprocess.run(
-            [self.rfactor_exe],
-            cwd=self.basedir,
-            stdin=open(refcalc_outfile, "r"),
-            capture_output=True,
-            text=True
-        )
-        return extract_rfactor(result.stdout)
-
-    def ref_calc(self, structure: AtomicStructure):
+    def ref_calc(self, structure: AtomicStructure, produce_tensors=False):
         """ Do the full process of performing a reference calculation.
-            NOTE: Do not call this function in parallel, as there is a race
+            WARNING: Do not call this function in parallel, as there is a race
                 condition on self.calc_number. Instead, use batch_ref_calcs.
         """
-        self.calc_number += 1
-        calc_process, pdir = self._start_calc(structure, self.calc_number)
-        calc_process.wait()
-        result_filename = os.path.join(pdir, "fd.out")
-        return self._rfactor_calc(result_filename)
+        refcalc = self._create_ref_calc(structure, produce_tensors=produce_tensors)
+        refcalc.run()
+        refcalc.wait()
+        return refcalc.rfactor()
 
-    def batch_ref_calcs(self, structures: List[AtomicStructure]):
+    def batch_ref_calcs(self, structures: Collection[AtomicStructure], produce_tensors=False):
         """ Run multiple reference calculations in parallel, one for each
              row of displacements.
         """
         num_structs = len(structures)
 
-        # Start up all of the calculation processes
+        # Create RefCalc objects for each calculation
         logging.info("Starting {} reference calculations...".format(num_structs))
-        processes = []
-        for i in range(num_structs):
-            self.calc_number += 1
-            processes.append(
-                self._start_calc(structures[i], self.calc_number)
-            )
+        refcalcs = [
+            self._create_ref_calc(struct, produce_tensors=produce_tensors)
+            for struct in structures
+        ]
+
+        # Start up all of the calculation processes
+        for r in refcalcs:
+            r.run()
 
         # Wait for all of them to complete, calculate r-factors for each
         # The r-factor calculations are fast enough that we may as well run
         #   them serially
         rfactors = []
-        for p, pdir in processes:
-            p.wait()
-            result_filename = os.path.join(pdir, "fd.out")
-            rfactors.append(self._rfactor_calc(result_filename))
+        for refcalc in refcalcs:
+            refcalc.wait()
+            rfactors.append(refcalc.rfactor())
         logging.info("Reference calculations completed.")
         return np.array(rfactors)
 
