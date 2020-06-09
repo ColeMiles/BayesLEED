@@ -437,6 +437,132 @@ class SearchSpace:
         return norm_vec
 
 
+class Phaseshifts:
+    """ Class representing a set of phaseshifts for a LEED calculation """
+    def __init__(self, filename):
+        self.filename = filename
+        self.data = self._parse_phaseshifts(filename)
+
+    def _parse_phaseshifts(self, filename):
+        raise NotImplementedError()
+
+
+class DeltaAmps:
+    """ Class representing a set of delta wavefunctions produced by delta.f """
+    def __init__(self):
+        # All of this should be manually initialized, in parse_deltas
+        self.theta, self.phi = 0.0, 0.0
+        self.substrate_recip, self.overlayer_recip = np.zeros(2), np.zeros(2)
+        self.nbeams = 0
+        self.natoms = 0  # Unused by TensErLEED, will always be read in as 1
+        self.nshifts = 0
+        self.nvibs = 0
+        self.beams = np.empty((1, 2))
+        self.shifts = np.empty((1, 3))   # NOTE: These are z x y in file, but x y z here
+        self.thermal_amps = np.empty(1)
+        self.crystal_energy = 0.0
+        self.substrate_energy = 0+0j
+        self.overlayer_energy = 0+0j
+        self.ref_amplitudes = np.empty((1, 1), np.complex64)
+        self.delta_amplitudes = np.empty((1, 1), np.complex64)
+
+
+def parse_deltas(filename: str) -> DeltaAmps:
+    """ Parses a DELWV file output by delta.f to create a DeltaAmps object.
+        TODO: Is there a better way to parse Fortran-formatted files? This is gross.
+    """
+    delta_amp = DeltaAmps()
+    with open(filename, "r") as f:
+        line = f.readline()
+        delta_amp.theta = float(line[:13])
+        delta_amp.phi = float(line[13:26])
+        delta_amp.substrate_recip[0] = float(line[26:39])
+        delta_amp.substrate_recip[1] = float(line[39:52])
+        delta_amp.overlayer_recip[0] = float(line[52:65])
+        delta_amp.overlayer_recip[1] = float(line[65:78])
+
+        line = f.readline()
+        delta_amp.nbeams = int(line[:3])
+        delta_amp.natoms = int(line[3:6])
+        numdeltas = int(line[6:9])
+        delta_amp.beams = np.empty((delta_amp.nbeams, 2))
+        deltas = np.empty((numdeltas, 3))
+
+        line = f.readline()
+        # TODO: Check that this is always on one line, even for more beams
+        for i in range(delta_amp.nbeams):
+            delta_amp.beams[i, 0] = float(line[20*i:10+20*i])
+            delta_amp.beams[i, 1] = float(line[10+20*i:20+20*i])
+
+        # Line of 0.0's from an unused feature in TensErLEED
+        line = f.readline()
+
+        # Read in the list of considered shifts
+        # TODO: This is nasty.
+        n = 0
+        comp = 0
+        while n < numdeltas:
+            line = f.readline().rstrip('\n')
+            for i in range(len(line) // 7):
+                deltas[n, (comp + 2) % 3] = float(line[7*i:7*(i+1)])
+                if comp == 2:
+                    n += 1
+                comp = (comp + 1) % 3
+
+        # Remove duplicate info
+        first_delta = deltas[0]
+        for n, delta in enumerate(deltas[1:]):
+            if np.allclose(first_delta, delta):
+                delta_amp.nshifts = (n + 1)
+                delta_amp.nvibs = numdeltas // (n + 1)
+                break
+        else:
+            delta_amp.nshifts = numdeltas
+            delta_amp.nvibs = 1
+
+        delta_amp.shifts = deltas[:delta_amp.nshifts].copy()
+        delta_amp.thermal_amps = np.empty(numdeltas)
+
+        # Read in the list of thermal vibrational amplitudes (?)
+        n = 0
+        while n < numdeltas:
+            line = f.readline().rstrip('\n')
+            for i in range(len(line) // 7):
+                delta_amp.thermal_amps[n] = line[7*i:7*(i+1)]
+                n += 1
+
+        # Read in the crystal potential energies
+        line = f.readline()
+        delta_amp.crystal_energy = float(line[:13])
+        delta_amp.substrate_energy = float(line[13:26]) * 1j
+        delta_amp.overlayer_energy = float(line[26:39])
+        delta_amp.substrate_energy += float(line[39:52])
+
+        # Read in the original reference calculation amplitudes
+        delta_amp.ref_amplitudes = np.empty(delta_amp.nbeams, np.complex64)
+        n = 0
+        while n < delta_amp.nbeams:
+            line = f.readline()
+            for i in range(len(line) // 26):
+                delta_amp.ref_amplitudes[n] = float(line[26*i:26*i+13])
+                delta_amp.ref_amplitudes[n] += float(line[26*i+13:26*i+26]) * 1j
+                n += 1
+
+        # Read in the delta amplitudes for each search delta
+        delta_amp.delta_amplitudes = np.empty((delta_amp.nbeams, delta_amp.nshifts), np.complex64)
+        n = 0
+        beam_idx, delta_idx = 0, 0
+        while n < delta_amp.nbeams * delta_amp.nshifts:
+            line = f.readline()
+            delta_idx, beam_idx = divmod(n, delta_amp.nbeams)
+            for i in range(len(line) // 26):
+                delta_amp.delta_amplitudes[beam_idx, delta_idx] = float(line[26*i:26*i+13])
+                delta_amp.delta_amplitudes[beam_idx, delta_idx] += float(line[26*i+13:26*i+26]) * 1j
+                n += 1
+
+    return delta_amp
+
+
 class RefCalc:
     """ Class representing a single reference calculation, responsible for orchestrating the
         necessary scripts to run the calculation, as well as keeping track of Tensors needed
