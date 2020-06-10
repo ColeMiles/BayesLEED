@@ -9,9 +9,18 @@ from pyleed.tleed import SearchKey, AtomicStructure, Site, Layer, Atom
 import pyleed.bayessearch as bayessearch
 
 
-def isclose(a, b, eps=1e-6):
+def _isclose(a, b, eps=1e-6):
     return abs(a - b) < eps
 
+
+def _make_test_manager():
+    return bayessearch.create_manager(
+        'test/test_files/FeSetest/',
+        '/home/cole/ProgScratch/BayesLEED/TLEED/',
+        problems.FESE_BEAMINFO_TRIMMED,
+        'test/test_files/FeSetest/FeSeBulk.eight.phase', 8,
+        executable='ref-calc.FeSe'
+    )
 
 TEST_STRUCT = AtomicStructure(
     # Atomic sites
@@ -71,7 +80,7 @@ def test_write_script():
     with open(template, "r") as f:
         answer = f.read()
 
-    refcalc = tleed.RefCalc(struct, exe, answer, basedir)
+    refcalc = tleed.RefCalc(struct, exe, rfact, answer, basedir)
     refcalc._write_script("test/test_files/FeSetest/comp_FIN")
 
     with open("test/test_files/FeSetest/comp_FIN", "r") as f:
@@ -103,10 +112,92 @@ def test_to_structures():
     expected_atomy = struct.layers[0].ys[1] - 0.2 + 0.5 * 0.4
     expected_atomz = struct.layers[0].zs[3] - 0.4 + 0.8
 
-    assert isclose(new_struct.sites[2].vib, expected_vib)
-    assert isclose(new_struct.layers[0].xs[5], expected_atomx)
-    assert isclose(new_struct.layers[0].ys[1], expected_atomy)
-    assert isclose(new_struct.layers[0].zs[3], expected_atomz)
+    assert _isclose(new_struct.sites[2].vib, expected_vib)
+    assert _isclose(new_struct.layers[0].xs[5], expected_atomx)
+    assert _isclose(new_struct.layers[0].ys[1], expected_atomy)
+    assert _isclose(new_struct.layers[0].zs[3], expected_atomz)
+
+
+def test_compile_delta_program():
+    manager = _make_test_manager()
+    ref_calc_dir = os.path.join(manager.basedir, "ref-calc-results")
+    disps = [
+        np.array([z, 0.0, 0.0]) for z in np.arange(-0.05, 0.06, 0.01)
+    ]
+    search_dim = (3, disps, [0.0])
+    subworkdir = os.path.join(ref_calc_dir, "delta-work-dir")
+    try:
+        os.mkdir(subworkdir)
+    except FileExistsError:
+        pass
+    exepath = os.path.join(subworkdir, "delta.x")
+    manager._compile_delta_program(exepath, search_dim)
+
+    assert os.path.isfile(exepath)
+    assert os.access(exepath, os.X_OK)
+
+
+def test_write_delta_script():
+    manager = _make_test_manager()
+    ref_calc_dir = os.path.join(manager.basedir, "ref-calc-results")
+    ref_calc = tleed.RefCalc(
+        problems.FESE_20UC, manager.leed_exe, manager.rfactor_exe, manager.input_template, ref_calc_dir,
+        produce_tensors=True
+    )
+    # Manually assert that the ref calc has been done
+    ref_calc.completed = True
+    ref_calc.tensorfiles = [
+        os.path.join(ref_calc_dir, "LAY1{}".format(i+1)) for i in range(len(ref_calc.struct.layers[0]))
+    ]
+    subworkdir = os.path.join(ref_calc_dir, "delta-work-dir")
+    try:
+        os.mkdir(subworkdir)
+    except FileExistsError:
+        pass
+    scriptname = os.path.join(subworkdir, "delta.in")
+
+    disps = [
+        np.array([z, 0.0, 0.0]) for z in np.arange(-0.05, 0.06, 0.01)
+    ]
+    search_dim = (3, disps, [0.0])
+    manager._write_delta_script(scriptname, ref_calc, search_dim)
+    assert os.path.isfile(scriptname)
+
+    shutil.rmtree(subworkdir)
+
+
+def test_produce_delta_amps():
+    manager = _make_test_manager()
+    ref_calc_dir = os.path.join(manager.basedir, "ref-calc-results")
+    ref_calc = tleed.RefCalc(
+        problems.FESE_20UC, manager.leed_exe, manager.rfactor_exe, manager.input_template, ref_calc_dir,
+        produce_tensors=True
+    )
+    # Manually assert that the ref calc has been done
+    ref_calc.completed = True
+    ref_calc.tensorfiles = [
+        os.path.join(ref_calc_dir, "LAY1{}".format(i+1)) for i in range(len(ref_calc.struct.layers[0]))
+    ]
+
+    disps = [
+        np.array([z, 0.0, 0.0]) for z in np.arange(-0.05, 0.06, 0.01)
+    ]
+    search_dims = [(i+1, disps, [0.0]) for i in range(len(ref_calc.struct.layers[0]))]
+    delta_space = tleed.DeltaSearchSpace(ref_calc, search_dims)
+    delta_amps = manager.produce_delta_amps(delta_space)
+
+    assert len(delta_amps) == len(search_dims)
+    for delta_amp in delta_amps:
+        assert delta_amp.nbeams == len(manager.beaminfo.beams)
+        assert delta_amp.nshifts == len(disps)
+        assert delta_amp.nvibs == 1
+        assert delta_amp.theta == manager.beaminfo.theta
+        assert delta_amp.phi == manager.beaminfo.phi
+
+    # Clean up
+    for i in range(len(delta_space.search_dims)):
+        subworkdir = os.path.join(ref_calc.workdir, "delta_tmp" + str(i + 1))
+        shutil.rmtree(subworkdir)
 
 
 def test_to_normalized():
@@ -210,10 +301,11 @@ def test_constraints():
             if isinstance(constraint, tleed.EqualityConstraint):
                 assert r_struct[b_key, b_idx] == r_struct[s_key, s_idx]
             if isinstance(constraint, tleed.EqualShiftConstraint):
-                assert isclose(r_struct[b_key, b_idx] - struct[b_key, b_idx],
-                               r_struct[s_key, s_idx] - struct[s_key, s_idx])
+                assert _isclose(r_struct[b_key, b_idx] - struct[b_key, b_idx],
+                                r_struct[s_key, s_idx] - struct[s_key, s_idx])
 
 
+# TODO: Update this to new manager requirements (phaseshifts, beaminfo)
 @pytest.mark.slow
 def test_refcalc():
     origdir = "test_files/LaNiO3test"
@@ -237,4 +329,4 @@ def test_refcalc():
 
     # I handle the surface-to-bulk distance slightly differently than
     #   Jacob did, so I don't get exactly the same rfactor. (Actually better)
-    assert isclose(rfactor, problems.LANIO3_SOLUTION_RFACTOR, eps=0.01)
+    assert _isclose(rfactor, problems.LANIO3_SOLUTION_RFACTOR, eps=0.01)

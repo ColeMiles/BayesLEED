@@ -1,5 +1,19 @@
+""" Contains definitions for example problems for the current data """
+# TODO: If anyone else will ever use this, should probably migrate to real configuration files
 from pyleed.tleed import *
 import numpy as np
+
+FESE_BEAMINFO_TRIMMED = BeamInfo(
+    0.0, 0.0,    # Incident theta, phi
+    [            # (kx, ky) of beams
+        (1, 0),
+        (1, 1),
+        (2, 0),
+        (2, 2),
+        (3, 0)
+    ],
+    30.0, 550.0  # Emin, Emax
+)
 
 FESE_20UC = AtomicStructure(
     # Atomic sites
@@ -337,4 +351,8 @@ problems = {
     "FESE_20UC_SINGLEZ": FESE_20UC_SINGLEZ_PROBLEM,
     "FESE_20UC_SECOND_SINGLEXY": FESE_20UC_SECOND_SINGLEXY_PROBLEM,
     "TEST_FESE_2D": TEST_FESE_20UC_2D_PROBLEM,
+}
+
+beaminfos = {
+    "FESE_TRIM": FESE_BEAMINFO_TRIMMED,
 }

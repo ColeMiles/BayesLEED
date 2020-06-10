@@ -17,6 +17,7 @@ from pyleed.bayessearch import create_model
 
 plt.style.use("seaborn-talk")
 
+
 def fit_model(pts, norm_rfactors, state_dict=None):
     """ Fits a botorch model, given (normalized) points and (normalized) rfactors
     """
@@ -24,6 +25,7 @@ def fit_model(pts, norm_rfactors, state_dict=None):
     model.train()
     botorch.fit.fit_gpytorch_model(mll)
     return model, mll
+
 
 def emulateND(pts, rfactors, batch_size):
     """ Given an array of pts and their corresponding r-factors, steps through training botorch

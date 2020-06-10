@@ -6,6 +6,7 @@ import numpy as np
 from pyleed import bayessearch
 
 
+# TODO: Update this to the new manager requirements (beaminfo / phaseshifts)
 @pytest.mark.slow
 def test_lanio3_convergence():
     origdir = "test_files/LaNiO3test"

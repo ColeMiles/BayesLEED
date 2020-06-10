@@ -12,4 +12,5 @@ setup(
     author_email='cmm572@cornell.edu',
     packages=['pyleed'],
     install_requires=['numpy', 'matplotlib', 'torch', 'gpytorch', 'botorch', 'IPython'],
+    extras_require={'tests': ['pytest']},
 )

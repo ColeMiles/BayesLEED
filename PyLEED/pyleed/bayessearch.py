@@ -21,19 +21,26 @@ def append_arrays_to_file(filename, pts, rfactors):
             f.write(row_format_string.format(*pt, rfactor) + "\n")
 
 
-def create_manager(workdir, executable='ref-calc.LaNiO3'):
-    """ Makes a LEEDManager working in the given directory
+def create_manager(workdir, tleed_dir, beaminfo, phaseshift_file, lmax,
+                   executable='ref-calc.LaNiO3'):
+    """ Makes a LEEDManager working in the given directory, assuming default names for files.
+        TODO: Compile the reference calculation program within this manager rather than externally.
+        TODO: Make TLEED path a command line argument?
     """
+    phaseshifts = tleed.parse_phaseshifts(phaseshift_file, lmax)
     leed_executable = os.path.join(workdir, executable)
     rfact_executable = os.path.join(workdir, "rf.x")
     expdatafile = os.path.join(workdir, "WEXPEL")
     templatefile = os.path.join(workdir, "FIN")
     return tleed.LEEDManager(
-       workdir,
-       leed_executable,
-       rfact_executable,
-       expdatafile,
-       templatefile
+        workdir,
+        leed_executable,
+        rfact_executable,
+        expdatafile,
+        phaseshifts,
+        beaminfo,
+        templatefile,
+        tleed_dir
     )
 
 
@@ -129,7 +136,7 @@ def random_sample(q, num_params, device="cuda"):
     return torch.rand(q, num_params, dtype=torch.float64, device=device)
 
 
-def main(leed_executable, problem, ncores, nepochs,
+def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, problem, ncores, nepochs,
          warm=None, seed=None, start_pts_file=None, early_stop=None, random=False):
     workdir, executable = os.path.split(leed_executable)
     tested_filename = os.path.join(workdir, "tested_point.txt")
@@ -137,7 +144,8 @@ def main(leed_executable, problem, ncores, nepochs,
     rfactor_filename = os.path.join(workdir, "rfactorprogress.txt")
 
     num_eval = min(ncores, mp.cpu_count())
-    manager = create_manager(workdir, executable=executable)
+    beaminfo = problems.beaminfos[beamset]
+    manager = create_manager(workdir, tleed_dir, beaminfo, phaseshifts, lmax, executable=executable)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     search_problem = problems.problems[problem]
@@ -242,39 +250,52 @@ if __name__ == "__main__":
     parser.add_argument("leed_executable", 
         help="Path to LEED executable. Directory containing it treated as work directory."
     )
-    parser.add_argument("--problem", type=str, default="LANIO3",
-        help="Name of problem to run (from problems.py). [Options: `LANIO3`, `FESE_20UC`]"
+    parser.add_argument("-p", "--phaseshifts", type=str, required=True,
+        help="Path to phaseshift file to use for calculations."
     )
-    parser.add_argument("--ncores", type=int, default=5,
+    parser.add_argument("--lmax", type=int, default=8,
+        help="Highest angular momentum number present in phaseshift file. [Default = 8]"
+    )
+    parser.add_argument("-t", "--tleed", type=str, default="/home/cole/ProgScratch/BayesLEED/TLEED/",
+        help="Path to the base directory of the TLEED program."
+    )
+    parser.add_argument("--problem", type=str, default="FESE_20UC",
+        help="Name of problem to run (from problems.py)."
+    )
+    parser.add_argument("-b", "--beamset", type=str, default="FESE_TRIM",
+        help="Name of a beam set descriptor (from problems.py)."
+    )
+    parser.add_argument("-n", "--ncores", type=int, default=8,
         help="The number of cores to use == the number of parallel evaluations each iteration."
     )
-    parser.add_argument("--nepochs", type=int, default=25,
+    parser.add_argument("-e", "--nepochs", type=int, default=50,
         help="The number of epochs to run. [Default = 25]"
     )
     parser.add_argument("--warm", type=float,
         help="Warm start with points a given distance from the true solution (in normalized space). (Unimplemented)."
     )
-    parser.add_argument("--seed", type=int,
-        help="Set the seed for the RNGs"
+    parser.add_argument("-s", "--seed", type=int,
+        help="Set the seed for the RNGs."
     )
     parser.add_argument('--start-pts', type=str, default=None,
-        help="Given a file of tested points, continues from there"
+        help="Given a file of tested points, continues from there."
     )
     parser.add_argument('--random', action='store_true',
-        help="If set, performs random search rather than Bayesian Optimization"
+        help="If set, performs random search rather than Bayesian Optimization."
     )
     args = parser.parse_args()
 
     # Check for GPU presence
     if torch.cuda.is_available():
-        logging.info("Found CUDA-capable GPU")
+        logging.info("Found CUDA-capable GPU.")
     else:
-        logging.warning("No CUDA-capable GPU found, continuing on CPU")
+        logging.warning("No CUDA-capable GPU found, continuing on CPU.")
 
     # Set random seeds to get reproducible behavior
     if args.seed is not None:
         np.random.seed(args.seed)
         torch.manual_seed(seed=args.seed)
 
-    main(args.leed_executable, args.problem, args.ncores, args.nepochs, args.warm,
+    main(args.leed_executable, args.tleed, args.phaseshifts, args.lmax, args.beaminfo, args.problem,
+         args.ncores, args.nepochs, args.warm,
          seed=args.seed, start_pts_file=args.start_pts, random=args.random)
