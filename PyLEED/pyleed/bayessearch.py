@@ -9,7 +9,7 @@ import torch
 import gpytorch
 import botorch
 
-from pyleed import problems, tleed
+from . import problems, tleed
 
 
 def append_arrays_to_file(filename, pts, rfactors):

@@ -1,6 +1,8 @@
 """ Contains definitions for example problems for the current data """
 # TODO: If anyone else will ever use this, should probably migrate to real configuration files
-from pyleed.tleed import *
+from .structure import *
+from .searchspace import *
+from .tleed import *
 import numpy as np
 
 FESE_BEAMINFO_TRIMMED = BeamInfo(

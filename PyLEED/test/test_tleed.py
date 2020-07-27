@@ -5,7 +5,8 @@ import pytest
 import numpy as np
 
 from pyleed import problems, tleed
-from pyleed.tleed import SearchKey, AtomicStructure, Site, Layer, Atom
+from pyleed.structure import AtomicStructure, Site, Layer, Atom
+from pyleed.searchspace import SearchKey, SearchSpace, EqualityConstraint, EqualShiftConstraint
 import pyleed.bayessearch as bayessearch
 
 
@@ -94,7 +95,7 @@ def test_write_script():
 def test_to_structures():
     struct = problems.FESE_20UC
 
-    search_space = tleed.SearchSpace(
+    search_space = SearchSpace(
         struct,
         [
             (SearchKey.VIB,   3, (-0.025, 0.025)),
@@ -165,7 +166,7 @@ def test_write_delta_script():
 
     shutil.rmtree(subworkdir)
 
-
+@pytest.mark.slow
 def test_produce_delta_amps():
     manager = _make_test_manager()
     ref_calc_dir = os.path.join(manager.basedir, "ref-calc-results")
@@ -203,7 +204,7 @@ def test_produce_delta_amps():
 def test_to_normalized():
     struct = problems.FESE_20UC
 
-    search_space = tleed.SearchSpace(
+    search_space = SearchSpace(
         struct,
         [
             (SearchKey.VIB,   3, (-0.025, 0.025)),
@@ -231,7 +232,7 @@ def test_to_normalized():
 def test_random_points():
     struct = problems.FESE_20UC
 
-    search_space = tleed.SearchSpace(
+    search_space = SearchSpace(
         struct,
         [
             (SearchKey.VIB,   3, (-0.025, 0.025)),
@@ -269,14 +270,14 @@ def test_constraints():
     struct = problems.FESE_20UC
 
     constraints = [
-        tleed.EqualityConstraint(SearchKey.VIB, 3, SearchKey.VIB, 1),
-        tleed.EqualityConstraint(SearchKey.ATOMX, 6, SearchKey.ATOMX, 2),
-        tleed.EqualityConstraint(SearchKey.ATOMZ, 4, SearchKey.ATOMZ, 5),
-        tleed.EqualShiftConstraint(SearchKey.ATOMZ, 4, SearchKey.ATOMZ, 7),
-        tleed.EqualShiftConstraint(SearchKey.CELLA, -1, SearchKey.CELLC, -1)
+        EqualityConstraint(SearchKey.VIB, 3, SearchKey.VIB, 1),
+        EqualityConstraint(SearchKey.ATOMX, 6, SearchKey.ATOMX, 2),
+        EqualityConstraint(SearchKey.ATOMZ, 4, SearchKey.ATOMZ, 5),
+        EqualShiftConstraint(SearchKey.ATOMZ, 4, SearchKey.ATOMZ, 7),
+        EqualShiftConstraint(SearchKey.CELLA, -1, SearchKey.CELLC, -1)
     ]
 
-    search_space = tleed.SearchSpace(
+    search_space = SearchSpace(
         struct,
         [
             (SearchKey.VIB, 3, (-0.025, 0.025)),
@@ -298,9 +299,9 @@ def test_constraints():
             b_idx = constraint.bound_idx
             s_key = constraint.search_key
             s_idx = constraint.search_idx
-            if isinstance(constraint, tleed.EqualityConstraint):
+            if isinstance(constraint, EqualityConstraint):
                 assert r_struct[b_key, b_idx] == r_struct[s_key, s_idx]
-            if isinstance(constraint, tleed.EqualShiftConstraint):
+            if isinstance(constraint, EqualShiftConstraint):
                 assert _isclose(r_struct[b_key, b_idx] - struct[b_key, b_idx],
                                 r_struct[s_key, s_idx] - struct[s_key, s_idx])
 
