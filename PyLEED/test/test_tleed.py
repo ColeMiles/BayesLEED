@@ -6,7 +6,7 @@ import numpy as np
 
 from pyleed import problems, tleed
 from pyleed.structure import AtomicStructure, Site, Layer, Atom
-from pyleed.searchspace import SearchKey, SearchSpace, EqualityConstraint, EqualShiftConstraint
+from pyleed.searchspace import SearchKey, SearchSpace, EqualityConstraint, EqualShiftConstraint, DeltaSearchSpace
 import pyleed.bayessearch as bayessearch
 
 
@@ -184,7 +184,7 @@ def test_produce_delta_amps():
         np.array([z, 0.0, 0.0]) for z in np.arange(-0.05, 0.06, 0.01)
     ]
     search_dims = [(i+1, disps, [0.0]) for i in range(len(ref_calc.struct.layers[0]))]
-    delta_space = tleed.DeltaSearchSpace(ref_calc, search_dims)
+    delta_space = DeltaSearchSpace(ref_calc, search_dims)
     delta_amps = manager.produce_delta_amps(delta_space)
 
     assert len(delta_amps) == len(search_dims)

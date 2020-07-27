@@ -288,11 +288,11 @@ class SiteDeltaAmps:
         self.beams = np.empty((0, 2))
         self.shifts = np.empty((0, 3))   # NOTE: These are z x y in file, but x y z here
         self.thermal_amps = np.empty(1)
-        self.crystal_energy = 0.0
-        self.substrate_energy = 0+0j
-        self.overlayer_energy = 0+0j
-        self.ref_amplitudes = np.empty((1, 1), np.complex64)
-        self.delta_amplitudes = np.empty((1, 1), np.complex64)
+        self.crystal_energies = np.empty(0)
+        self.substrate_energies = np.empty(0, dtype=np.complex64)
+        self.overlayer_energies = np.empty(0, dtype=np.complex64)
+        self.ref_amplitudes = np.empty((1, 1, 1), np.complex64)
+        self.delta_amplitudes = np.empty((1, 1, 1), np.complex64)
 
 
 def parse_deltas(filename: str) -> SiteDeltaAmps:
@@ -359,33 +359,53 @@ def parse_deltas(filename: str) -> SiteDeltaAmps:
                 n += 1
 
         # Read in the crystal potential energies
+        crystal_energies = []
+        substrate_energies = []
+        overlayer_energies = []
+        all_ref_amplitudes = []
+        all_delta_amplitudes = []
         line = f.readline()
-        delta_amp.crystal_energy = float(line[:13])
-        delta_amp.substrate_energy = float(line[13:26]) * 1j
-        delta_amp.overlayer_energy = float(line[26:39])
-        delta_amp.substrate_energy += float(line[39:52])
+        # Each iteration of this is a single energy
+        nit = 0
+        while line != "":
+            crystal_energy = float(line[:13])
+            substrate_energy = float(line[13:26]) * 1j
+            overlayer_energy = float(line[26:39])
+            substrate_energy += float(line[39:52])
+            crystal_energies.append(crystal_energy)
+            substrate_energies.append(substrate_energy)
+            overlayer_energies.append(overlayer_energy)
 
-        # Read in the original reference calculation amplitudes
-        delta_amp.ref_amplitudes = np.empty(delta_amp.nbeams, np.complex64)
-        n = 0
-        while n < delta_amp.nbeams:
-            line = f.readline()
-            for i in range(len(line) // 26):
-                delta_amp.ref_amplitudes[n] = float(line[26*i:26*i+13])
-                delta_amp.ref_amplitudes[n] += float(line[26*i+13:26*i+26]) * 1j
-                n += 1
+            # Read in the original reference calculation amplitudes
+            ref_amplitudes = np.empty(delta_amp.nbeams, np.complex64)
+            n = 0
+            while n < delta_amp.nbeams:
+                line = f.readline()
+                for i in range(len(line) // 26):
+                    ref_amplitudes[n] = float(line[26*i:26*i+13])
+                    ref_amplitudes[n] += float(line[26*i+13:26*i+26]) * 1j
+                    n += 1
+            all_ref_amplitudes.append(ref_amplitudes)
 
-        # Read in the delta amplitudes for each search delta
-        delta_amp.delta_amplitudes = np.empty((delta_amp.nbeams, delta_amp.nshifts), np.complex64)
-        n = 0
-        beam_idx, delta_idx = 0, 0
-        while n < delta_amp.nbeams * delta_amp.nshifts:
+            # Read in the delta amplitudes for each search delta
+            delta_amplitudes = np.empty((delta_amp.nbeams, delta_amp.nshifts), np.complex64)
+            n = 0
+            while n < delta_amp.nbeams * delta_amp.nshifts:
+                line = f.readline()
+                delta_idx, beam_idx = divmod(n, delta_amp.nbeams)
+                for i in range(len(line) // 26):
+                    delta_amplitudes[beam_idx, delta_idx] = float(line[26*i:26*i+13])
+                    delta_amplitudes[beam_idx, delta_idx] += float(line[26*i+13:26*i+26]) * 1j
+                    n += 1
+            all_delta_amplitudes.append(delta_amplitudes)
+            nit += 1
             line = f.readline()
-            delta_idx, beam_idx = divmod(n, delta_amp.nbeams)
-            for i in range(len(line) // 26):
-                delta_amp.delta_amplitudes[beam_idx, delta_idx] = float(line[26*i:26*i+13])
-                delta_amp.delta_amplitudes[beam_idx, delta_idx] += float(line[26*i+13:26*i+26]) * 1j
-                n += 1
+
+        delta_amp.crystal_energies = np.array(crystal_energies)
+        delta_amp.substrate_energies = np.array(substrate_energies)
+        delta_amp.overlayer_energies = np.array(overlayer_energies)
+        delta_amp.ref_amplitudes = np.stack(all_ref_amplitudes, axis=-1)
+        delta_amp.delta_amplitudes = np.stack(all_delta_amplitudes, axis=-1)
 
     return delta_amp
 
@@ -624,7 +644,7 @@ class LEEDManager:
             subworkdir = os.path.join(workdir, "delta_tmp" + str(i + 1))
             delta_amps.append(parse_deltas(os.path.join(subworkdir, "DELWV")))
             # Remove directory once we are done with it
-            shutil.rmtree(subworkdir)
+            # shutil.rmtree(subworkdir)
 
         return delta_amps
 
