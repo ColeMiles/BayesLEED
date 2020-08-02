@@ -392,8 +392,8 @@ def parse_deltas(filename: str) -> SiteDeltaAmps:
             n = 0
             while n < delta_amp.nbeams * delta_amp.nshifts:
                 line = f.readline()
-                delta_idx, beam_idx = divmod(n, delta_amp.nbeams)
                 for i in range(len(line) // 26):
+                    delta_idx, beam_idx = divmod(n, delta_amp.nbeams)
                     delta_amplitudes[beam_idx, delta_idx] = float(line[26*i:26*i+13])
                     delta_amplitudes[beam_idx, delta_idx] += float(line[26*i+13:26*i+26]) * 1j
                     n += 1
