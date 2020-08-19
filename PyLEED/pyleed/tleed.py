@@ -13,6 +13,7 @@ import numpy as np
 
 from .structure import AtomicStructure
 from .searchspace import DeltaSearchDim, DeltaSearchSpace
+from .curves import IVCurve, IVCurveSet, parse_ivcurves
 
 
 _MNLMBS = [19, 126, 498, 1463, 3549, 7534, 14484, 25821, 43351, 69322, 106470, 158067, 227969, 320664, 441320]
@@ -232,6 +233,9 @@ class RefCalc:
             ofile.writelines(self.template[indafter:])
 
     def run(self):
+        """ Starts a process in the background to run this reference calculation.
+            Non-blocking. Call wait() to block until completion.
+        """
         self._write_script(self.script_filename)
         stdout_filename = os.path.join(os.path.dirname(self.script_filename), "log.txt")
         process = subprocess.Popen(
@@ -253,6 +257,7 @@ class RefCalc:
         self.completed = True
         self.tensorfiles = [os.path.join(self.workdir, "LAY1{}".format(i)) for i in range(len(self.struct.layers[0]))]
 
+    # TODO: Convert to using my own r-factor calculation over the Fortran program
     def rfactor(self):
         if not self.completed:
             raise ValueError("Called .rfactor() on a RefCalc which is not complete!")
@@ -270,9 +275,16 @@ class RefCalc:
         )
         return extract_rfactor(result.stdout)
 
-    def produce_curves(self):
-        # TODO: Returns an IVCurve class, which can normalize and plot itself!
-        raise NotImplementedError()
+    def produce_curves(self) -> IVCurveSet:
+        """ Produce the set of IV curves resulting from the reference calculation.
+            If the calculation has not been run yet, or is still running, wait
+             for completion.
+        """
+        if not self.in_progress and not self.completed:
+            self.run()
+        if self.in_progress:
+            self.wait()
+        return parse_ivcurves(self.result_filename, format='RCOUT')
 
 
 class SiteDeltaAmps:
@@ -291,12 +303,59 @@ class SiteDeltaAmps:
         self.crystal_energies = np.empty(0)
         self.substrate_energies = np.empty(0, dtype=np.complex64)
         self.overlayer_energies = np.empty(0, dtype=np.complex64)
-        self.ref_amplitudes = np.empty((1, 1, 1), np.complex64)
-        self.delta_amplitudes = np.empty((1, 1, 1), np.complex64)
+        self.real_energies_ev = np.empty(0)
+        self.ref_amplitudes = np.empty((0, 0), np.complex64)
+        self.delta_amplitudes = np.empty((0, 0, 0, 0), np.complex64)
+
+
+class MultiDeltaAmps:
+    """ Class holding all of the delta amplitudes for a set of sites, and can compute modified IV curves.
+        TODO: Support different sets of displacements for different sites.
+    """
+    def __init__(self, delta_amps_list: List[SiteDeltaAmps]):
+        self.nsites = len(delta_amps_list)
+        self.nbeams = delta_amps_list[0].nbeams
+        self.ngeo = delta_amps_list[0].nshifts
+        self.nvibs = delta_amps_list[0].nvibs
+        self.energies = delta_amps_list[0].real_energies_ev
+        self.beam_labels = delta_amps_list[0].beams
+
+        # Check all delta amps correspond to the same reference calculation
+        self.ref_amplitudes = delta_amps_list[0].ref_amplitudes
+        for i in range(1, self.nsites):
+            assert np.allclose(self.ref_amplitudes, delta_amps_list[i].ref_amplitudes)
+
+        self.delta_amps_list = delta_amps_list
+
+    def __len__(self):
+        return self.nsites
+
+    def __iter__(self):
+        return iter(self.delta_amps_list)
+
+    def __getitem__(self, idx: int):
+        return self.delta_amps_list[idx]
+
+    def compute_curves(self, disps) -> IVCurveSet:
+        new_amplitudes = self.ref_amplitudes.copy()
+        for isite, disp in enumerate(disps):
+            ivib, igeo = divmod(disp, self.ngeo)
+            new_amplitudes += self.delta_amps_list[isite].delta_amplitudes[:, ivib, igeo]
+
+        curves = [IVCurve(
+            self.energies,
+            np.abs(new_amplitudes[ibeam]),
+            self.beam_labels[ibeam]
+        ) for ibeam in range(self.nbeams)]
+
+        return IVCurveSet(curves)
 
 
 def parse_deltas(filename: str) -> SiteDeltaAmps:
-    """ Parses a DELWV file output by delta.f to create a CoordDeltaAmps object.
+    """ Parses a DELWV file output by delta.f to create a SiteDeltaAmps object.
+        Note all energies read in are in Hartrees! (Conversion: 1 Hartree = 27.21 eV).
+        To get "energy" to compare to experiment:
+            27.21 * (crystal_energy - np.real(substrate_energy))
     """
     delta_amp = SiteDeltaAmps()
     with open(filename, "r") as f:
@@ -362,6 +421,7 @@ def parse_deltas(filename: str) -> SiteDeltaAmps:
         crystal_energies = []
         substrate_energies = []
         overlayer_energies = []
+        real_energies_ev = []
         all_ref_amplitudes = []
         all_delta_amplitudes = []
         line = f.readline()
@@ -375,6 +435,8 @@ def parse_deltas(filename: str) -> SiteDeltaAmps:
             crystal_energies.append(crystal_energy)
             substrate_energies.append(substrate_energy)
             overlayer_energies.append(overlayer_energy)
+            # This is the real energy to compare to experiment
+            real_energies_ev.append(round(27.21 * (crystal_energy - substrate_energy.real)))
 
             # Read in the original reference calculation amplitudes
             ref_amplitudes = np.empty(delta_amp.nbeams, np.complex64)
@@ -388,14 +450,15 @@ def parse_deltas(filename: str) -> SiteDeltaAmps:
             all_ref_amplitudes.append(ref_amplitudes)
 
             # Read in the delta amplitudes for each search delta
-            delta_amplitudes = np.empty((delta_amp.nbeams, delta_amp.nshifts), np.complex64)
+            delta_amplitudes = np.empty((delta_amp.nbeams, delta_amp.nvibs, delta_amp.nshifts), np.complex64)
             n = 0
-            while n < delta_amp.nbeams * delta_amp.nshifts:
+            while n < delta_amp.nbeams * delta_amp.nvibs * delta_amp.nshifts:
                 line = f.readline()
                 for i in range(len(line) // 26):
                     delta_idx, beam_idx = divmod(n, delta_amp.nbeams)
-                    delta_amplitudes[beam_idx, delta_idx] = float(line[26*i:26*i+13])
-                    delta_amplitudes[beam_idx, delta_idx] += float(line[26*i+13:26*i+26]) * 1j
+                    vib_idx, disp_idx = divmod(delta_idx, delta_amp.nshifts)
+                    delta_amplitudes[beam_idx, vib_idx, disp_idx] = float(line[26*i:26*i+13])
+                    delta_amplitudes[beam_idx, vib_idx, disp_idx] += float(line[26*i+13:26*i+26]) * 1j
                     n += 1
             all_delta_amplitudes.append(delta_amplitudes)
             nit += 1
@@ -404,6 +467,7 @@ def parse_deltas(filename: str) -> SiteDeltaAmps:
         delta_amp.crystal_energies = np.array(crystal_energies)
         delta_amp.substrate_energies = np.array(substrate_energies)
         delta_amp.overlayer_energies = np.array(overlayer_energies)
+        delta_amp.real_energies_ev = np.array(real_energies_ev)
         delta_amp.ref_amplitudes = np.stack(all_ref_amplitudes, axis=-1)
         delta_amp.delta_amplitudes = np.stack(all_delta_amplitudes, axis=-1)
 
@@ -529,11 +593,7 @@ class LEEDManager:
                     "-------------------------------------------------------------------\n")
             f.write("{:>4d}\n".format(len(disps)))
             for disp in disps:
-                f.write("{:>7.4f}{:>7.4f}{:>7.4f}\n".format(
-                    disp[2] * ref_calc.struct.cell_params[2],
-                    disp[0] * ref_calc.struct.cell_params[0],
-                    disp[1] * ref_calc.struct.cell_params[1]
-                ))
+                f.write("{:>7.4f}{:>7.4f}{:>7.4f}\n".format(disp[2], disp[0], disp[1]))
             f.write("-------------------------------------------------------------------\n"
                     "--- vibrational displacements of atomic site in question        ---\n"
                     "-------------------------------------------------------------------\n")
@@ -593,7 +653,7 @@ class LEEDManager:
             [compiler] + options + ["-o", executable_path, "main.o", "lib.tleed.o", "lib.delta.o"], cwd=exe_dir
         )
 
-    def produce_delta_amps(self, delta_space: DeltaSearchSpace) -> List[SiteDeltaAmps]:
+    def produce_delta_amps(self, delta_space: DeltaSearchSpace) -> MultiDeltaAmps:
         """ Performs all of the computations needed to produce the delta amplitudes for each point
              in the given search space.
         """
@@ -630,6 +690,8 @@ class LEEDManager:
             processes.append(subprocess.Popen(
                 [delta_exe],
                 stdin=open(input_scriptname, "r"),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
                 cwd=subworkdir,
                 text=True
             ))
@@ -646,7 +708,7 @@ class LEEDManager:
             # Remove directory once we are done with it
             # shutil.rmtree(subworkdir)
 
-        return delta_amps
+        return MultiDeltaAmps(delta_amps)
 
 
 def extract_rfactor(output):

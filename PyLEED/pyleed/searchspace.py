@@ -8,9 +8,11 @@ from typing import List, Tuple, Union, Sequence
 import numpy as np
 
 if typing.TYPE_CHECKING:
-    from .tleed import RefCalc, SiteDeltaAmps
+    from .tleed import RefCalc, SiteDeltaAmps, MultiDeltaAmps
     from .structure import AtomicStructure
+    from .curves import IVCurveSet
 
+from . import curves
 
 class SearchKey(enum.Enum):
     """ Enumeration defining the types of parameters which can be searched over
@@ -176,8 +178,8 @@ class SearchSpace:
 #  however that will increase the computational effort greatly since T-matrices will have be to be re-generated on
 #  every evaluation. Maybe there is some nice compromise?
 # TODO: Make a continuous version for comparison.
-# (atom_idx, disps_list, vibs_list) : Displacements should be in normalized coordinates!
-DeltaSearchDim = Tuple[int, List[Sequence[float]], List[float]]
+# (atom_idx, disps_list, vibs_list) : Displacements should be in un-normalized coordinates!
+DeltaSearchDim = Tuple[int, List[Sequence[float]], Sequence[float]]
 
 
 class DeltaSearchSpace:
@@ -187,9 +189,10 @@ class DeltaSearchSpace:
         """ Constructor
             ref_calc: A (completed) reference calculation which to perturbatively search around
             search_dims: A list of discrete search dimensions. The list of search values are interpreted as *deltas*
-                          to the values of the reference calculation, and are interpreted in normalized coordinates.
+                          to the values of the reference calculation, and are interpreted in un-normalized coordinates
+                          (Angstroms).
             constraints: A list of constraints to constrain search dimensions. [Not implemented currently].
-            TODO: Implement constraints.
+            TODO: Implement constraints, and different displacement sets per site.
         """
         self.ref_calc = ref_calc
         self.struct = ref_calc.struct
@@ -201,16 +204,66 @@ class DeltaSearchSpace:
         self.constraints = constraints
 
 
-class DeltaSearchProblem:
-    """ Contains the information needed to do an optimization over the perturbative space
-        Bayesian optimization is *not* done over this search space, as the evaluations are too cheap. Instead, just
-        do a simulated-annealing type algorithm, similar to the original TensErLEED package.
+def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: MultiDeltaAmps,
+                          exp_curves: IVCurveSet, nindivs: int = 1000, nepochs: int = 100000,
+                          init_gaus: float = 0.05, gaus_decay: float = 0.9999) -> Tuple[Tuple[int, int], float]:
+    """ Optimize the TLEED problem using a simulated-annealing type algorithm, similar to
+         how the original Fortran implements this.
+        Returns (disp, rfactor) of the integer index of the displacement and the corresponding r-factor
     """
-    def __init__(self, search_space: DeltaSearchSpace, delta_amps: List[SiteDeltaAmps]):
-        self.search_space = search_space
-        self.delta_amps = delta_amps
-        # Validate that the delta amplitudes correspond to the search space correctly
-        raise NotImplementedError()
+    shifts, vibs = search_space.search_disps[0], search_space.search_vibs[0]
+    # TODO: Change language globally. Disps are combined geo/shifts + vib.
+    nsites, ngeo, nvibs = len(multi_delta_amps), len(shifts), len(vibs)
+    ndisps = ngeo * nvibs
 
-    def optimize(self):
-        raise NotImplementedError
+    # Join geometric and vibrational displacements into a combined lattice
+    # Each site will be displaced according to some point in this lattice
+    disps = np.empty((ndisps, 4))
+    disps[:, :3] = np.tile(shifts, (nvibs, 1))
+    disps[:, 3] = np.repeat(vibs, ngeo)
+
+    # Randomly initialize each individual to a lattice point
+    indivs = np.random.randint(0, ndisps, (nindivs, nsites))
+    rfactors = np.empty(nindivs)
+
+    # Calculate all of these initial r-factors
+    for iindiv in range(nindivs):
+        new_curves = multi_delta_amps.compute_curves(indivs[iindiv])
+        rfactors[iindiv] = np.min(curves.avg_rfactors(exp_curves, new_curves))
+
+    # Current width of the Gaussian used for sampling moves
+    gaus_width = init_gaus
+
+    # TODO: Parallelize across individuals
+    for epoch in range(nepochs):
+        for iindiv in range(nindivs):
+            # Displacement indexes per site of lattice
+            curr_grid_pt = indivs[iindiv]
+            # Actual displacement vectors
+            curr_disp = np.empty((nsites, 4))
+            for isite in range(nsites):
+                curr_disp[isite] = disps[curr_grid_pt[isite]]
+
+            # Sample a move
+            propose_disp = curr_disp + gaus_width * np.random.randn(nsites, 4)
+
+            # Get the nearest grid points in the lattice
+            propose_grid_pt = np.empty(nsites, dtype=np.int64)
+            for isite in range(nsites):
+                propose_grid_pt[isite] = np.argmin(np.sum(np.square(disps - propose_disp[isite]), axis=-1))
+
+            # Calculate new IV curves
+            propose_curves = multi_delta_amps.compute_curves(propose_grid_pt)
+            # Calculate new rfactor
+            propose_rfactor = np.min(curves.avg_rfactors(exp_curves, propose_curves))
+
+            # Check if better than current rfactor; if so, make the move
+            if propose_rfactor < rfactors[iindiv]:
+                rfactors[iindiv] = propose_rfactor
+                indivs[iindiv] = propose_grid_pt
+
+        # Decay the gaussian width
+        gaus_width *= gaus_decay
+
+    best_indiv = np.argmin(rfactors)
+    return indivs[best_indiv], rfactors[best_indiv]

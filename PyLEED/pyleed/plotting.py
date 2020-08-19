@@ -2,12 +2,16 @@
 """
 from __future__ import annotations
 
-import matplotlib.pyplot as plt
-import numpy as np
+import typing
 from typing import Union
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 from pyleed import tleed
-from .curves import IVCurve, IVCurveSet
+
+if typing.TYPE_CHECKING:
+    from .curves import IVCurve, IVCurveSet
 
 
 # TODO: Can this be refactored to share code with plot_ref_amps?
@@ -24,9 +28,7 @@ def plot_iv(ivcurves: Union[IVCurve, IVCurveSet], show=True):
     elif isinstance(ivcurves, IVCurveSet):
         plot_curves = ivcurves.curves
     else:
-        print("Doh!")
-        print(type(ivcurves))
-        plot_curves = []
+        raise ValueError("Argument `ivcurves` must be of typ IVCurve or IVCurveSet")
 
     for curve in plot_curves:
         curve_label = "({}, {})".format(*curve.label)
@@ -46,7 +48,7 @@ def plot_ref_amps(delta_amps: tleed.SiteDeltaAmps, show=True):
     ax.set_xlabel("Energy")
     ax.set_ylabel("Intensity")
 
-    Es = delta_amps.crystal_energies
+    Es = delta_amps.real_energies_ev
 
     shift = 0.0
 
@@ -72,7 +74,7 @@ def plot_ref_amps(delta_amps: tleed.SiteDeltaAmps, show=True):
 
 
 def plot_delta_amps(delta_amps: tleed.SiteDeltaAmps, delta: int, ax: plt.Axes = None, color='r'):
-    Es = delta_amps.crystal_energies
+    Es = delta_amps.real_energies_ev
 
     shift = 0.0
 

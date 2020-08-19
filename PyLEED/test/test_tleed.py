@@ -15,6 +15,7 @@ def _isclose(a, b, eps=1e-6):
 
 
 def _make_test_manager():
+    # TODO: Make this so that you don't have to call from a specific directory
     return bayessearch.create_manager(
         'test/test_files/FeSetest/',
         '/home/cole/ProgScratch/BayesLEED/TLEED/',
@@ -180,25 +181,19 @@ def test_produce_delta_amps():
         os.path.join(ref_calc_dir, "LAY1{}".format(i+1)) for i in range(len(ref_calc.struct.layers[0]))
     ]
 
-    disps = [
-        np.array([z, 0.0, 0.0]) for z in np.arange(-0.05, 0.06, 0.01)
-    ]
-    search_dims = [(i+1, disps, [0.0]) for i in range(len(ref_calc.struct.layers[0]))]
+    search_dims = problems.FESE_DELTA_SEARCHDIMS
     delta_space = DeltaSearchSpace(ref_calc, search_dims)
     delta_amps = manager.produce_delta_amps(delta_space)
 
     assert len(delta_amps) == len(search_dims)
     for delta_amp in delta_amps:
         assert delta_amp.nbeams == len(manager.beaminfo.beams)
-        assert delta_amp.nshifts == len(disps)
-        assert delta_amp.nvibs == 1
+        assert delta_amp.nshifts == len(problems.DEFAULT_DELTA_DISPS)
+        assert delta_amp.nvibs == len(problems.DEFAULT_DELTA_VIBS)
         assert delta_amp.theta == manager.beaminfo.theta
         assert delta_amp.phi == manager.beaminfo.phi
 
-    # Clean up
-    for i in range(len(delta_space.search_dims)):
-        subworkdir = os.path.join(ref_calc.workdir, "delta_tmp" + str(i + 1))
-        shutil.rmtree(subworkdir)
+    return delta_space, delta_amps
 
 
 def test_to_normalized():

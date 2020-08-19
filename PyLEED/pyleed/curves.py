@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import re
 import numpy as np
-from scipy import interpolate, signal
+from scipy import signal
 from typing import List, Tuple
+import numba
+from numba import njit
+
+from . import plotting
 
 
 class IVCurve:
@@ -15,13 +19,21 @@ class IVCurve:
     def smooth(self, nsmooth=1) -> IVCurve:
         smooth_intensities = self.intensities
         for _ in range(nsmooth):
-            smooth_intensities = smooth(smooth_intensities)
+            smooth_intensities = _smooth(smooth_intensities)
         return IVCurve(self.energies, smooth_intensities, self.label)
+
+    def plot(self):
+        plotting.plot_iv(self)
 
 
 class IVCurveSet:
     def __init__(self, curves=None):
         self.curves: List[IVCurve] = [] if curves is None else curves
+        self.imagV: float = None
+        self.interp_dE: float = None
+        self.interp_energies: List[np.ndarray] = None
+        self.interp_pendries: List[np.ndarray] = None
+        self.precomputed = False
 
     def __len__(self):
         return len(self.curves)
@@ -29,20 +41,49 @@ class IVCurveSet:
     def __iter__(self):
         return iter(self.curves)
 
+    def __getitem__(self, idx: int):
+        return self.curves[idx]
+
     def smooth(self, nsmooth=1) -> IVCurveSet:
         smoothed_curves = [curve.smooth(nsmooth) for curve in self.curves]
         return IVCurveSet(smoothed_curves)
 
+    def plot(self):
+        plotting.plot_iv(self)
 
-def _parse_experiment_tleed(filename: str, extra_header=False) -> IVCurveSet:
+    def precompute_pendry(self, imagV: float = 5.0, dE: float = 0.5):
+        """ Precomputes the pendry Y functions for this set of IV curves.
+            avg_rfactors will check for these and skip recomputation if present.
+
+            imagV: Imaginary part of the crystal potential
+            dE : The energy grid step size to interpolate to.
+
+            Both must match intended values to use in avg_rfactors!
+        """
+        self.imagV = imagV
+
+        self.interp_energies = []
+        self.interp_pendries = []
+        for curve in self.curves:
+            interpE, interpI = _resample_interpolate(curve.energies, curve.intensities, dx=dE)
+            interpIp = _deriv(interpI, dx=dE)
+            interpY = _pendry_Y(interpI, interpIp, imagV)
+            self.interp_energies.append(interpE)
+            self.interp_pendries.append(interpY)
+
+        self.precomputed = False
+
+
+def _parse_experiment_tleed(filename: str, extra_header=True) -> IVCurveSet:
     """ Parse IV curves that are in the experimental data format expected by TLEED
     """
     ivcurves = IVCurveSet()
 
     with open(filename, 'r') as f:
-        # File WEXPEL created has 28 extra lines at the top we don't care about at the moment
-        for _ in range(28):
-            f.readline()
+        if extra_header:
+            # File WEXPEL created has 28 extra lines at the top we don't care about at the moment
+            for _ in range(28):
+                f.readline()
 
         # Title line
         f.readline()
@@ -152,7 +193,7 @@ def _parse_ivcurves_plotfmt(filename: str) -> IVCurveSet:
 
 def parse_ivcurves(filename: str, format='TLEED') -> IVCurveSet:
     if format.upper() == 'TLEED':
-        return _parse_experiment_tleed(filename)
+        return _parse_experiment_tleed(filename, extra_header=False)
     elif format.upper() == 'WEXPEL':
         return _parse_experiment_tleed(filename, extra_header=True)
     elif format.upper() == 'RCOUT':
@@ -163,12 +204,14 @@ def parse_ivcurves(filename: str, format='TLEED') -> IVCurveSet:
         raise ValueError("Unknown format: {}".format(format))
 
 
-def resample_interpolate(x: np.ndarray, y: np.ndarray, dx: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+@njit
+def _resample_interpolate(x: np.ndarray, y: np.ndarray, dx: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
     resample_x = np.arange(x[0], x[-1]+dx, step=dx)
-    return resample_x, interpolate_fortran(x, y, resample_x)
+    return resample_x, _interpolate_fortran(x, y, resample_x)
 
 
-def interpolate_fortran(oldx, oldy, newx):
+@njit(fastmath=True)
+def _interpolate_fortran(oldx, oldy, newx):
     """ Attempts to match the Fortran interpolation [XNTERP in aux/rf.f] exactly.
         However, due to all arithmetic being done in pure Python, this is probably
          very slow.
@@ -204,6 +247,7 @@ def interpolate_fortran(oldx, oldy, newx):
     return newy
 
 
+@njit(fastmath=True)
 def _compute_rfactor(trueE, trueY, compE, compY, shiftE=0.0):
     """ Compute r-factor between two Y(E) curves, with a relative shift of the
             compE axis. Assumes both live on same grid, just different subsets.
@@ -233,7 +277,8 @@ def _compute_rfactor(trueE, trueY, compE, compY, shiftE=0.0):
     return numer_int / denom_int, (i_hi_true - i_lo_true) * deltaE
 
 
-def pendry_Y(arrI, deriv_arrI, imagV):
+@njit(fastmath=True)
+def _pendry_Y(arrI, deriv_arrI, imagV):
     """ Computes Pendry's Y function in the way that rf.f does: account for
          small values of the intensity in a separate branch.
     """
@@ -249,7 +294,7 @@ def pendry_Y(arrI, deriv_arrI, imagV):
     return Y
 
 
-# So close to correct, but not correct at the moment!
+# Accurate to Fortran to less than 1% error
 def rfactor(
         true_curve: IVCurve, comp_curve: IVCurve,
         realV: float = -10.7, imagV: float = 5.0,
@@ -262,21 +307,22 @@ def rfactor(
     trueE, trueI = true_curve.energies, true_curve.intensities
     compE, compI = comp_curve.energies, comp_curve.intensities
 
-    trueE, trueI = resample_interpolate(trueE, trueI, dx=deltaE)
-    compE, compI = resample_interpolate(compE, compI, dx=deltaE)
+    trueE, trueI = _resample_interpolate(trueE, trueI, dx=deltaE)
+    compE, compI = _resample_interpolate(compE, compI, dx=deltaE)
 
     # TODO: Avoid memory allocation here?
-    deriv_true = deriv(trueI, dx=deltaE)
-    deriv_comp = deriv(compI, dx=deltaE)
+    deriv_true = _deriv(trueI, dx=deltaE)
+    deriv_comp = _deriv(compI, dx=deltaE)
 
-    trueY = pendry_Y(trueI, deriv_true, imagV)
-    compY = pendry_Y(compI, deriv_comp, imagV)
+    trueY = _pendry_Y(trueI, deriv_true, imagV)
+    compY = _pendry_Y(compI, deriv_comp, imagV)
 
-    rfactors = [_compute_rfactor(trueE, trueY, compE, compY, shiftE=shiftE) for shiftE in realV_shifts]
+    rfactors = [_compute_rfactor(trueE, trueY, compE, compY, shiftE=shiftE)[0] for shiftE in realV_shifts]
 
     return rfactors
 
 
+# TODO: Make this njit-able. Requires IVCurveSet to become a jitclass
 def avg_rfactors(
         true_curves: IVCurveSet, comp_curves: IVCurveSet,
         imagV: float = 5.0, realV_shifts: np.ndarray = np.arange(-8, 8.5, step=0.5),
@@ -289,44 +335,34 @@ def avg_rfactors(
         raise ValueError("Number of experimental curves does not equal number of theoretical curves!")
 
     # Calculate Pendry's Y function for all experimental curves
-    true_Es = []
-    true_Ys = []
-    for curve in true_curves:
-        trueE, trueI = curve.energies, curve.intensities
-        trueE, trueI = resample_interpolate(trueE, trueI, dx=deltaE)
-        trueIp = deriv(trueI, dx=deltaE)
-        trueY = pendry_Y(trueI, trueIp, imagV)
-        true_Es.append(trueE)
-        true_Ys.append(trueY)
-
-    # Calculate Pendry's Y function for all theoretical curves
-    comp_Es = []
-    comp_Ys = []
-    for curve in comp_curves:
-        compE, compI = curve.energies, curve.intensities
-        compE, compI = resample_interpolate(compE, compI, dx=deltaE)
-        compIp = deriv(compI, dx=deltaE)
-        compY = pendry_Y(compI, compIp, imagV)
-        comp_Es.append(compE)
-        comp_Ys.append(compY)
+    if not true_curves.precomputed:
+        true_curves.precompute_pendry(imagV, dE=deltaE)
+    true_Es = true_curves.interp_energies
+    true_Ys = true_curves.interp_pendries
 
     # Compute r-factors for all beams, for all potential shifts
     rfactor_list = np.empty((len(true_curves), len(realV_shifts)))
     overlap_list = np.empty((len(true_curves), len(realV_shifts)))
 
-    for i, (trueY, compY) in enumerate(zip(true_Ys, comp_Ys)):
+    # Calculate Pendry's Y function for all theoretical curves, and compare to experiment
+    for i, curve in enumerate(comp_curves):
+        compE, compI = curve.energies, curve.intensities
+        compE, compI = _resample_interpolate(compE, compI, dx=deltaE)
+        compIp = _deriv(compI, dx=deltaE)
+        compY = _pendry_Y(compI, compIp, imagV)
         for j, shift in enumerate(realV_shifts):
             rfactor_list[i, j], overlap_list[i, j] = _compute_rfactor(
-                true_Es[i], trueY, comp_Es[i], compY, shiftE=shift
+                true_Es[i], true_Ys[i], compE, compY, shiftE=shift
             )
 
     weighted_rfactors = rfactor_list * overlap_list / np.sum(overlap_list, axis=0, keepdims=True)
-    avg_rfactors = np.sum(weighted_rfactors, axis=0)
+    avg_rfacts = np.sum(weighted_rfactors, axis=0)
 
-    return avg_rfactors
+    return avg_rfacts
 
 
-def deriv(y: np.ndarray, dx: float = 1.0) -> np.ndarray:
+@njit(fastmath=True)
+def _deriv(y: np.ndarray, dx: float = 1.0) -> np.ndarray:
     """ Returns derivatives of y, using the same 6-point stencil on the interior and
          4-point stencil on the boundaries that TLEED uses.
     """
@@ -342,7 +378,7 @@ def deriv(y: np.ndarray, dx: float = 1.0) -> np.ndarray:
     return dydx
 
 
-def smooth(data: np.ndarray) -> np.ndarray:
+def _smooth(data: np.ndarray) -> np.ndarray:
     """ Simple 3-point windowed averaging smoothing, matching TLEED
     """
     filt = np.array([1/4, 1/2, 1/4])
@@ -351,4 +387,3 @@ def smooth(data: np.ndarray) -> np.ndarray:
     smoothed[1:-1] = signal.correlate(data, filt, mode='valid')
     smoothed[-1] = data[-1]
     return smoothed
-
