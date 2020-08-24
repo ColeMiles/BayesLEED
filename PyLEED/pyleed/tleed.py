@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import re
 import logging
-from typing import List, Tuple, Collection
+from typing import List, Tuple, Collection, Optional
 
 import numpy as np
 
@@ -650,15 +650,21 @@ class LEEDManager:
         for p in processes:
             p.wait()
         subprocess.run(
-            [compiler] + options + ["-o", executable_path, "main.o", "lib.tleed.o", "lib.delta.o"], cwd=exe_dir
+            [compiler] + options + ["-o", executable_path, "main.o", "lib.tleed.o", "lib.delta.o"],
+            cwd=exe_dir
         )
 
-    def produce_delta_amps(self, delta_space: DeltaSearchSpace) -> MultiDeltaAmps:
+    def produce_delta_amps(self, delta_space: DeltaSearchSpace,
+                           delta_exe: Optional[str] = None) -> MultiDeltaAmps:
         """ Performs all of the computations needed to produce the delta amplitudes for each point
              in the given search space.
+            If re-compliation of the executable is unnecessary, the path to an existing executable
+             can be passed.
         """
         if not delta_space.ref_calc.produce_tensors:
-            raise ValueError("Tensors are required to be output by the reference calc to compute deltas!")
+            raise ValueError(
+                "Tensors are required to be output by the reference calc to compute deltas!"
+            )
 
         ref_calc = delta_space.ref_calc
         workdir = ref_calc.workdir
@@ -672,9 +678,16 @@ class LEEDManager:
             except FileExistsError:
                 pass
 
-            # In that directory, compile a version of delta.f with the parameters of this search dimension
-            delta_exe = os.path.join(subworkdir, "delta.x")
-            self._compile_delta_program(delta_exe, search_dim)
+            dst_exe = os.path.join(subworkdir, "delta.x")
+            if delta_exe is None:
+                # In that directory, compile a version of delta.f with the parameters
+                # of this search dimension
+                self._compile_delta_program(dst_exe, search_dim)
+            else:
+                if os.path.exists(dst_exe):
+                    os.remove(dst_exe)
+                # Create a symlink in this directory to the executable
+                os.symlink(delta_exe, dst_exe)
 
             # Also in that directory, create the input script to delta.f
             input_scriptname = os.path.join(subworkdir, "delta.in")
@@ -688,7 +701,7 @@ class LEEDManager:
 
             # Run the delta executable
             processes.append(subprocess.Popen(
-                [delta_exe],
+                [dst_exe],
                 stdin=open(input_scriptname, "r"),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -706,7 +719,7 @@ class LEEDManager:
             subworkdir = os.path.join(workdir, "delta_tmp" + str(i + 1))
             delta_amps.append(parse_deltas(os.path.join(subworkdir, "DELWV")))
             # Remove directory once we are done with it
-            # shutil.rmtree(subworkdir)
+            shutil.rmtree(subworkdir)
 
         return MultiDeltaAmps(delta_amps)
 

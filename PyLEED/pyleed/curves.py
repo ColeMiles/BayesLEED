@@ -4,7 +4,6 @@ import re
 import numpy as np
 from scipy import signal
 from typing import List, Tuple
-import numba
 from numba import njit
 
 from . import plotting
@@ -26,6 +25,7 @@ class IVCurve:
         plotting.plot_iv(self)
 
 
+# TODO: Make a jitclass
 class IVCurveSet:
     def __init__(self, curves=None):
         self.curves: List[IVCurve] = [] if curves is None else curves
@@ -71,7 +71,7 @@ class IVCurveSet:
             self.interp_energies.append(interpE)
             self.interp_pendries.append(interpY)
 
-        self.precomputed = False
+        self.precomputed = True
 
 
 def _parse_experiment_tleed(filename: str, extra_header=True) -> IVCurveSet:

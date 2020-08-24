@@ -346,9 +346,9 @@ FESE_20UC_PROBLEM_SECONDXY = SearchSpace(
     ]
 )
 
-DEFAULT_DELTA_DISPS = np.zeros((17, 3))
-DEFAULT_DELTA_DISPS[:, 2] = np.arange(-0.2, 0.22, step=0.025)
-DEFAULT_DELTA_VIBS = np.arange(0.0, 0.5, step=0.1)
+DEFAULT_DELTA_DISPS = np.zeros((21, 3))
+DEFAULT_DELTA_DISPS[:, 2] = np.arange(-0.2, 0.22, step=0.02)
+DEFAULT_DELTA_VIBS = np.arange(0.1, 0.2, step=0.02)
 
 FESE_DELTA_SEARCHDIMS = [
     (0, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
