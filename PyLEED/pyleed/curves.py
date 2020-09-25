@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import re
+
 import numpy as np
 from scipy import signal
 from typing import List, Tuple
 from numba import njit
-
-from . import plotting
 
 
 class IVCurve:
@@ -21,9 +20,6 @@ class IVCurve:
             smooth_intensities = _smooth(smooth_intensities)
         return IVCurve(self.energies, smooth_intensities, self.label)
 
-    def plot(self):
-        plotting.plot_iv(self)
-
 
 # TODO: Make a jitclass
 class IVCurveSet:
@@ -34,6 +30,7 @@ class IVCurveSet:
         self.interp_energies: List[np.ndarray] = None
         self.interp_pendries: List[np.ndarray] = None
         self.precomputed = False
+        self.set_label = None
 
     def __len__(self):
         return len(self.curves)
@@ -47,9 +44,6 @@ class IVCurveSet:
     def smooth(self, nsmooth=1) -> IVCurveSet:
         smoothed_curves = [curve.smooth(nsmooth) for curve in self.curves]
         return IVCurveSet(smoothed_curves)
-
-    def plot(self):
-        plotting.plot_iv(self)
 
     def precompute_pendry(self, imagV: float = 5.0, dE: float = 0.5):
         """ Precomputes the pendry Y functions for this set of IV curves.
@@ -72,6 +66,23 @@ class IVCurveSet:
             self.interp_pendries.append(interpY)
 
         self.precomputed = True
+
+
+def _crop_common_energy(curves: List[IVCurve]) -> List[IVCurve]:
+    """ Crops the list of curves to the largest common energy range.
+    """
+    window_min = max(np.min(curve.energies) for curve in curves)
+    window_max = min(np.max(curve.energies) for curve in curves)
+
+    new_curves = []
+    for curve in curves:
+        lo_idx = np.searchsorted(curve.energies, window_min)
+        hi_idx = np.searchsorted(curve.energies, window_max)
+        new_curves.append(IVCurve(
+            curve.energies[lo_idx:hi_idx], curve.intensities[lo_idx:hi_idx], curve.label
+        ))
+
+    return new_curves
 
 
 def _parse_experiment_tleed(filename: str, extra_header=True) -> IVCurveSet:

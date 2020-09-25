@@ -126,11 +126,7 @@ class SearchSpace:
         """ Returns n_pts number of random structures which are close to a
              known solution. Note dist is distance in normalized space!
         """
-        random_unit_vecs = np.random.random((num_pts, len(self.num_params)))
-        random_unit_vecs /= np.linalg.norm(random_unit_vecs, axis=1, keepdims=True)
-        sol_vec = self.to_normalized([sol])
-        random_pts = sol + dist * random_unit_vecs
-        return self.to_structures(sol + random_unit_vecs)
+        raise NotImplementedError()
 
     def _normal_to_structure(self, norm_vec: np.ndarray) -> Union[AtomicStructure, List[AtomicStructure]]:
         new_struct = deepcopy(self.atomic_structure)
@@ -170,29 +166,32 @@ class SearchSpace:
             key, idx = param
             norm_vec[i] = ((struct[key, idx] - self.atomic_structure[key, idx] - lims[0])
                            / (lims[1] - lims[0]))
-
         return norm_vec
 
 
-# While the search space in the full space is continuous, due to how TensErLEED functions it is necessary (for now)
-#  to limit these to search space of a discrete grid of points. In principle, this can be made continuous as well,
-#  however that will increase the computational effort greatly since T-matrices will have be to be re-generated on
-#  every evaluation. Maybe there is some nice compromise?
+# While the search space in the full space is continuous, due to how TensErLEED functions
+#  it is necessary (for now) to limit these to search space of a discrete grid of points.
+# In principle, this can be made continuous as well, however that will increase the computational
+#  effort greatly since T-matrices will have be to be re-generated on every evaluation.
+# Maybe there is some nice compromise?
 # TODO: Make a continuous version for comparison.
 # (atom_idx, disps_list, vibs_list) : Displacements should be in un-normalized coordinates!
 DeltaSearchDim = Tuple[int, List[Sequence[float]], Sequence[float]]
 
 
 class DeltaSearchSpace:
-    """ This class defines the search space for a TensorLEED perturbative search around a reference calculation.
+    """ This class defines the search space for a TensorLEED perturbative search
+         around a reference calculation.
     """
-    def __init__(self, ref_calc: RefCalc, search_dims: List[DeltaSearchDim], constraints: List[Constraint] = None):
+    def __init__(self, ref_calc: RefCalc, search_dims: List[DeltaSearchDim],
+                 constraints: List[Constraint] = None):
         """ Constructor
             ref_calc: A (completed) reference calculation which to perturbatively search around
-            search_dims: A list of discrete search dimensions. The list of search values are interpreted as *deltas*
-                          to the values of the reference calculation, and are interpreted in un-normalized coordinates
-                          (Angstroms).
-            constraints: A list of constraints to constrain search dimensions. [Not implemented currently].
+            search_dims: A list of discrete search dimensions. The list of search values are
+                          interpreted as *deltas* to the values of the reference calculation,
+                          and are interpreted in un-normalized coordinates (Angstroms).
+            constraints: A list of constraints to constrain search dimensions.
+                          [Not implemented currently].
             TODO: Implement constraints, and different displacement sets per site.
         """
         self.ref_calc = ref_calc
@@ -211,7 +210,8 @@ def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: Mult
                           gaus_decay: float = 0.9999) -> Tuple[Tuple[int, int], float]:
     """ Optimize the TLEED problem using a simulated-annealing type algorithm, similar to
          how the original Fortran implements this.
-        Returns (disp, rfactor) of the integer index of the displacement and the corresponding r-factor
+        Returns (disp, rfactor) of the integer index of the displacement
+         and the corresponding r-factor.
     """
     shifts, vibs = search_space.search_disps[0], search_space.search_vibs[0]
     # TODO: Change language globally. Disps are combined geo/shifts + vib.

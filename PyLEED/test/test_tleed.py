@@ -143,7 +143,8 @@ def test_write_delta_script():
     manager = _make_test_manager()
     ref_calc_dir = os.path.join(manager.basedir, "ref-calc-results")
     ref_calc = tleed.RefCalc(
-        problems.FESE_20UC, manager.leed_exe, manager.rfactor_exe, manager.input_template, ref_calc_dir,
+        problems.FESE_20UC, manager.leed_exe, manager.rfactor_exe,
+        manager.input_template, ref_calc_dir,
         produce_tensors=True
     )
     # Manually assert that the ref calc has been done
@@ -159,26 +160,29 @@ def test_write_delta_script():
     scriptname = os.path.join(subworkdir, "delta.in")
 
     disps = [
-        np.array([z, 0.0, 0.0]) for z in np.arange(-0.05, 0.06, 0.01)
+        np.array([z, 0.0, 0.0]) for z in np.arange(-0.2, 0.2, 0.02)
     ]
-    search_dim = (3, disps, [0.0])
+    vibs = np.arange(0.1, 0.18, 0.02)
+    search_dim = (3, disps, vibs)
     manager._write_delta_script(scriptname, ref_calc, search_dim)
     assert os.path.isfile(scriptname)
 
     shutil.rmtree(subworkdir)
+
 
 @pytest.mark.slow
 def test_produce_delta_amps():
     manager = _make_test_manager()
     ref_calc_dir = os.path.join(manager.basedir, "ref-calc-results")
     ref_calc = tleed.RefCalc(
-        problems.FESE_20UC, manager.leed_exe, manager.rfactor_exe, manager.input_template, ref_calc_dir,
-        produce_tensors=True
+        problems.FESE_20UC, manager.leed_exe, manager.rfactor_exe,
+        manager.input_template, ref_calc_dir, produce_tensors=True
     )
     # Manually assert that the ref calc has been done
     ref_calc.completed = True
     ref_calc.tensorfiles = [
-        os.path.join(ref_calc_dir, "LAY1{}".format(i+1)) for i in range(len(ref_calc.struct.layers[0]))
+        os.path.join(ref_calc_dir, "LAY1{}".format(i+1))
+        for i in range(len(ref_calc.struct.layers[0]))
     ]
 
     search_dims = problems.FESE_DELTA_SEARCHDIMS
