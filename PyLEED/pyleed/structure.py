@@ -63,6 +63,10 @@ class Atom:
 
 # TODO: I don't like how this class is arranged
 class Layer:
+    """ Stores the coordinates of atoms within a single 'layer' in the LEED
+         context. Coordinates should be normalized, to be converted using
+         the unit cell parameters in a surrounding AtomicStructure.
+    """
     def __init__(self, atoms: List[Atom], name: str = ""):
         self.sitenums = np.array([a.sitenum for a in atoms])
         self.xs = np.array([a.x for a in atoms])
@@ -277,3 +281,21 @@ class AtomicStructure:
                     ))
                     atom_num += 1
                 cell_num += layer_num_cells[layer_idx]
+
+    def dist(self, other: AtomicStructure):
+        """ Computes total Euclidean distance to another AtomicStructure. Only defined
+             if both structures have the same number of atoms in each layer.
+        """
+        dist = 0.0
+        a, b, c = self.cell_params
+        oa, ob, oc = other.cell_params
+        for layer, other_layer in zip(self.layers, other.layers):
+            if len(layer) != len(other_layer):
+                raise ValueError(
+                    "Cannot call .dist() between structures with unequal numbers of"
+                    " atoms in matching layers."
+                )
+            dist += np.square(a * self.xs - oa * other.xs)
+            dist += np.square(b * self.ys - ob * other.ys)
+            dist += np.square(c * self.zs - oc * other.zs)
+        return np.sqrt(dist)

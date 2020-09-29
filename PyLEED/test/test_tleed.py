@@ -82,7 +82,7 @@ def test_write_script():
     with open(template, "r") as f:
         answer = f.read()
 
-    refcalc = tleed.RefCalc(struct, exe, rfact, answer, basedir)
+    refcalc = tleed.RefCalc(struct, exe, answer, basedir)
     refcalc._write_script("test/test_files/FeSetest/comp_FIN")
 
     with open("test/test_files/FeSetest/comp_FIN", "r") as f:
@@ -122,7 +122,7 @@ def test_to_structures():
 
 def test_compile_delta_program():
     manager = _make_test_manager()
-    ref_calc_dir = os.path.join(manager.basedir, "ref-calc-results")
+    ref_calc_dir = os.path.join(manager.workdir, "ref-calc-results")
     disps = [
         np.array([z, 0.0, 0.0]) for z in np.arange(-0.05, 0.06, 0.01)
     ]
@@ -141,12 +141,9 @@ def test_compile_delta_program():
 
 def test_write_delta_script():
     manager = _make_test_manager()
-    ref_calc_dir = os.path.join(manager.basedir, "ref-calc-results")
-    ref_calc = tleed.RefCalc(
-        problems.FESE_20UC, manager.leed_exe, manager.rfactor_exe,
-        manager.input_template, ref_calc_dir,
-        produce_tensors=True
-    )
+    ref_calc_dir = os.path.join(manager.workdir, "ref-calc-results")
+    ref_calc = tleed.RefCalc(problems.FESE_20UC, manager.leed_exe, manager.input_template,
+                             ref_calc_dir, produce_tensors=True)
     # Manually assert that the ref calc has been done
     ref_calc.completed = True
     ref_calc.tensorfiles = [
@@ -173,11 +170,9 @@ def test_write_delta_script():
 @pytest.mark.slow
 def test_produce_delta_amps():
     manager = _make_test_manager()
-    ref_calc_dir = os.path.join(manager.basedir, "ref-calc-results")
-    ref_calc = tleed.RefCalc(
-        problems.FESE_20UC, manager.leed_exe, manager.rfactor_exe,
-        manager.input_template, ref_calc_dir, produce_tensors=True
-    )
+    ref_calc_dir = os.path.join(manager.workdir, "ref-calc-results")
+    ref_calc = tleed.RefCalc(problems.FESE_20UC, manager.leed_exe, manager.input_template,
+                             ref_calc_dir, produce_tensors=True)
     # Manually assert that the ref calc has been done
     ref_calc.completed = True
     ref_calc.tensorfiles = [
@@ -324,7 +319,7 @@ def test_refcalc():
     for i, delta in enumerate(solution):
         struct[SearchKey.ATOMZ, i+1] += delta / struct.cell_params[2]
 
-    rfactor = manager.ref_calc(struct)
+    rfactor = manager.ref_calc_blocking(struct)
     shutil.rmtree(newdir)
 
     # I handle the surface-to-bulk distance slightly differently than

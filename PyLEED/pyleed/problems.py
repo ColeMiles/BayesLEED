@@ -14,7 +14,7 @@ FESE_BEAMINFO_TRIMMED = BeamInfo(
         (2, 2),
         (3, 0)
     ],
-    30.0, 550.0  # Emin, Emax
+    30.0, 550.0, 2.0 # Emin, Emax, dE
 )
 
 FESE_20UC = AtomicStructure(

@@ -7,28 +7,80 @@ import shutil
 import subprocess
 import re
 import logging
-from typing import List, Tuple, Collection, Optional
+import enum
+from typing import List, Tuple, Collection, Optional, Union
 
 import numpy as np
 
 from .structure import AtomicStructure
 from .searchspace import DeltaSearchDim, DeltaSearchSpace
-from .curves import IVCurve, IVCurveSet, parse_ivcurves
+from .curves import IVCurve, IVCurveSet, parse_ivcurves, avg_rfactors
 
 
-_MNLMBS = [19, 126, 498, 1463, 3549, 7534, 14484, 25821, 43351, 69322, 106470, 158067, 227969, 320664, 441320]
+_MNLMBS = [19, 126, 498, 1463, 3549, 7534, 14484, 25821, 43351,
+           69322, 106470, 158067, 227969, 320664, 441320]
 
 
 class BeamInfo:
-    """ A simple struct-like class for holding information about a set of beams """
-    def __init__(self, theta: float, phi: float, beams: List[Tuple[int, int]], energy_min: float, energy_max: float):
+    """ A simple struct-like class for holding information about a set of beams
+         measured in experiment.
+    """
+    def __init__(self, theta: float, phi: float, beams: List[Tuple[int, int]],
+                 energy_min: float, energy_max: float, energy_step: float):
         self.theta = theta
         self.phi = phi
         self.beams = beams
         self.energy_min = energy_min
         self.energy_max = energy_max
+        self.energy_step = energy_step
         if not self.energy_min < self.energy_max:
             raise ValueError("Cannot have energy_min >= energy_max")
+
+    def __iter__(self):
+        return iter(self.beams)
+
+
+class BeamList:
+    """ A class representing the beamlist generated as a pre-processing step in
+         the LEED dynamical structure calculations.
+        Note a distinction: BeamInfo is used for the set of beams measured by experiment
+         that you want to compare simulated results against. BeamList is the list of all
+         beams that TensErLEED has determined it needs to track to perform this
+         calculation.
+    """
+    def __init__(self, beams, energies):
+        self.beams: List[Tuple[float, float]] = beams
+        self.energies: List[float] = energies
+        assert len(self.beams) == len(self.energies)
+
+    def __len__(self):
+        return len(self.beams)
+
+    def __iter__(self):
+        return zip(iter(self.beams), iter(self.energies))
+
+    def to_script(self) -> str:
+        """ Write out beamlist in format expected by TensErLEED
+        """
+        script = str(len(self.beams)) + "\n"
+        for i, (beam, energy) in enumerate(zip(self.beams, self.energies)):
+            script += "{:>10.5f}{:>10.5f}  1  1          E ={:>11.4f}  NR.{:>3d}\n".format(
+                beam[0], beam[1], energy, i+1
+            )
+        return script
+
+
+def parse_beamlist(filename: str) -> BeamList:
+    beams, energies = [], []
+    with open(filename, "r") as f:
+        # Number of beams, don't need because we're not Fortran
+        f.readline()
+        for line in f:
+            line_s = line.split()
+            beams.append((float(line_s[0]), float(line_s[1])))
+            energies.append(float(line_s[6]))
+
+    return BeamList(beams, energies)
 
 
 class Phaseshifts:
@@ -36,14 +88,16 @@ class Phaseshifts:
     def __init__(self, filename: str, energies: np.ndarray, phases: np.ndarray):
 
         self.filename = os.path.abspath(filename)
-        self.energies = energies        # Energies at which each phaseshift is calculated (Hartrees)
-        self.phases = phases            # [NENERGIES, NELEM, NANG_MOM] array of phaseshifts (Radians)
+        self.energies = energies  # Energies at which each phaseshift is calculated (Hartrees)
+        self.phases = phases      # [NENERGIES, NELEM, NANG_MOM] array of phaseshifts (Radians)
 
         # Do some basic validation
         if len(self.energies) != len(self.phases):
             raise ValueError("Number of energies not commensurate with number of phaseshifts")
         if len(self.phases.shape) != 3:
-            raise ValueError("Phases should be a 3-dimensional array of shape [NENERGIES, NELEM, NANG_MOM]")
+            raise ValueError(
+                "Phases should be a 3-dimensional array of shape [NENERGIES, NELEM, NANG_MOM]"
+            )
 
         self.num_energies = self.phases.shape[0]  # Number of energies tabulated
         self.num_elem = self.phases.shape[1]      # Number of elements
@@ -60,13 +114,15 @@ def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
          must be specified due to the ambiguous format of phaseshift files.
     """
     energies = []
-    # Will become a triply-nested list of dimensions [NENERGIES, NELEM, NANG_MOM], converted to a numpy array at the end
+    # Will become a triply-nested list of dimensions [NENERGIES, NELEM, NANG_MOM],
+    #  converted to a numpy array at the end
     phases = []
 
-    # All of this parsing is extra weird since Fortran77-formatted files will only place a maximum # of characters
-    #   on each line, so information that really belongs together is strewn across multiple lines, which has to be
-    #   checked for. Specifically here, only 10 phaseshift will be placed on a line before wrapping, and the Fortran
-    #   code does an odd thing where it adds an extraneous line only if the number of phaseshifts <= 10
+    # All of this parsing is extra weird since Fortran77-formatted files will only place a
+    #  maximum # of characters on each line, so information that really belongs together is
+    #  strewn across multiple lines, which has to be checked for. Specifically here, only 10
+    #  phaseshifts will be placed on a line before wrapping, and the Fortran code does an odd thing
+    #  where it adds an extraneous line only if the number of phaseshifts <= 10
     with open(filename, "r") as f:
         line = f.readline()
         line_num = 1
@@ -78,13 +134,15 @@ def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
         line_num += 1
 
         num_elem = 0
-        while len(line) != 8:   # Once len(line) == 8, we've hit a new energy rather than more phaseshifts
+        # Once len(line) == 8, we've hit a new energy rather than more phaseshifts
+        while len(line) != 8:
             if len(line) != min(70, 7 * l_max) + 1:
                 raise ValueError("Provided l_max does not agree with phaseshift file: Line {}".format(line_num))
 
             elem_phases = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
 
-            f.readline()      # This line is extraneous if l_max <= 10, but will contain more phaseshifts otherwise
+            # This line is extraneous if l_max <= 9, but will contain more phaseshifts otherwise
+            f.readline()
             if l_max > 10:
                 for i in range(l_max-10):
                     elem_phases.append(float(line[7*i:7*(i+1)]))
@@ -94,7 +152,6 @@ def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
             line = f.readline()
 
         # Once we know the number of elements, we can loop through the rest of the file simply
-        n_energy = 1
         while line != "":
             energies.append(float(line))
             elem_phases = [[] for _ in range(num_elem)]
@@ -112,88 +169,147 @@ def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
     return Phaseshifts(filename, np.array(energies), np.array(phases))
 
 
+
+class CalcState(enum.Enum):
+    """ Enumeration defining the current state of a calculation
+    """
+    INIT       = enum.auto()  # Defined, but has not been run yet
+    RUNNING    = enum.auto()  # Currently running
+    COMPLETED  = enum.auto()  # Successfully completed
+    TERMINATED = enum.auto()  # Terminated by some signal
+
+
 class RefCalc:
     """ Class representing a single reference calculation, responsible for orchestrating the
         necessary scripts to run the calculation, as well as keeping track of Tensors needed
         for perturbative calculations
     """
-    def __init__(self, struct: AtomicStructure, leed_exe: str, rf_exe: str, template: str, workdir: str, produce_tensors=False):
+    def __init__(self, struct: AtomicStructure, phaseshifts: Phaseshifts,
+                 beaminfo: BeamInfo, beamlist: BeamList, leed_exe: str,
+                 workdir: str, produce_tensors=False, epsilon=1e-3, layer_iter=8,
+                 decay_thresh=1e-4, name="Reference Calculation"):
         self.struct = struct
+        self.phaseshifts = phaseshifts
+        self.beaminfo = beaminfo
+        self.beamlist = beamlist
         self.leed_exe = os.path.abspath(leed_exe)
-        self.rf_exe = os.path.abspath(rf_exe)
-        self.template = template.splitlines(keepends=True)
         self.workdir = os.path.abspath(workdir)
         self.produce_tensors = produce_tensors
+        self.epsilon = epsilon            # EPS in input file
+        self.layer_iter = layer_iter      # LITER in input file
+        self.decay_thresh = decay_thresh  # TST in input file
+        self.name = name
         self.tensorfiles = []
+        if produce_tensors:
+            self.tensorfiles = [
+                os.path.join(self.workdir, "LAY1{}".format(i))
+                for i in range(len(self.struct.layers[0]))
+            ]
 
-        # TODO: Maybe an Enum for a state rather than this?
-        self.completed = False
-        self.in_progress = False
+        # Check that beams in BeamInfo are contained in BeamList, and record their indices
+        self.beam_idxs = []
+        for beam in self.beaminfo:
+            try:
+                self.beam_idxs.append(self.beamlist.beams.index(beam))
+            except ValueError:
+                # Re-raise the error, just with a bit more information
+                raise ValueError(
+                    "Beam {} present in BeamInfo not contained in given BeamList.".format(beam)
+                )
+
+        self.state = CalcState.INIT
 
         self.script_filename = os.path.join(self.workdir, "FIN")
         self.result_filename = os.path.join(self.workdir, "fd.out")
         self._process = None
 
-        if produce_tensors:
-            self.tensorfiles = [
-                os.path.join(workdir, "LAY1{}".format(i+1)) for i in range(len(struct.layers[0]))
-            ]
-
     def _write_script(self, filename):
         with open(filename, "w") as ofile:
             # File title and energy range
-            ofile.writelines(self.template[:2])
+            ofile.write(self.name + "\n")
+            ofile.write("{:>7.2f}{:>7.2f}{:>7.2f}\n".format(
+                self.beaminfo.energy_min, self.beaminfo.energy_max, self.beaminfo.energy_step
+            ))
 
+            # Bulk vectors
             ofile.write("{:>7.4f} 0.0000          ARA1 *\n".format(self.struct.cell_params[0]))
             ofile.write(" 0.0000{:>7.4f}          ARA2 *\n".format(self.struct.cell_params[1]))
 
             # (Unused) registry shift lines
-            ofile.writelines(self.template[4:8])
+            ofile.write(
+                """ 0.0    0.0             SS1
+                0.0    0.0             SS2
+                0.0    0.0             SS3
+                0.0    0.0             SS4
+                """
+            )
 
+            # Surface lattice vectors
             ofile.write("{:>7.4f} 0.0000          ARB1 *\n".format(self.struct.cell_params[0]))
             ofile.write(" 0.0000{:>7.4f}          ARB2 *\n".format(self.struct.cell_params[1]))
 
-            # Find line before where new coordinates need to be inserted, as well as the
-            #  line which marks the following section
-            indbefore, indafter = -1, -1
-            for i, line in enumerate(self.template):
-                if line.find("define chem. and vib. properties") != -1:
-                    indbefore = i - 1
-                elif line.find("Tensor output is") != -1:
-                    indafter = i+1
-            # Check that both lines were found
-            if indbefore == -1 or indafter == -1:
-                raise ValueError("LEED input file does not contain section marker lines")
-            ofile.writelines(self.template[10:indbefore])
+            # (Unused) registry shift lines
+            ofile.write(
+                """ 0.0    0.0             SO1
+                0.0    0.0             SO2
+                0.0    0.0             SO3
+                """
+            )
+            # Unused FR parameter, and ASE = distance to vacuum from top layer
+            # TODO: Should ASE be smartly set based on the structure?
+            ofile.write(" 0.5    1.2237          FR ASE")
+
+            # Write out beamlist
+            ofile.write(self.beamlist.to_script())
+
+            # Various simulation parameters
+            ofile.write("{:>7.4f}".format(self.decay_thresh) + 24 * " " + "TST\n")
+            for idx in self.beam_idxs:
+                ofile.write("{:>3d}".format(idx))
+            ofile.write(24 * " " + "NPU(K)\n")
+            ofile.write("{:>6.1f}{:>6.1f}".format(self.beaminfo.theta, self.beaminfo.phi))
+            ofile.write(24 * " " + "THETA PHI\n")
+            ofile.write("{:>6.3f}".format(self.epsilon) + 24 * " " + "EPS\n")
+            ofile.write("{:>3d}".format(self.layer_iter) + 24 * " " + "LITER\n")
+            ofile.write("{:>3d}".format(self.phaseshifts.lmax) + 24 * " " + "LMAX\n")
+            ofile.write("{:>3d}".format(self.phaseshifts.num_elem) + 24 * " " + "NEL\n")
+
+            # Phaseshift table
+            ofile.write(self.phaseshifts.to_script())
+
+            # Specifying output beams
+            ofile.write("   1               IFORM - ASCII output of tensor components\n")
+            for beam in self.beaminfo:
+                ofile.write("{:>10.5f}{:>10.5f}\n".format(beam[0], beam[1]))
 
             # Site description section
-            output = (
+            ofile.write(
                 "-------------------------------------------------------------------\n"
                 "--- define chem. and vib. properties for different atomic sites ---\n"
                 "-------------------------------------------------------------------\n"
             )
-            output += "{:>3d}".format(len(self.struct.sites))
-            output += 23 * " " + "NSITE: number of different site types\n"
+            ofile.write("{:>3d}".format(len(self.struct.sites)))
+            ofile.write(23 * " " + "NSITE: number of different site types\n")
             for i, site in enumerate(self.struct.sites):
-                output += "-   site type {}  {}---\n".format(i + 1, site.name)
-                output += site.to_script()
+                ofile.write("-   site type {}  {}---\n".format(i + 1, site.name))
+                ofile.write(site.to_script())
 
             # Layer description section
-            output += (
+            ofile.write(
                 "-------------------------------------------------------------------\n"
                 "--- define different layer types                            *   ---\n"
                 "-------------------------------------------------------------------\n"
             )
-            output += "{:>3d}".format(len(self.struct.layers))
-            output += 23 * " " + "NLTYPE: number of different layer types\n"
+            ofile.write("{:>3d}".format(len(self.struct.layers)))
+            ofile.write(23 * " " + "NLTYPE: number of different layer types\n")
             for i, layer in enumerate(self.struct.layers):
-                output += "-   layer type {}  {}---\n".format(i + 1, layer.name)
-                output += "{:>3d}".format(i + 1)
-                output += 23 * " " + "LAY = {}\n".format(i + 1)
-                output += layer.to_script(self.struct.cell_params)
+                ofile.write("-   layer type {}  {}---\n".format(i + 1, layer.name))
+                ofile.write("{:>3d}".format(i + 1))
+                ofile.write(23 * " " + "LAY = {}\n".format(i + 1))
+                ofile.write(layer.to_script(self.struct.cell_params))
 
             # Bulk stacking section
-            output += (
+            ofile.write(
                 "-------------------------------------------------------------------\n"
                 "--- define bulk stacking sequence                           *   ---\n"
                 "-------------------------------------------------------------------\n"
@@ -203,16 +319,16 @@ class RefCalc:
             num_cells = np.ceil(bulk_maxz)
             bulk_interlayer_dist = (num_cells - bulk_maxz) * self.struct.cell_params[2]
 
-            output += "  0" + 23 * " " + "TSLAB = 0: compute bulk using subras\n"
-            output += "{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist)
-            output += "     ASA interlayer vector between different bulk units *\n"
-            output += "  2" + 23 * " " + "top layer of bulk unit: type 2\n"
-            output += "  2" + 23 * " " + "bottom layer of bulk unit: type 2\n"
-            output += "{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist)
-            output += "     ASBULK between the two bulk unit layers (may differ from ASA)\n"
+            ofile.write("  0" + 23 * " " + "TSLAB = 0: compute bulk using subras\n")
+            ofile.write("{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist))
+            ofile.write("     ASA interlayer vector between different bulk units *\n")
+            ofile.write("  2" + 23 * " " + "top layer of bulk unit: type 2\n")
+            ofile.write("  2" + 23 * " " + "bottom layer of bulk unit: type 2\n")
+            ofile.write("{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist))
+            ofile.write("     ASBULK between the two bulk unit layers (may differ from ASA)\n")
 
             # Surface layer stacking sequence
-            output += (
+            ofile.write(
                 "-------------------------------------------------------------------\n"
                 "--- define layer stacking sequence and Tensor LEED output   *   ---\n"
                 "-------------------------------------------------------------------\n"
@@ -221,16 +337,22 @@ class RefCalc:
             layer_maxz = max(self.struct.layers[0].zs)
             num_cells = np.ceil(layer_maxz)
             surf_interlayer_dist = (num_cells - layer_maxz) * self.struct.cell_params[2]
-            output += "  1\n"
-            output += "  1{:>7.4f} 0.0000 0.0000".format(surf_interlayer_dist)
-            output += "  surface layer is of type 1: interlayer vector connecting it to bulk\n"
+            ofile.write("  1\n")
+            ofile.write("  1{:>7.4f} 0.0000 0.0000".format(surf_interlayer_dist))
+            ofile.write("  surface layer is of type 1: interlayer vector connecting it to bulk\n")
             if self.produce_tensors:
-                output += "  1" + 23 * " " + "Tensor output is required for this layer\n"
+                ofile.write("  1" + 23 * " " + "Tensor output is required for this layer\n")
             else:
-                output += "  0" + 23 * " " + "Tensor output is NOT required for this layer\n"
+                ofile.write("  0" + 23 * " " + "Tensor output is NOT required for this layer\n")
 
-            ofile.write(output)
-            ofile.writelines(self.template[indafter:])
+            for i in range(len(self.struct.layers[0])):
+                ofile.write("LAY1" + str(i) + 22 * " " + "Tensorfile, sublayer" + str(i) + "\n")
+
+            ofile.write(
+                "-------------------------------------------------------------------\n"
+                "--- end geometrical input                                       ---\n"
+                "-------------------------------------------------------------------\n"
+            )
 
     def run(self):
         """ Starts a process in the background to run this reference calculation.
@@ -246,45 +368,223 @@ class RefCalc:
             text=True
         )
         self._process = process
-        self.in_progress = True
+        self.state = CalcState.RUNNING
 
-    def wait(self):
-        """ Waits for completion. Call this even if you don't rely on this function for blocking.
+    def wait(self) -> CalcState:
+        """ Waits for completion.
         """
-        self._process.wait()
-        # TODO: Can I make these update without a call to .wait()?
-        self.in_progress = False
-        self.completed = True
-        self.tensorfiles = [os.path.join(self.workdir, "LAY1{}".format(i)) for i in range(len(self.struct.layers[0]))]
+        completion = self._process.wait()
+        if completion < 0:
+            self.state = CalcState.TERMINATED
+            logging.error(
+                "Reference calculation {} was terminated!".format(self.script_filename)
+            )
+            raise RuntimeError(
+                "Reference calculation {} was terminated!".format(self.script_filename)
+            )
+        self.state = CalcState.COMPLETED
+        return self.state
 
-    # TODO: Convert to using my own r-factor calculation over the Fortran program
-    def rfactor(self):
-        if not self.completed:
-            raise ValueError("Called .rfactor() on a RefCalc which is not complete!")
-        if not os.path.exists(self.rf_exe):
-            raise FileNotFoundError("R-factor executable rf.x not found!")
-        if not os.path.exists(self.result_filename):
-            raise FileNotFoundError("Results from reference calculation, fd.out, not found!")
-
-        result = subprocess.run(
-            [self.rf_exe],
-            cwd=os.path.dirname(self.rf_exe),
-            stdin=open(self.result_filename, "r"),
-            capture_output=True,
-            text=True
-        )
-        return extract_rfactor(result.stdout)
+    def poll(self) -> CalcState:
+        completion = self._process.poll()
+        if completion is not None:
+            if completion < 0:
+                self.state = CalcState.TERMINATED
+                logging.error(
+                    "Reference calculation {} was terminated!".format(self.script_filename)
+                )
+                raise RuntimeError(
+                    "Reference calculation {} was terminated!".format(self.script_filename)
+                )
+            self.state = CalcState.COMPLETED
+        return self.state
 
     def produce_curves(self) -> IVCurveSet:
         """ Produce the set of IV curves resulting from the reference calculation.
             If the calculation has not been run yet, or is still running, wait
              for completion.
         """
-        if not self.in_progress and not self.completed:
+        if self.state is CalcState.INIT:
             self.run()
-        if self.in_progress:
+        if self.state is CalcState.RUNNING:
             self.wait()
         return parse_ivcurves(self.result_filename, format='RCOUT')
+
+
+class DeltaCalc:
+    """ Class representing a single perturbative calculation away from a reference calculation.
+        Note that structure is not very `natural` from the perspective of the TensErLEED program,
+         which preferes to return results for a whole grid of perturbations at the same time.
+        However, this class exposes an identical API to RefCalc, and so makes it easier to set
+         up an optimization loop which uses both calculations.
+    """
+    def __init__(self, struct: AtomicStructure, ref_calc: RefCalc,
+                 delta_exe: str, search_vibs: Collection[float] = None):
+        """ Initialize a calculation of the given AtomicStructure, viewed as a perturbation from
+             the given RefCalc.
+            Note: The cell_params must be identical between struct and ref_calc.struct!
+        """
+        if not np.all(struct.cell_params == ref_calc.struct.cell_params):
+            raise ValueError(
+                "TLEED calculations must be made on a structure with identical"
+                " unit cell parameters as the reference structure perturbed from"
+            )
+        if not ref_calc.produce_tensors:
+            raise ValueError(
+                "Tensors are required to be output by the reference calc to compute deltas!"
+            )
+
+        self.struct = struct
+        self.ref_calc = ref_calc
+        self.delta_exe = delta_exe
+        self.state = CalcState.INIT
+        self._script_paths: List[str] = []
+        self._processes: List[subprocess.Popen] = []
+
+        # Determine the delta displacements which brings the ref_calc to the target struct
+        self._disps, self._vibs = [], []
+        a, b, c = self.struct.cell_params
+        for ref_atom, delta_atom in zip(ref_calc.struct.layers[0], struct.layers[0]):
+            self._disps.append(np.ndarray([
+                a * (delta_atom.x - ref_atom.x),
+                b * (delta_atom.y - ref_atom.y),
+                c * (delta_atom.z - ref_atom.z)
+            ]))
+            self._vibs.append(struct.sites[delta_atom.site])
+
+    def _write_scripts(self) -> List[str]:
+        """ Writes one script for each atom which we need to perturb.
+            Returns a list of the script paths.
+        """
+        script_paths = []
+        for iatom, atom in enumerate(self.struct.layers[0]):
+            subworkdir = os.path.join(self.ref_calc.workdir, "delta_tmp" + str(iatom + 1))
+            try:
+                os.mkdir(subworkdir)
+            except FileExistsError:
+                pass
+            script_filename = os.path.join(subworkdir, "delta{}.in".format(iatom + 1))
+
+            # Determine which element the site of this atom is.
+            # Unsure how this extends to handle concentration variation.
+            site_num = atom.sitenum
+            elem_num = np.argmax(self.ref_calc.struct.sites[site_num].concs) + 1
+            disp = self._disps[iatom]
+            vib = self._vibs[iatom]
+
+            ref_calc = self.ref_calc
+            phaseshifts = self.ref_calc.phaseshifts
+            beaminfo = self.ref_calc.beaminfo
+            with open(script_filename, "w") as f:
+                f.write("Delta Script\n")
+                f.write("{:>7.2f}{:>7.2f}\n".format(beaminfo.energy_min, beaminfo.energy_max))
+                f.write("{:>7.4f}{:>7.4f}\n".format(ref_calc.struct.cell_params[0], 0.0))
+                f.write("{:>7.4f}{:>7.4f}\n".format(0.0, ref_calc.struct.cell_params[1]))
+                f.write("{:>7.4f}{:>7.4f}\n".format(ref_calc.struct.cell_params[0], 0.0))
+                f.write("{:>7.4f}{:>7.4f}\n".format(0.0, ref_calc.struct.cell_params[1]))
+                f.write("{:>7.2f}{:>7.2f}\n".format(beaminfo.theta, beaminfo.phi))
+                f.write("   1\n")
+                for beamx, beamy in beaminfo.beams:
+                    f.write("{:>10.5f}{:>10.5f}\n".format(beamx, beamy))
+                f.write("{:>3d}\n".format(ref_calc.struct.num_elems))
+                f.write(phaseshifts.to_script())
+                f.write("   1\n")
+                f.write("-------------------------------------------------------------------\n"
+                        "--- chemical nature of displaced atom                           ---\n"
+                        "-------------------------------------------------------------------\n")
+                f.write("{:>4d}\n".format(elem_num))
+                f.write("-------------------------------------------------------------------\n"
+                        "--- unused relic of the old code                                ---\n"
+                        "-------------------------------------------------------------------\n")
+                f.write(" 0.0000 0.0000 0.0000\n")
+                f.write("-------------------------------------------------------------------\n"
+                        "--- displaced positions of atomic site in question              ---\n"
+                        "-------------------------------------------------------------------\n")
+                # Number of displacements -- just one
+                f.write("   1\n")
+                f.write("{:>7.4f}{:>7.4f}{:>7.4f}\n".format(disp[2], disp[0], disp[1]))
+                f.write("-------------------------------------------------------------------\n"
+                        "--- vibrational displacements of atomic site in question        ---\n"
+                        "-------------------------------------------------------------------\n")
+                # Number of vibrational parameters -- just one
+                f.write("   1\n")
+                f.write("{:>7.4f}\n".format(vib))
+
+            script_paths.append(script_filename)
+
+        self._script_paths = script_paths
+        return script_paths
+
+    def run(self):
+        self.state = CalcState.RUNNING
+        script_paths = self._write_scripts()
+        for iatom, script_path in enumerate(script_paths):
+            scriptdir = os.path.dirname(script_path)
+
+            # Create a symlink to the correct tensor from the ref calc
+            amp_path = os.path.join(scriptdir, "AMP")
+            os.symlink(self.ref_calc.tensorfiles[iatom], amp_path)
+
+            self._processes.append(subprocess.Popen(
+                [self.delta_exe],
+                stdin=open(script_path, "r"),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                cwd=scriptdir,
+                text=True
+            ))
+
+    def wait(self) -> CalcState:
+        any_terminated = False
+        for p in self._processes:
+            completion = p.wait()
+            any_terminated |= completion < 1
+        if any_terminated:
+            self.state = CalcState.TERMINATED
+            logging.error(
+                "Delta calculation {} was terminated!".format(self.delta_exe)
+            )
+            raise RuntimeError(
+                "Reference calculation {} was terminated!".format(self.delta_exe)
+            )
+        else:
+            self.state = CalcState.COMPLETED
+        return self.state
+
+    def poll(self) -> CalcState:
+        """ Polls to check if ALL delta sub-calculations are done.
+            Returns CalcState.RUNNNING if any calculations still ongoing.
+        """
+        for p in self._processes:
+            completion = p.poll()
+            if completion is not None:
+                if completion < 0:
+                    self.state = CalcState.TERMINATED
+                    logging.error(
+                        "Delta calculation {} was terminated!".format(self.delta_exe)
+                    )
+                    raise RuntimeError(
+                        "Reference calculation {} was terminated!".format(self.delta_exe)
+                    )
+            else:
+                return CalcState.RUNNING
+        self.state = CalcState.COMPLETED
+        return self.state
+
+    def produce_curves(self) -> IVCurveSet:
+        if self.state is CalcState.INIT:
+            self.run()
+        if self.state is CalcState.RUNNING:
+            self.wait()
+        # Load all of the MultiDeltaAmps
+        delta_amps = []
+        for iatom, script_path in enumerate(self._script_paths):
+            script_dir = os.path.dirname(script_path)
+            delta_amps.append(parse_deltas(os.path.join(script_dir, "DELWV")))
+
+        multi_amps = MultiDeltaAmps(delta_amps)
+
+        return multi_amps.compute_curves([0] * len(multi_amps))
 
 
 class SiteDeltaAmps:
@@ -309,7 +609,8 @@ class SiteDeltaAmps:
 
 
 class MultiDeltaAmps:
-    """ Class holding all of the delta amplitudes for a set of sites, and can compute modified IV curves.
+    """ Class holding all of the delta amplitudes for a set of sites, and
+         can compute modified IV curves.
         TODO: Support different sets of displacements for different sites.
     """
     def __init__(self, delta_amps_list: List[SiteDeltaAmps]):
@@ -474,75 +775,76 @@ def parse_deltas(filename: str) -> SiteDeltaAmps:
     return delta_amp
 
 
+Calc = Union[RefCalc, DeltaCalc]
+
+
 class LEEDManager:
-    def __init__(self, basedir: str, leed_executable: str, rfactor_executable: str,
-                 exp_datafile: str, phaseshifts: Phaseshifts, beaminfo: BeamInfo, templatefile: str,
-                 tleed_dir: str):
-        """ Create a LEEDManager to keep track of TensErLEED components. Only one of these should exist per problem.
+    def __init__(self, workdir: str, tleed_dir: str, leed_executable: str, exp_curves: IVCurveSet,
+                 phaseshifts: Phaseshifts, beaminfo: BeamInfo, beamlist: BeamList):
+        """ Create a LEEDManager to keep track of TensErLEED components, and orchestrate parallel
+             executions of multiple calculations. Only one of these should exist per problem.
                 basedir: The base directory to do computation in
                 leed_executable: Path to the LEED executable
                 rfactor_executable: Path to the rfactor executable
                 exp_datafile: Path to the experimental datafile
                 phss_datafile: Path to the phaseshifts file
-                templatefile: The base template for the LEED input file (FIN)
                 tleed_dir: Path to the base directory of TLEED
+            In general, operations on this class are NOT thread-safe. Create an instance
+             of this class on a single (main) thread and let it handle asynchronous executions.
         """
-        for path in [basedir, leed_executable, rfactor_executable, templatefile]:
+        for path in [workdir, leed_executable, tleed_dir]:
             if not os.path.exists(path):
                 raise ValueError("File not found: {}".format(path))
-        self.basedir = os.path.abspath(basedir)
+        self.workdir = os.path.abspath(workdir)
         self.leed_exe = os.path.abspath(leed_executable)
-        self.rfactor_exe = os.path.abspath(rfactor_executable)
-        self.exp_datafile = os.path.abspath(exp_datafile)
+        self._delta_exe = None
         self.tleed_dir = os.path.abspath(tleed_dir)
-        self.phaseshifts = phaseshifts
-        self.beaminfo = beaminfo
+        self.phaseshifts: Phaseshifts = phaseshifts
+        self.beaminfo: BeamInfo = beaminfo
+        self.beamlist: BeamList = beamlist
+        self.exp_curves: IVCurveSet = exp_curves
 
-        # Copy the exp datafile to the working directory if not already there
-        copy_exp_datafile = os.path.join(
-            self.basedir,
-            os.path.split(self.exp_datafile)[1]
-        )
-        try:
-            shutil.copyfile(self.exp_datafile, copy_exp_datafile)
-        except shutil.SameFileError:
-            pass
-        with open(templatefile, "r") as f:
-            self.input_template = f.read()
-
+        self.completed_calcs: List[Tuple[Calc, float]] = []
+        # TODO: Is there a better solution?
         self.calc_number = 0
-        self.ref_calcs = []
+        self.active_calcs = []
 
-    def _create_ref_calc(self, structure: AtomicStructure, produce_tensors=False):
-        newdir = os.path.join(self.basedir, "ref-calc" + str(self.calc_number))
+    def _spawn_ref_calc(self, structure: AtomicStructure, produce_tensors=False):
+        """ Spawns a subprocess running a reference calculation for the given AtomicStructure.
+            Adds this subprocess to the manager's list of active calculations.
+        """
+        newdir = os.path.join(self.workdir, "ref-calc" + str(self.calc_number))
         os.makedirs(newdir, exist_ok=True)
-        ref_calc = RefCalc(structure, self.leed_exe, self.rfactor_exe, self.input_template, newdir,
-                           produce_tensors=produce_tensors)
-        self.ref_calcs.append(ref_calc)
+        ref_calc = RefCalc(structure, self.phaseshifts, self.beaminfo, self.beamlist,
+                           self.leed_exe, newdir, produce_tensors=produce_tensors)
         self.calc_number += 1
+        self.active_calcs.append(ref_calc)
         return ref_calc
 
-    def ref_calc(self, structure: AtomicStructure, produce_tensors=False):
-        """ Do the full process of performing a reference calculation.
-            WARNING: Do not call this function in parallel, as there is a race
+    def ref_calc_blocking(self, structure: AtomicStructure, produce_tensors=False):
+        """ Runs a single reference calculation and blocks until completion.
+            Calculations performed with this method are not "kept track of" by the
+             manager.
+            WARNING: This function is not thread-safe, as there is a race
                 condition on self.calc_number. Instead, use batch_ref_calcs.
         """
-        refcalc = self._create_ref_calc(structure, produce_tensors=produce_tensors)
-        refcalc.run()
-        refcalc.wait()
-        self.ref_calcs.append(refcalc)
-        return refcalc.rfactor()
+        refcalc = self._spawn_ref_calc(structure, produce_tensors=produce_tensors)
+        calc_curves = refcalc.produce_curves()
+        # TODO: imagV a settable parameter somewhere?
+        calc_rfactor = min(avg_rfactors(self.exp_curves, calc_curves))
+        return calc_rfactor
 
     def batch_ref_calcs(self, structures: Collection[AtomicStructure], produce_tensors=False):
-        """ Run multiple reference calculations in parallel, one for each
-             row of displacements.
+        """ Starts multiple reference calculations in parallel, one for each
+             AtomicStructure. Adds these active processes to the list maintained by
+             the manager.
         """
         num_structs = len(structures)
 
         # Create RefCalc objects for each calculation
         logging.info("Starting {} reference calculations...".format(num_structs))
         refcalcs = [
-            self._create_ref_calc(struct, produce_tensors=produce_tensors)
+            self._spawn_ref_calc(struct, produce_tensors=produce_tensors)
             for struct in structures
         ]
 
@@ -550,20 +852,49 @@ class LEEDManager:
         for r in refcalcs:
             r.run()
 
-        # Wait for all of them to complete, calculate r-factors for each
-        # The r-factor calculations are fast enough that we may as well run
-        #   them serially
-        rfactors = []
-        for refcalc in refcalcs:
-            refcalc.wait()
-            self.ref_calcs.append(refcalc)
-            rfactors.append(refcalc.rfactor())
-        logging.info("Reference calculations completed.")
-        return np.array(rfactors)
+        return refcalcs
+
+    def batch_delta_calcs(self, structures: Collection[Tuple[AtomicStructure, RefCalc]]):
+        """ Starts multiple TLEED calculations in parallel, one for each pair of
+             (AtomicStructure, RefCalc). Adds these active processes to the list
+             maintained by the manager.
+        """
+        num_structs = len(structures)
+
+        # Create DeltaCalc object
+
+    def poll_active_calcs(self) -> List[Tuple[RefCalc, float]]:
+        """ Polls all of the 'active calculations' to check if any have completed,
+             updating the status of each calculation.
+            Returns a list of (ref_calc, rfactor) for each completed calculation.
+        """
+        completed_calcs = []
+        new_active_calcs = []
+        for calc in self.active_calcs:
+            completion = calc.poll()
+            if completion is None:  # Calculation still running
+                new_active_calcs.append(calc)
+                continue
+            elif completion < 0:    # Calculation terminated by some signal
+                logging.error(
+                    "Reference calculation {} was terminated!".format(calc.script_filename)
+                )
+                raise RuntimeError(
+                    "Reference calculation {} was terminated!".format(calc.script_filename)
+                )
+            calc_curves = calc.produce_curves()
+            calc_rfactor = min(avg_rfactors(self.exp_curves, calc_curves))
+            completed_calcs.append((calc, calc_rfactor))
+
+        self.active_calcs = new_active_calcs
+        return completed_calcs
+    # TODO: I left off here. Need to modify bayessearch.py to use this new API, as well as
+    #  extend this API to TLEED calculations
 
     def _write_delta_script(self, filename: str, ref_calc: RefCalc, search_dim: DeltaSearchDim):
         atom_num, disps, vibs = search_dim
-        # Determine which element the site of this atom is. Unsure how this extends to handle concentration variation.
+        # Determine which element the site of this atom is.
+        # Unsure how this extends to handle concentration variation.
         site_num = ref_calc.struct.layers[0].sitenums[atom_num-1]
         elem_num = np.argmax(ref_calc.struct.sites[site_num].concs) + 1
         with open(filename, "w") as f:
@@ -601,9 +932,11 @@ class LEEDManager:
             for vib in vibs:
                 f.write("{:>7.4f}\n".format(vib))
 
-    def _compile_delta_program(self, executable_path: str, search_dim: DeltaSearchDim,
+    def _compile_delta_program(self, executable_path: str, ndisps: int, nvibs: int,
                                compiler: str = "gfortran", options: List[str] = None):
-        atom_num, disps, vibs = search_dim
+        """ Compiles the delta.f program. Should only need to be called one at the beginning
+             of an optimization problem.
+        """
         exe_dir = os.path.dirname(executable_path)
 
         # Write PARAM needed to compile the delta executable
@@ -611,12 +944,12 @@ class LEEDManager:
             f.write("      PARAMETER( MLMAX = {})\n".format(self.phaseshifts.lmax))
             f.write("      PARAMETER( MNLMB = {})\n".format(_MNLMBS[self.phaseshifts.lmax]))
             f.write("      PARAMETER( MNPSI = {}, MNEL = {})\n".format(
-                self.phaseshifts.num_energies, self.phaseshifts.num_elem)
-            )
+                self.phaseshifts.num_energies, self.phaseshifts.num_elem
+            ))
             f.write("      PARAMETER( MNT0 = {} )\n".format(len(self.beaminfo.beams)))
             f.write("      PARAMETER( MNATOMS = 1 )\n")
-            f.write("      PARAMETER( MNDEB = {} )\n".format(len(vibs)))
-            f.write("      PARAMETER( MNCSTEP = {} )\n".format(len(disps)))
+            f.write("      PARAMETER( MNDEB = {} )\n".format(nvibs))
+            f.write("      PARAMETER( MNCSTEP = {} )\n".format(ndisps))
 
         global_source = os.path.join(self.tleed_dir, "v1.2", "src", "GLOBAL")
         delta_exe_source = os.path.join(self.tleed_dir, "v1.2", "src", "delta.f")
@@ -658,7 +991,7 @@ class LEEDManager:
                            delta_exe: Optional[str] = None) -> MultiDeltaAmps:
         """ Performs all of the computations needed to produce the delta amplitudes for each point
              in the given search space.
-            If re-compliation of the executable is unnecessary, the path to an existing executable
+            If re-compilation of the executable is unnecessary, the path to an existing executable
              can be passed.
         """
         if not delta_space.ref_calc.produce_tensors:
@@ -724,12 +1057,3 @@ class LEEDManager:
         return MultiDeltaAmps(delta_amps)
 
 
-def extract_rfactor(output):
-    p = re.compile(r"AVERAGE R-FACTOR =  (\d\.\d+)")
-    m = re.search(p, output)
-    if m is not None:
-        return float(m.group(1))
-    else:
-        import ipdb
-        ipdb.set_trace()
-        raise ValueError("No average R-factor line found in input")

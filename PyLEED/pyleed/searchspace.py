@@ -175,7 +175,8 @@ class SearchSpace:
 #  effort greatly since T-matrices will have be to be re-generated on every evaluation.
 # Maybe there is some nice compromise?
 # TODO: Make a continuous version for comparison.
-# (atom_idx, disps_list, vibs_list) : Displacements should be in un-normalized coordinates!
+# (atom_idx, disps_list, vibs_list) : Displacements should be in un-normalized coordinates
+#   (Aangstroms)!
 DeltaSearchDim = Tuple[int, List[Sequence[float]], Sequence[float]]
 
 
