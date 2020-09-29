@@ -109,8 +109,8 @@ class Phaseshifts:
 
 
 def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
-    """ Parse a set of phaseshifts from a file. The maximum angular momentum number contained in the file
-         must be specified due to the ambiguous format of phaseshift files.
+    """ Parse a set of phaseshifts from a file. The maximum angular momentum number contained
+         in the file must be specified due to the ambiguous format of phaseshift files.
     """
     energies = []
     # Will become a triply-nested list of dimensions [NENERGIES, NELEM, NANG_MOM],
@@ -136,7 +136,9 @@ def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
         # Once len(line) == 8, we've hit a new energy rather than more phaseshifts
         while len(line) != 8:
             if len(line) != min(70, 7 * l_max) + 1:
-                raise ValueError("Provided l_max does not agree with phaseshift file: Line {}".format(line_num))
+                raise ValueError(
+                    "Provided l_max does not agree with phaseshift file: Line {}".format(line_num)
+                )
 
             elem_phases = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
 
@@ -164,6 +166,8 @@ def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
                         elem_phases[n].append(float(line[7*i:7*(i+1)]))
             phases.append(elem_phases)
             line = f.readline()
+
+    return Phaseshifts(filename, np.array(energies), np.array(phases))
 
 
 class CalcState(enum.Enum):
@@ -198,7 +202,7 @@ class RefCalc:
         self.tensorfiles = []
         if produce_tensors:
             self.tensorfiles = [
-                os.path.join(self.workdir, "LAY1{}".format(i))
+                os.path.join(self.workdir, "LAY1{}".format(i + 1))
                 for i in range(len(self.struct.layers[0]))
             ]
 
@@ -233,11 +237,10 @@ class RefCalc:
 
             # (Unused) registry shift lines
             ofile.write(
-                """ 0.0    0.0             SS1
-                0.0    0.0             SS2
-                0.0    0.0             SS3
-                0.0    0.0             SS4
-                """
+                " 0.0    0.0             SS1\n"
+                " 0.0    0.0             SS2\n"
+                " 0.0    0.0             SS3\n"
+                " 0.0    0.0             SS4\n"
             )
 
             # Surface lattice vectors
@@ -246,26 +249,25 @@ class RefCalc:
 
             # (Unused) registry shift lines
             ofile.write(
-                """ 0.0    0.0             SO1
-                0.0    0.0             SO2
-                0.0    0.0             SO3
-                """
+                " 0.0    0.0             SO1\n"
+                " 0.0    0.0             SO2\n"
+                " 0.0    0.0             SO3\n"
             )
             # Unused FR parameter, and ASE = distance to vacuum from top layer
             # TODO: Should ASE be smartly set based on the structure?
-            ofile.write(" 0.5    1.2237          FR ASE")
+            ofile.write(" 0.5    1.2237          FR ASE\n")
 
             # Write out beamlist
             ofile.write(self.beamlist.to_script())
 
             # Various simulation parameters
-            ofile.write("{:>7.4f}".format(self.decay_thresh) + 24 * " " + "TST\n")
+            ofile.write("{:>7.4f}".format(self.decay_thresh) + 20 * " " + "TST\n")
             for idx in self.beam_idxs:
                 ofile.write("{:>3d}".format(idx))
-            ofile.write(24 * " " + "NPU(K)\n")
-            ofile.write("{:>6.1f}{:>6.1f}".format(self.beaminfo.theta, self.beaminfo.phi))
-            ofile.write(24 * " " + "THETA PHI\n")
-            ofile.write("{:>6.3f}".format(self.epsilon) + 24 * " " + "EPS\n")
+            ofile.write(12 * " " + "NPU(K)\n")
+            ofile.write("{:>6.1f} {:>6.1f}".format(self.beaminfo.theta, self.beaminfo.phi))
+            ofile.write(16 * " " + "THETA PHI\n")
+            ofile.write("{:>6.3f}".format(self.epsilon) + 21 * " " + "EPS\n")
             ofile.write("{:>3d}".format(self.layer_iter) + 24 * " " + "LITER\n")
             ofile.write("{:>3d}".format(self.phaseshifts.lmax) + 24 * " " + "LMAX\n")
             ofile.write("{:>3d}".format(self.phaseshifts.num_elem) + 24 * " " + "NEL\n")
@@ -342,7 +344,7 @@ class RefCalc:
                 ofile.write("  0" + 23 * " " + "Tensor output is NOT required for this layer\n")
 
             for i in range(len(self.struct.layers[0])):
-                ofile.write("LAY1" + str(i) + 22 * " " + "Tensorfile, sublayer" + str(i) + "\n")
+                ofile.write("LAY1" + str(i) + 22 * " " + "Tensorfile, sublayer " + str(i+1) + "\n")
 
             ofile.write(
                 "-------------------------------------------------------------------\n"
@@ -441,12 +443,12 @@ class DeltaCalc:
         self._disps, self._vibs = [], []
         a, b, c = self.struct.cell_params
         for ref_atom, delta_atom in zip(ref_calc.struct.layers[0], struct.layers[0]):
-            self._disps.append(np.ndarray([
+            self._disps.append(np.array([
                 a * (delta_atom.x - ref_atom.x),
                 b * (delta_atom.y - ref_atom.y),
                 c * (delta_atom.z - ref_atom.z)
             ]))
-            self._vibs.append(struct.sites[delta_atom.site])
+            self._vibs.append(struct.sites[delta_atom.sitenum].vib)
 
     def _write_scripts(self) -> List[str]:
         """ Writes one script for each atom which we need to perturb.
@@ -519,6 +521,8 @@ class DeltaCalc:
 
             # Create a symlink to the correct tensor from the ref calc
             amp_path = os.path.join(scriptdir, "AMP")
+            if os.path.exists(amp_path):
+                os.remove(amp_path)
             os.symlink(self.ref_calc.tensorfiles[iatom], amp_path)
 
             self._processes.append(subprocess.Popen(
@@ -534,7 +538,7 @@ class DeltaCalc:
         any_terminated = False
         for p in self._processes:
             completion = p.wait()
-            any_terminated |= completion < 1
+            any_terminated |= completion < 0
         if any_terminated:
             self.state = CalcState.TERMINATED
             logging.error(
@@ -806,6 +810,7 @@ class LEEDManager:
         self.calc_number = 0
         self.active_calcs: List[Calc] = []
 
+        logging.info("Compiling TLEED delta program...")
         self._compile_delta_program(self._delta_exe, 1, 1)
 
     def _spawn_ref_calc(self, structure: AtomicStructure, produce_tensors=False):
@@ -1027,7 +1032,9 @@ class LEEDManager:
             p.wait()
         subprocess.run(
             [compiler] + options + ["-o", executable_path, "main.o", "lib.tleed.o", "lib.delta.o"],
-            cwd=exe_dir
+            cwd=exe_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
         )
 
     def produce_delta_amps(self, delta_space: DeltaSearchSpace,

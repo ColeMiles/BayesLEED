@@ -326,7 +326,7 @@ if __name__ == "__main__":
     parser.add_argument("--problem", type=str, default="FESE_20UC",
         help="Name of problem to run (from problems.py)."
     )
-    parser.add_argument("-b", "--beamset", type=str, default="FESE_BEAMINFO_TRIMMED",
+    parser.add_argument("-b", "--beaminfo", type=str, default="FESE_TRIM",
         help="Name of a beam set descriptor (from problems.py)."
     )
     parser.add_argument('-bl', '--beamlist', type=str,
@@ -334,7 +334,8 @@ if __name__ == "__main__":
         help="Path to a beamlist file to use for reference calculations."
     )
     parser.add_argument("-n", "--ncores", type=int, default=8,
-        help="The number of cores to use == the number of parallel evaluations each iteration."
+        help="The number of cores to use == the number of parallel evaluations each iteration. "
+             "[Default = 8]"
     )
     parser.add_argument("-N", "--num-calcs", type=int, default=500,
         help="The number of total calculations (reference or TLEED) to run. [Default = 500]"
@@ -372,6 +373,6 @@ if __name__ == "__main__":
 
     # TODO: Do something about this. Config file / class?
     main(args.leed_executable, args.tleed, args.phaseshifts, args.lmax, args.beaminfo,
-         args.beamlist, args.problem, args.ncores, args.num_calcs, args.warm,
+         args.beamlist, args.problem, args.ncores, args.num_calcs,
          tleed_radius=args.radius_tleed, seed=args.seed, start_pts_file=args.start_pts,
          random=args.random)

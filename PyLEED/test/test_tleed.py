@@ -20,6 +20,7 @@ def _make_test_manager():
         'test/test_files/FeSetest/',
         '/home/cole/ProgScratch/BayesLEED/TLEED/',
         problems.FESE_BEAMINFO_TRIMMED,
+        'test/test_files/FeSetest/NBLIST.FeSe-1x1',
         'test/test_files/FeSetest/FeSeBulk.eight.phase', 8,
         executable='ref-calc.FeSe'
     )
@@ -142,8 +143,9 @@ def test_compile_delta_program():
 def test_write_delta_script():
     manager = _make_test_manager()
     ref_calc_dir = os.path.join(manager.workdir, "ref-calc-results")
-    ref_calc = tleed.RefCalc(problems.FESE_20UC, manager.leed_exe, manager.input_template,
-                             ref_calc_dir, produce_tensors=True)
+    ref_calc = tleed.RefCalc(problems.FESE_20UC, manager.phaseshifts,
+                             manager.beaminfo, manager.beamlist,
+                             manager.leed_exe, ref_calc_dir, produce_tensors=True)
     # Manually assert that the ref calc has been done
     ref_calc.completed = True
     ref_calc.tensorfiles = [
