@@ -35,9 +35,9 @@
   SOURCE=$TLEED/aux/plot/NormIt.f
   EXE=NormIt.x
 
-  SPECTRUM=$TLEED/work/ref-calc129/fd.out
+  SPECTRUM=/home/cole/ProgScratch/BayesLEED/PyLEED/FeSeProgress/NicePt/fd.out
 
-  OUTPUT=/home/cole/ProgScratch/BayesLEED/PyLEED/FeSeProgress/NicePt/opt_curves.spec
+  OUTPUT=/home/cole/ProgScratch/BayesLEED/PyLEED/FeSeProgress/NicePt/singlelayer_12_21_curves.spec
 
    FC=gfortran
    FCOPT=''
@@ -60,10 +60,10 @@
   50.00 292.00   energy range to be considered for beam 1 (2F7.2)
   66.00 458.00   energy range to be considered for beam 2 (2F7.2)
  124.00 458.00   energy range to be considered for beam 3 (2F7.2)
- 254.00 498.00   energy range to be considered for beam 4 (2F7.2)
- 278.00 498.00   energy range to be considered for beam 5 (2F7.2)
+ 124.00 498.00   energy range to be considered for beam 4 (2F7.2)
+ 128.00 498.00   energy range to be considered for beam 5 (2F7.2)
  10.7            constant part of inner potential from calculation, VvH
-  5.5            inner potential after shift by r-factor subroutine, Vrf
+  8.0            inner potential after shift by r-factor subroutine, Vrf
   0              do energy-dependent shift (0=no/1=linear/2=Rundgren-type) 
  150.00          quot for energy-dept inner potential E = E - Vrf + VvH + E/quot (F7.2)
   18.10          highest peak intensity after normalisation of each beam - (F7.2)

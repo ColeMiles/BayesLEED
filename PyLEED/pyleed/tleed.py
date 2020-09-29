@@ -5,7 +5,6 @@ from __future__ import annotations # Python 3.7+ required
 import os
 import shutil
 import subprocess
-import re
 import logging
 import enum
 from typing import List, Tuple, Collection, Optional, Union
@@ -165,9 +164,6 @@ def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
                         elem_phases[n].append(float(line[7*i:7*(i+1)]))
             phases.append(elem_phases)
             line = f.readline()
-
-    return Phaseshifts(filename, np.array(energies), np.array(phases))
-
 
 
 class CalcState(enum.Enum):
@@ -797,7 +793,7 @@ class LEEDManager:
                 raise ValueError("File not found: {}".format(path))
         self.workdir = os.path.abspath(workdir)
         self.leed_exe = os.path.abspath(leed_executable)
-        self._delta_exe = None
+        self._delta_exe = os.path.join(os.path.dirname(self.leed_exe), "delta.x")
         self.tleed_dir = os.path.abspath(tleed_dir)
         self.phaseshifts: Phaseshifts = phaseshifts
         self.beaminfo: BeamInfo = beaminfo
@@ -805,9 +801,12 @@ class LEEDManager:
         self.exp_curves: IVCurveSet = exp_curves
 
         self.completed_calcs: List[Tuple[Calc, float]] = []
-        # TODO: Is there a better solution?
+        self.completed_refcalcs: List[Tuple[RefCalc, float]] = []
+        self.completed_deltacalcs: List[Tuple[DeltaCalc, float]] = []
         self.calc_number = 0
-        self.active_calcs = []
+        self.active_calcs: List[Calc] = []
+
+        self._compile_delta_program(self._delta_exe, 1, 1)
 
     def _spawn_ref_calc(self, structure: AtomicStructure, produce_tensors=False):
         """ Spawns a subprocess running a reference calculation for the given AtomicStructure.
@@ -820,6 +819,15 @@ class LEEDManager:
         self.calc_number += 1
         self.active_calcs.append(ref_calc)
         return ref_calc
+
+    def _spawn_delta_calc(self, structure: AtomicStructure, ref_calc: RefCalc):
+        """ Spawns a subprocess running a reference calculation for the given AtomicStructure.
+            Adds this subprocess to the manager's list of active calculations.
+        """
+        delta_calc = DeltaCalc(structure, ref_calc, self._delta_exe)
+        self.calc_number += 1
+        self.active_calcs.append(delta_calc)
+        return delta_calc
 
     def ref_calc_blocking(self, structure: AtomicStructure, produce_tensors=False):
         """ Runs a single reference calculation and blocks until completion.
@@ -861,14 +869,26 @@ class LEEDManager:
         """
         num_structs = len(structures)
 
-        # Create DeltaCalc object
+        # Create DeltaCalc objects for each calculation
+        logging.info("Starting {} delta TLEED calculations...".format(num_structs))
+        deltacalcs = [
+            self._spawn_delta_calc(struct, ref_calc)
+            for struct, ref_calc in structures
+        ]
 
-    def poll_active_calcs(self) -> List[Tuple[RefCalc, float]]:
+        # Start up all of the calculation processes
+        for r in deltacalcs:
+            r.run()
+
+        return deltacalcs
+
+    def poll_active_calcs(self) -> List[Tuple[Calc, float]]:
         """ Polls all of the 'active calculations' to check if any have completed,
              updating the status of each calculation.
-            Returns a list of (ref_calc, rfactor) for each completed calculation.
+            Returns a list of (calc, rfactor) for each completed calculation.
         """
-        completed_calcs = []
+        completed_refcalcs = []
+        completed_deltacalcs = []
         new_active_calcs = []
         for calc in self.active_calcs:
             completion = calc.poll()
@@ -884,12 +904,35 @@ class LEEDManager:
                 )
             calc_curves = calc.produce_curves()
             calc_rfactor = min(avg_rfactors(self.exp_curves, calc_curves))
-            completed_calcs.append((calc, calc_rfactor))
+            if type(calc) is RefCalc:
+                completed_refcalcs.append((calc, calc_rfactor))
+            elif type(calc) is DeltaCalc:
+                completed_deltacalcs.append((calc, calc_rfactor))
 
         self.active_calcs = new_active_calcs
-        return completed_calcs
-    # TODO: I left off here. Need to modify bayessearch.py to use this new API, as well as
-    #  extend this API to TLEED calculations
+        self.completed_refcalcs.extend(completed_refcalcs)
+        self.completed_deltacalcs.extend(completed_deltacalcs)
+        return completed_refcalcs + completed_deltacalcs
+
+    def wait_active_calcs(self) -> List[Tuple[Calc, float]]:
+        """ Wait for all 'active calculations' to completed.
+            Return list of (calc, rfactor) for each completed calculation.
+        """
+        completed_refcalcs = []
+        completed_deltacalcs = []
+        for calc in self.active_calcs:
+            calc.wait()
+            calc_curves = calc.produce_curves()
+            calc_rfactor = min(avg_rfactors(self.exp_curves, calc_curves))
+            if type(calc) is RefCalc:
+                completed_refcalcs.append((calc, calc_rfactor))
+            elif type(calc) is DeltaCalc:
+                completed_deltacalcs.append((calc, calc_rfactor))
+
+        self.active_calcs = []
+        self.completed_refcalcs.extend(completed_refcalcs)
+        self.completed_deltacalcs.extend(completed_deltacalcs)
+        return completed_refcalcs + completed_deltacalcs
 
     def _write_delta_script(self, filename: str, ref_calc: RefCalc, search_dim: DeltaSearchDim):
         atom_num, disps, vibs = search_dim

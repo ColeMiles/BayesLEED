@@ -11,14 +11,14 @@ import torch
 import gpytorch
 import botorch
 
-from . import problems, tleed
-from .structure import AtomicStructure
+from pyleed import problems, tleed
+from pyleed.structure import AtomicStructure
+from pyleed.tleed import RefCalc
 
 
 def append_arrays_to_file(filename, pts, rfactors):
-    assert len(pts.shape) == 2, "append_array_to_file only handles dim-2 pts array"
     assert len(pts) == len(rfactors), "do not have same number of pts and rfactors"
-    row_format_string = "{:<8.4f}" * (pts.shape[1] + 1)
+    row_format_string = "{:<8.4f}" * (len(pts[0]) + 1)
     with open(filename, "a") as f:
         for pt, rfactor in zip(pts, rfactors):
             f.write(row_format_string.format(*pt, rfactor) + "\n")
@@ -27,8 +27,6 @@ def append_arrays_to_file(filename, pts, rfactors):
 def create_manager(workdir, tleed_dir, beaminfo, beamlist_file, phaseshift_file, lmax,
                    executable='ref-calc.LaNiO3'):
     """ Makes a LEEDManager working in the given directory, assuming default names for files.
-        TODO: Compile the reference calculation program within this manager rather than externally.
-        TODO: Make TLEED path a command line argument?
     """
     beamlist = tleed.parse_beamlist(beamlist_file)
     phaseshifts = tleed.parse_phaseshifts(phaseshift_file, lmax)
@@ -153,9 +151,34 @@ def acquire_sample_points(
 
 
 def decide_tleed(
-    new_structs, prev_refcalcs, tleed_radius
-) -> Tuple[List[AtomicStructure], List[AtomicStructure]]:
-    pass
+    new_structs: List[AtomicStructure], prev_refcalcs: List[RefCalc], tleed_radius: float
+) -> Tuple[List[AtomicStructure], List[Tuple[AtomicStructure, RefCalc]]]:
+    """ Given a list of new trial atomic structure, decides which should be evaluated as
+         reference calculations, which should be evaluated using TLEED, based on if the
+         new point is within tleed_radius of an exising reference calculation.
+        Returns (List[structs for RefCalcs], List[(struct for DeltaCalc, RefCalc to perturb from)])
+        TODO: Could be sped up if this is too slow.
+    """
+    ref_structs = []
+    delta_pairs = []
+
+    # Distance from each structure to each previous reference calculation structure
+    struct_dists = np.empty((len(new_structs), len(prev_refcalcs)))
+    for i, trial_struct in enumerate(new_structs):
+        for j, calc in enumerate(prev_refcalcs):
+            struct_dists[i, j] = calc.struct.dist(trial_struct)
+
+    closest_calcs = np.argmin(struct_dists, axis=1)
+    # This is gross -_-
+    closest_dists = np.take_along_axis(
+        struct_dists, np.expand_dims(closest_calcs, axis=1), axis=1
+    )
+    for closest_idx, dist, struct in zip(closest_calcs, closest_dists, new_structs):
+        if dist < tleed_radius:
+            delta_pairs.append((struct, prev_refcalcs[closest_idx]))
+        else:
+            ref_structs.append(struct)
+    return ref_structs, delta_pairs
 
 
 def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, problem, ncores, ncalcs,
@@ -188,7 +211,9 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
         # Replace one of the random pts with the "ideal" structure (no perturbations)
         start_pts[0] = search_problem.to_normalized(search_problem.atomic_structure)
         random_structs[0] = search_problem.atomic_structure
-        rfactors = manager.batch_ref_calcs(random_structs, produce_tensors=True)
+        manager.batch_ref_calcs(random_structs, produce_tensors=True)
+        calc_list = manager.wait_active_calcs()
+        rfactors = np.ndarray([rfact for _, rfact in calc_list])
 
     # Normalize rfactors to zero mean, unit variance
     normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std(ddof=1)
@@ -218,59 +243,61 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
     num_to_opt = ncores
     while ncalcs_completed < ncalcs:
         # Sample new points from the search space
-        if num_to_opt > 0:
-            new_normalized_pts = acquire_sample_points(
-                normalized_pts, normalized_rfactors, num_to_opt,
-                method='random' if random else 'bayes', tleed_radius=tleed_radius,
-                state_dict=model.state_dict(), save_model=model_filename, device=device
-            )
+        new_normalized_pts = acquire_sample_points(
+            normalized_pts, normalized_rfactors, num_to_opt,
+            method='random' if random else 'bayes', tleed_radius=tleed_radius,
+            state_dict=model.state_dict(), save_model=model_filename, device=device
+        )
 
-            trial_structs = search_problem.to_structures(new_normalized_pts)
+        trial_structs = search_problem.to_structures(new_normalized_pts)
 
-            ref_structs, tleed_structs = decide_tleed(trial_structs, manager.)
+        # Decide which of these points will be reference calculations, which will be tleed
+        completed_refcalcs = [c[0] for c in manager.completed_refcalcs]
+        ref_structs, tleed_pairs = decide_tleed(
+            trial_structs, completed_refcalcs, tleed_radius
+        )
 
+        manager.batch_ref_calcs(ref_structs, produce_tensors=True)
+        manager.batch_delta_calcs(tleed_pairs)
 
+        # Wait for some calculations to finish
+        while num_to_opt == 0:
+            completed_calcs = manager.poll_active_calcs()
 
-        # Will hold tuples of (norm_pt_idx, ref_calc) of points to calculate with TLEED, perturbed
-        #  from the given ref calc.
-        tleed_pts = []
-        # Check which of the trial points fall within tleed_radius of a previous ref calc.
-        # For now, linear search will do for distance comparisons.
-        for i, normalized_pt in enumerate(new_normalized_pts_np):
-            trial_struct = search_problem.to_structures(normalized_pt)
-            for calc_res in manager.completed_calcs:
-                calc, rfactor = calc_res
-                is_refcalc = type(calc) is tleed.RefCalc
-                if is_refcalc and calc.struct.dist(trial_struct) < tleed_radius:
-                    tleed_pts.append((i, calc))
+            if len(completed_calcs) != 0:
+                new_completed_pts, new_rfactors = [], []
+                for calc, rfactor in completed_calcs:
+                    new_completed_pts.append(search_problem.to_normalized(calc.struct))
+                    new_rfactors.append(rfactor)
+                # Get the new best pt, rfactor
+                best_new_idx = np.argmin(new_rfactors).item()
+                best_new_rfactor = new_rfactors[best_new_idx]
+                if best_new_rfactor < best_rfactor:
+                    best_rfactor = best_new_rfactor
+                    best_pt = new_completed_pts[best_new_idx]
+                append_arrays_to_file(tested_filename, new_completed_pts, new_rfactors)
+                rfactor_progress.append(best_rfactor)
+                np.savetxt(rfactor_filename, rfactor_progress)
 
-        # Start off the reference calculations
-        # Start off the TLEED calculations -- wait for completion
+                logging.info("{} calculations completed. New best rfactor = {}".format(
+                    len(new_normalized_pts), best_rfactor
+                ))
 
-        # Perform the reference calculations at those points
-        structs = search_problem.to_structures(new_normalized_pts_np)
-        new_rfactors = manager.batch_ref_calcs(structs, produce_tensors=True)
+                # Update the global tensors with the new (point, rfactor) values
+                new_completed_pts = torch.tensor(new_completed_pts)
+                normalized_pts = torch.cat((normalized_pts, new_completed_pts))
+                new_rfactors = torch.tensor(new_rfactors, device=device, dtype=torch.float64)
+                rfactors = torch.cat((rfactors, new_rfactors))
+                normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std()
 
-        # Get the new best pt, rfactor
-        best_new_idx = np.argmin(new_rfactors)
-        best_new_rfactor = new_rfactors[best_new_idx]
-        if best_new_rfactor < best_rfactor:
-            best_rfactor = best_new_rfactor
-            best_pt = new_normalized_pts_np[best_new_idx]
-        append_arrays_to_file(tested_filename, new_normalized_pts_np, new_rfactors)
-        rfactor_progress.append(best_rfactor)
-        np.savetxt(rfactor_filename, rfactor_progress)
-        logging.info("Current best rfactor = {}".format(best_rfactor))
+                num_to_opt += len(completed_calcs)
+            else:
+                # Sleep a second before polling agin
+                time.sleep(1)
 
         # Early stop if we get a "good enough" solution
         if early_stop is not None and best_rfactor < early_stop:
             return model, normalized_pts, rfactors
-
-        # Update the model with the new (point, rfactor) values
-        new_rfactors_tensor = torch.tensor(new_rfactors, device=device, dtype=torch.float64)
-        normalized_pts = torch.cat((normalized_pts, new_normalized_pts))
-        rfactors = torch.cat((rfactors, new_rfactors_tensor))
-        normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std()
 
     return model, normalized_pts, rfactors
 
@@ -285,7 +312,8 @@ if __name__ == "__main__":
     parser.add_argument("leed_executable", 
         help="Path to LEED executable. Directory containing it treated as work directory."
     )
-    parser.add_argument("-p", "--phaseshifts", type=str, required=True,
+    parser.add_argument("-p", "--phaseshifts", type=str,
+        default="/home/cole/ProgScratch/BayesLEED/TLEED/phaseshifts/FeSeBulk.eight.phase",
         help="Path to phaseshift file to use for calculations."
     )
     parser.add_argument("--lmax", type=int, default=8,
@@ -298,7 +326,7 @@ if __name__ == "__main__":
     parser.add_argument("--problem", type=str, default="FESE_20UC",
         help="Name of problem to run (from problems.py)."
     )
-    parser.add_argument("-b", "--beamset", type=str, default="FESE_TRIM",
+    parser.add_argument("-b", "--beamset", type=str, default="FESE_BEAMINFO_TRIMMED",
         help="Name of a beam set descriptor (from problems.py)."
     )
     parser.add_argument('-bl', '--beamlist', type=str,

@@ -6,15 +6,15 @@ from .tleed import *
 import numpy as np
 
 FESE_BEAMINFO_TRIMMED = BeamInfo(
-    0.0, 0.0,    # Incident theta, phi
-    [            # (kx, ky) of beams
+    0.0, 0.0,         # Incident theta, phi
+    [                 # (kx, ky) of beams
         (1, 0),
         (1, 1),
         (2, 0),
         (2, 2),
         (3, 0)
     ],
-    30.0, 550.0, 2.0 # Emin, Emax, dE
+    30.0, 550.0, 2.0  # Emin, Emax, dE
 )
 
 FESE_20UC = AtomicStructure(

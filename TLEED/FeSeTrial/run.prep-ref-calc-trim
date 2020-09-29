@@ -78,7 +78,7 @@
 
 #  info about Fortran compiler 
    FC=gfortran
-   FCOPT="-O3 -malign-double -funroll-loops -march=znver2"
+   FCOPT="-O3 -malign-double -funroll-loops -march=znver2 -std=legacy"
 
 ################################################################################
 #  create working directory
