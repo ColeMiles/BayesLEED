@@ -12,7 +12,7 @@ setup(
     author='Cole Miles',
     author_email='cmm572@cornell.edu',
     packages=['pyleed'],
-    install_requires=['numpy', 'matplotlib', 'torch', 'gpytorch', 'botorch', 'IPython'],
+    install_requires=['numpy', 'matplotlib', 'torch', 'gpytorch', 'botorch', 'IPython', 'numba'],
     python_requires='>=3.7',
     extras_require={'tests': ['pytest']},
 )

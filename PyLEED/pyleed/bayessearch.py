@@ -213,7 +213,7 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
         random_structs[0] = search_problem.atomic_structure
         manager.batch_ref_calcs(random_structs, produce_tensors=True)
         calc_list = manager.wait_active_calcs()
-        rfactors = np.ndarray([rfact for _, rfact in calc_list])
+        rfactors = np.array([rfact for _, rfact in calc_list])
 
     # Normalize rfactors to zero mean, unit variance
     normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std(ddof=1)
@@ -291,6 +291,7 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
                 normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std()
 
                 num_to_opt += len(completed_calcs)
+                ncalcs_completed += len(completed_calcs)
             else:
                 # Sleep a second before polling agin
                 time.sleep(1)
@@ -344,6 +345,8 @@ if __name__ == "__main__":
         help="If a trial point falls within this radius of an existing reference calc, perform"
              "a TensorLEED calculation instead of a reference calculation. "
              "By default, set to 0.0 so that no TLEED calcs happen."
+             "If you make this parameter nonzero, make sure your search problem does not"
+             " search over lattice params, as we cannot perturb these in TLEED."
     )
     parser.add_argument("--warm", type=float,
         help="Warm start with points a given distance from the true solution (in normalized space)."

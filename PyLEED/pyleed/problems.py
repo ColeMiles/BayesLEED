@@ -129,6 +129,8 @@ TEST_FESE_20UC_FOR2D = AtomicStructure(
     [3.7659, 3.7659, 5.51547]
 )
 
+FESE_20UC_NEW_CELL_PARAMS = FESE_20UC
+FESE_20UC_NEW_CELL_PARAMS.cell_params = np.array([3.7667322, 3.7667322, 5.513444])
 
 FESE_20UC_CLOSE = AtomicStructure(
     # Atomic sites
@@ -267,6 +269,28 @@ FESE_20UC_PROBLEM = SearchSpace(
     ]
 )
 
+FESE_20UC_DELTA_PROBLEM = SearchSpace(
+    FESE_20UC_NEW_CELL_PARAMS,
+    [
+        (SearchKey.ATOMZ, 1, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 2, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 3, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 4, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 5, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 6, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 7, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 8, (-0.1, 0.1)),
+        (SearchKey.VIB, 1, (-0.08, 0.1)),
+        (SearchKey.VIB, 4, (-0.08, 0.1)),
+    ],
+    constraints=[  # Bind cell's a and b axes, and vertical displacement of Se atoms
+        EqualityConstraint(SearchKey.VIB, 1, SearchKey.VIB, 2),
+        EqualityConstraint(SearchKey.VIB, 1, SearchKey.VIB, 3),
+        EqualityConstraint(SearchKey.VIB, 4, SearchKey.VIB, 5),
+        EqualityConstraint(SearchKey.VIB, 4, SearchKey.VIB, 6),
+    ]
+)
+
 FESE_20UC_SINGLEZ_PROBLEM = SearchSpace(
     FESE_20UC,
     [
@@ -366,6 +390,7 @@ problems = {
     "FESE_20UC": FESE_20UC_PROBLEM,
     "FESE_20UC_SECONDXY": FESE_20UC_PROBLEM_SECONDXY,
     "FESE_20UC_SINGLEZ": FESE_20UC_SINGLEZ_PROBLEM,
+    "FESE_20UC_DELTA": FESE_20UC_DELTA_PROBLEM,
     "FESE_20UC_SECOND_SINGLEXY": FESE_20UC_SECOND_SINGLEXY_PROBLEM,
     "TEST_FESE_2D": TEST_FESE_20UC_2D_PROBLEM,
 }
