@@ -295,7 +295,7 @@ class AtomicStructure:
                     "Cannot call .dist() between structures with unequal numbers of"
                     " atoms in matching layers."
                 )
-            dist += np.square(a * self.xs - oa * other.xs)
-            dist += np.square(b * self.ys - ob * other.ys)
-            dist += np.square(c * self.zs - oc * other.zs)
+            dist += np.sum(np.square(a * layer.xs - oa * other_layer.xs)).item()
+            dist += np.sum(np.square(b * layer.ys - ob * other_layer.ys)).item()
+            dist += np.sum(np.square(c * layer.zs - oc * other_layer.zs)).item()
         return np.sqrt(dist)

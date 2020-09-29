@@ -344,7 +344,7 @@ class RefCalc:
                 ofile.write("  0" + 23 * " " + "Tensor output is NOT required for this layer\n")
 
             for i in range(len(self.struct.layers[0])):
-                ofile.write("LAY1" + str(i) + 22 * " " + "Tensorfile, sublayer " + str(i+1) + "\n")
+                ofile.write("LAY1" + str(i+1) + 22 * " " + "Tensorfile, sublayer " + str(i+1) + "\n")
 
             ofile.write(
                 "-------------------------------------------------------------------\n"

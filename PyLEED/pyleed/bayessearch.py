@@ -73,7 +73,8 @@ def create_model(pts, targets, state_dict=None):
     return model, mll
 
 
-def optimize_EI(obs_pts, obs_objectives, q=5, state_dict=None, save_model=None, device="cuda"):
+def optimize_EI(obs_pts, obs_objectives, q=5, pending_pts=None,
+                state_dict=None, save_model=None, device="cuda"):
     """ Sample q more pts from the search space, by optimizing
          expected improvement using a model and current observations.
         Note: Assumes, like botorch, a maximization problem!
@@ -99,12 +100,14 @@ def optimize_EI(obs_pts, obs_objectives, q=5, state_dict=None, save_model=None, 
     acquisition = botorch.acquisition.qExpectedImprovement(
         model,
         best_objective,
-        sampler
+        sampler,
+        X_pending=pending_pts
     )
     # acquisition = botorch.acquisition.qKnowledgeGradient(
     #     model,
     #     num_fantasies=32,
     #     sampler=sampler,
+    #     X_pending=pending_pts
     # )
     logging.info("Optimizing acquisition function to generate new test points...")
 
@@ -131,7 +134,7 @@ def random_sample(q, num_params, device="cuda", **kwargs):
 
 
 def acquire_sample_points(
-        pts, targets, num_sample,
+        pts, targets, num_sample, pending_pts=None,
         method='bayes', tleed_radius=0.0, **kwargs
 ) -> np.ndarray:
     """ Given historically sampled points and target values (pts, targets), as well as the
@@ -141,7 +144,9 @@ def acquire_sample_points(
     if method == 'random':
         new_normalized_pts = random_sample(num_sample, pts.shape[1], **kwargs)
     elif method == 'bayes':
-        new_normalized_pts = optimize_EI(pts, -targets, num_sample, **kwargs)
+        new_normalized_pts = optimize_EI(
+            pts, -targets, q=num_sample, pending_pts=pending_pts, **kwargs
+        )
     else:
         raise ValueError("`method` provided to acquire_sample_points is not valid.")
 
@@ -242,9 +247,14 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
     # Main Bayesian Optimization Loop
     num_to_opt = ncores
     while ncalcs_completed < ncalcs:
+        # Collect points which are still in progress of being evaluated
+        pending_pts = [torch.tensor(search_problem.to_normalized(calc.struct))
+                       for calc in manager.active_calcs]
+        pending_pts = None if len(pending_pts) == 0 else torch.cat(pending_pts).to(device=device)
+
         # Sample new points from the search space
         new_normalized_pts = acquire_sample_points(
-            normalized_pts, normalized_rfactors, num_to_opt,
+            normalized_pts, normalized_rfactors, num_to_opt, pending_pts=pending_pts,
             method='random' if random else 'bayes', tleed_radius=tleed_radius,
             state_dict=model.state_dict(), save_model=model_filename, device=device
         )
