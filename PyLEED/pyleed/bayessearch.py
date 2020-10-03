@@ -164,6 +164,10 @@ def decide_tleed(
         Returns (List[structs for RefCalcs], List[(struct for DeltaCalc, RefCalc to perturb from)])
         TODO: Could be sped up if this is too slow.
     """
+    # If no previous ref calcs, all new calcs must be ref calcs
+    if len(prev_refcalcs) == 0:
+        return new_structs.copy(), []
+
     ref_structs = []
     delta_pairs = []
 
@@ -250,7 +254,9 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
         # Collect points which are still in progress of being evaluated
         pending_pts = [torch.tensor(search_problem.to_normalized(calc.struct))
                        for calc in manager.active_calcs]
-        pending_pts = None if len(pending_pts) == 0 else torch.cat(pending_pts).to(device=device)
+        pending_pts = None if len(pending_pts) == 0 else torch.stack(
+            pending_pts, dim=0
+        ).to(device=device)
 
         # Sample new points from the search space
         new_normalized_pts = acquire_sample_points(
