@@ -276,6 +276,8 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
         manager.batch_ref_calcs(ref_structs, produce_tensors=True)
         manager.batch_delta_calcs(tleed_pairs)
 
+        num_to_opt -= len(trial_structs)
+
         # Wait for some calculations to finish
         while num_to_opt == 0:
             completed_calcs = manager.poll_active_calcs()

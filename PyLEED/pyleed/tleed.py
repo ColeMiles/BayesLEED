@@ -896,11 +896,12 @@ class LEEDManager:
         completed_deltacalcs = []
         new_active_calcs = []
         for calc in self.active_calcs:
-            completion = calc.poll()
-            if completion is None:  # Calculation still running
+            calc_state = calc.poll()
+
+            if calc_state is CalcState.RUNNING:  # Calculation still running
                 new_active_calcs.append(calc)
                 continue
-            elif completion < 0:    # Calculation terminated by some signal
+            elif calc_state is CalcState.TERMINATED:    # Calculation terminated by some signal
                 logging.error(
                     "Reference calculation {} was terminated!".format(calc.script_filename)
                 )
