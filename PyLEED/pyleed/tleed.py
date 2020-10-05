@@ -71,13 +71,17 @@ class BeamList:
 
 def parse_beamlist(filename: str) -> BeamList:
     beams, energies = [], []
-    with open(filename, "r") as f:
-        # Number of beams, don't need because we're not Fortran
-        f.readline()
-        for line in f:
-            line_s = line.split()
-            beams.append((float(line_s[0]), float(line_s[1])))
-            energies.append(float(line_s[6]))
+    try:
+        with open(filename, "r") as f:
+            # Number of beams, don't need because we're not Fortran
+            f.readline()
+            for line in f:
+                line_s = line.split()
+                beams.append((float(line_s[0]), float(line_s[1])))
+                energies.append(float(line_s[6]))
+    except Exception as e:
+        logging.error("Error when parsing beamlist {}!".format(filename))
+        raise e
 
     return BeamList(beams, energies)
 
@@ -122,50 +126,56 @@ def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
     #  strewn across multiple lines, which has to be checked for. Specifically here, only 10
     #  phaseshifts will be placed on a line before wrapping, and the Fortran code does an odd thing
     #  where it adds an extraneous line only if the number of phaseshifts <= 10
-    with open(filename, "r") as f:
-        line = f.readline()
-        line_num = 1
-        energies.append(float(line))
-        phases.append([])
-
-        # Use the first couple of lines to determine the number of elements present
-        line = f.readline()
-        line_num += 1
-
-        num_elem = 0
-        # Once len(line) == 8, we've hit a new energy rather than more phaseshifts
-        while len(line) != 8:
-            if len(line) != min(70, 7 * l_max) + 1:
-                raise ValueError(
-                    "Provided l_max does not agree with phaseshift file: Line {}".format(line_num)
-                )
-
-            elem_phases = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
-
-            # This line is extraneous if l_max <= 9, but will contain more phaseshifts otherwise
-            f.readline()
-            if l_max > 10:
-                for i in range(l_max-10):
-                    elem_phases.append(float(line[7*i:7*(i+1)]))
-
-            phases[0].append(elem_phases)
-            num_elem += 1
+    try:
+        with open(filename, "r") as f:
             line = f.readline()
-
-        # Once we know the number of elements, we can loop through the rest of the file simply
-        while line != "":
+            line_num = 1
             energies.append(float(line))
-            elem_phases = [[] for _ in range(num_elem)]
-            for n in range(num_elem):
-                line = f.readline()
-                elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
+            phases.append([])
 
+            # Use the first couple of lines to determine the number of elements present
+            line = f.readline()
+            line_num += 1
+
+            num_elem = 0
+            # Once len(line) == 8, we've hit a new energy rather than more phaseshifts
+            while len(line) != 8:
+                if len(line) != min(70, 7 * l_max) + 1:
+                    raise ValueError(
+                        "Provided l_max does not agree with phaseshift file: Line {}".format(
+                            line_num
+                        )
+                    )
+
+                elem_phases = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
+
+                # This line is extraneous if l_max <= 9, but will contain more phaseshifts otherwise
                 f.readline()
                 if l_max > 10:
                     for i in range(l_max-10):
-                        elem_phases[n].append(float(line[7*i:7*(i+1)]))
-            phases.append(elem_phases)
-            line = f.readline()
+                        elem_phases.append(float(line[7*i:7*(i+1)]))
+
+                phases[0].append(elem_phases)
+                num_elem += 1
+                line = f.readline()
+
+            # Once we know the number of elements, we can loop through the rest of the file simply
+            while line != "":
+                energies.append(float(line))
+                elem_phases = [[] for _ in range(num_elem)]
+                for n in range(num_elem):
+                    line = f.readline()
+                    elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
+
+                    f.readline()
+                    if l_max > 10:
+                        for i in range(l_max-10):
+                            elem_phases[n].append(float(line[7*i:7*(i+1)]))
+                phases.append(elem_phases)
+                line = f.readline()
+    except Exception as e:
+        logging.error("Error in parsing phaseshifts file {}!".format(filename))
+        raise e
 
     return Phaseshifts(filename, np.array(energies), np.array(phases))
 
@@ -659,118 +669,123 @@ def parse_deltas(filename: str) -> SiteDeltaAmps:
             27.21 * (crystal_energy - np.real(substrate_energy))
     """
     delta_amp = SiteDeltaAmps()
-    with open(filename, "r") as f:
-        line = f.readline()
-        delta_amp.theta = float(line[:13])
-        delta_amp.phi = float(line[13:26])
-        delta_amp.substrate_recip[0] = float(line[26:39])
-        delta_amp.substrate_recip[1] = float(line[39:52])
-        delta_amp.overlayer_recip[0] = float(line[52:65])
-        delta_amp.overlayer_recip[1] = float(line[65:78])
+    try:
+        with open(filename, "r") as f:
+            line = f.readline()
+            delta_amp.theta = float(line[:13])
+            delta_amp.phi = float(line[13:26])
+            delta_amp.substrate_recip[0] = float(line[26:39])
+            delta_amp.substrate_recip[1] = float(line[39:52])
+            delta_amp.overlayer_recip[0] = float(line[52:65])
+            delta_amp.overlayer_recip[1] = float(line[65:78])
 
-        line = f.readline()
-        delta_amp.nbeams = int(line[:3])
-        delta_amp.natoms = int(line[3:6])
-        numdeltas = int(line[6:9])
-        delta_amp.beams = np.empty((delta_amp.nbeams, 2))
-        deltas = np.empty((numdeltas, 3))
+            line = f.readline()
+            delta_amp.nbeams = int(line[:3])
+            delta_amp.natoms = int(line[3:6])
+            numdeltas = int(line[6:9])
+            delta_amp.beams = np.empty((delta_amp.nbeams, 2))
+            deltas = np.empty((numdeltas, 3))
 
-        line = f.readline()
-        # TODO: Check that this is always on one line, even for more beams
-        for i in range(delta_amp.nbeams):
-            delta_amp.beams[i, 0] = float(line[20*i:10+20*i])
-            delta_amp.beams[i, 1] = float(line[10+20*i:20+20*i])
+            line = f.readline()
+            # TODO: Check that this is always on one line, even for more beams
+            for i in range(delta_amp.nbeams):
+                delta_amp.beams[i, 0] = float(line[20*i:10+20*i])
+                delta_amp.beams[i, 1] = float(line[10+20*i:20+20*i])
 
-        # Line of 0.0's from an unused feature in TensErLEED
-        line = f.readline()
-
-        # Read in the list of considered shifts
-        # TODO: This is nasty.
-        n = 0
-        comp = 0
-        while n < numdeltas:
-            line = f.readline().rstrip('\n')
-            for i in range(len(line) // 7):
-                deltas[n, (comp + 2) % 3] = float(line[7*i:7*(i+1)])
-                if comp == 2:
-                    n += 1
-                comp = (comp + 1) % 3
-
-        # Remove duplicate info
-        first_delta = deltas[0]
-        for n, delta in enumerate(deltas[1:]):
-            if np.allclose(first_delta, delta):
-                delta_amp.nshifts = (n + 1)
-                delta_amp.nvibs = numdeltas // (n + 1)
-                break
-        else:
-            delta_amp.nshifts = numdeltas
-            delta_amp.nvibs = 1
-
-        delta_amp.shifts = deltas[:delta_amp.nshifts].copy()
-        delta_amp.thermal_amps = np.empty(numdeltas)
-
-        # Read in the list of thermal vibrational amplitudes (?)
-        n = 0
-        while n < numdeltas:
-            line = f.readline().rstrip('\n')
-            for i in range(len(line) // 7):
-                delta_amp.thermal_amps[n] = line[7*i:7*(i+1)]
-                n += 1
-
-        # Read in the crystal potential energies
-        crystal_energies = []
-        substrate_energies = []
-        overlayer_energies = []
-        real_energies_ev = []
-        all_ref_amplitudes = []
-        all_delta_amplitudes = []
-        line = f.readline()
-        # Each iteration of this is a single energy
-        nit = 0
-        while line != "":
-            crystal_energy = float(line[:13])
-            substrate_energy = float(line[13:26]) * 1j
-            overlayer_energy = float(line[26:39])
-            substrate_energy += float(line[39:52])
-            crystal_energies.append(crystal_energy)
-            substrate_energies.append(substrate_energy)
-            overlayer_energies.append(overlayer_energy)
-            # This is the real energy to compare to experiment
-            real_energies_ev.append(round(27.21 * (crystal_energy - substrate_energy.real)))
-
-            # Read in the original reference calculation amplitudes
-            ref_amplitudes = np.empty(delta_amp.nbeams, np.complex64)
-            n = 0
-            while n < delta_amp.nbeams:
-                line = f.readline()
-                for i in range(len(line) // 26):
-                    ref_amplitudes[n] = float(line[26*i:26*i+13])
-                    ref_amplitudes[n] += float(line[26*i+13:26*i+26]) * 1j
-                    n += 1
-            all_ref_amplitudes.append(ref_amplitudes)
-
-            # Read in the delta amplitudes for each search delta
-            delta_amplitudes = np.empty((delta_amp.nbeams, delta_amp.nvibs, delta_amp.nshifts), np.complex64)
-            n = 0
-            while n < delta_amp.nbeams * delta_amp.nvibs * delta_amp.nshifts:
-                line = f.readline()
-                for i in range(len(line) // 26):
-                    delta_idx, beam_idx = divmod(n, delta_amp.nbeams)
-                    vib_idx, disp_idx = divmod(delta_idx, delta_amp.nshifts)
-                    delta_amplitudes[beam_idx, vib_idx, disp_idx] = float(line[26*i:26*i+13])
-                    delta_amplitudes[beam_idx, vib_idx, disp_idx] += float(line[26*i+13:26*i+26]) * 1j
-                    n += 1
-            all_delta_amplitudes.append(delta_amplitudes)
-            nit += 1
+            # Line of 0.0's from an unused feature in TensErLEED
             line = f.readline()
 
-        delta_amp.crystal_energies = np.array(crystal_energies)
-        delta_amp.substrate_energies = np.array(substrate_energies)
-        delta_amp.overlayer_energies = np.array(overlayer_energies)
-        delta_amp.real_energies_ev = np.array(real_energies_ev)
-        delta_amp.ref_amplitudes = np.stack(all_ref_amplitudes, axis=-1)
-        delta_amp.delta_amplitudes = np.stack(all_delta_amplitudes, axis=-1)
+            # Read in the list of considered shifts
+            # TODO: This is nasty.
+            n = 0
+            comp = 0
+            while n < numdeltas:
+                line = f.readline().rstrip('\n')
+                for i in range(len(line) // 7):
+                    deltas[n, (comp + 2) % 3] = float(line[7*i:7*(i+1)])
+                    if comp == 2:
+                        n += 1
+                    comp = (comp + 1) % 3
+
+            # Remove duplicate info
+            first_delta = deltas[0]
+            for n, delta in enumerate(deltas[1:]):
+                if np.allclose(first_delta, delta):
+                    delta_amp.nshifts = (n + 1)
+                    delta_amp.nvibs = numdeltas // (n + 1)
+                    break
+            else:
+                delta_amp.nshifts = numdeltas
+                delta_amp.nvibs = 1
+
+            delta_amp.shifts = deltas[:delta_amp.nshifts].copy()
+            delta_amp.thermal_amps = np.empty(numdeltas)
+
+            # Read in the list of thermal vibrational amplitudes (?)
+            n = 0
+            while n < numdeltas:
+                line = f.readline().rstrip('\n')
+                for i in range(len(line) // 7):
+                    delta_amp.thermal_amps[n] = line[7*i:7*(i+1)]
+                    n += 1
+
+            # Read in the crystal potential energies
+            crystal_energies = []
+            substrate_energies = []
+            overlayer_energies = []
+            real_energies_ev = []
+            all_ref_amplitudes = []
+            all_delta_amplitudes = []
+            line = f.readline()
+            # Each iteration of this is a single energy
+            nit = 0
+            while line != "":
+                crystal_energy = float(line[:13])
+                substrate_energy = float(line[13:26]) * 1j
+                overlayer_energy = float(line[26:39])
+                substrate_energy += float(line[39:52])
+                crystal_energies.append(crystal_energy)
+                substrate_energies.append(substrate_energy)
+                overlayer_energies.append(overlayer_energy)
+                # This is the real energy to compare to experiment
+                real_energies_ev.append(round(27.21 * (crystal_energy - substrate_energy.real)))
+
+                # Read in the original reference calculation amplitudes
+                ref_amplitudes = np.empty(delta_amp.nbeams, np.complex64)
+                n = 0
+                while n < delta_amp.nbeams:
+                    line = f.readline()
+                    for i in range(len(line) // 26):
+                        ref_amplitudes[n] = float(line[26*i:26*i+13])
+                        ref_amplitudes[n] += float(line[26*i+13:26*i+26]) * 1j
+                        n += 1
+                all_ref_amplitudes.append(ref_amplitudes)
+
+                # Read in the delta amplitudes for each search delta
+                delta_amplitudes = np.empty((delta_amp.nbeams, delta_amp.nvibs, delta_amp.nshifts), np.complex64)
+                n = 0
+                while n < delta_amp.nbeams * delta_amp.nvibs * delta_amp.nshifts:
+                    line = f.readline()
+                    for i in range(len(line) // 26):
+                        delta_idx, beam_idx = divmod(n, delta_amp.nbeams)
+                        vib_idx, disp_idx = divmod(delta_idx, delta_amp.nshifts)
+                        delta_amplitudes[beam_idx, vib_idx, disp_idx] = float(line[26*i:26*i+13])
+                        delta_amplitudes[beam_idx, vib_idx, disp_idx] += float(line[26*i+13:26*i+26]) * 1j
+                        n += 1
+                all_delta_amplitudes.append(delta_amplitudes)
+                nit += 1
+                line = f.readline()
+
+            delta_amp.crystal_energies = np.array(crystal_energies)
+            delta_amp.substrate_energies = np.array(substrate_energies)
+            delta_amp.overlayer_energies = np.array(overlayer_energies)
+            delta_amp.real_energies_ev = np.array(real_energies_ev)
+            delta_amp.ref_amplitudes = np.stack(all_ref_amplitudes, axis=-1)
+            delta_amp.delta_amplitudes = np.stack(all_delta_amplitudes, axis=-1)
+    except Exception as e:
+        logging.error("Error when parsing delta file {}!".format(filename))
+        # Re-raise exception
+        raise e
 
     return delta_amp
 

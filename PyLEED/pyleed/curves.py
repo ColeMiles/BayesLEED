@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import logging
 
 import numpy as np
 from scipy import signal
@@ -203,16 +204,20 @@ def _parse_ivcurves_plotfmt(filename: str) -> IVCurveSet:
 
 
 def parse_ivcurves(filename: str, format='TLEED') -> IVCurveSet:
-    if format.upper() == 'TLEED':
-        return _parse_experiment_tleed(filename, extra_header=False)
-    elif format.upper() == 'WEXPEL':
-        return _parse_experiment_tleed(filename, extra_header=True)
-    elif format.upper() == 'RCOUT':
-        return _parse_theory_tleed(filename)
-    elif format.upper() == 'PLOT':
-        return _parse_ivcurves_plotfmt(filename)
-    else:
-        raise ValueError("Unknown format: {}".format(format))
+    try:
+        if format.upper() == 'TLEED':
+            return _parse_experiment_tleed(filename, extra_header=False)
+        elif format.upper() == 'WEXPEL':
+            return _parse_experiment_tleed(filename, extra_header=True)
+        elif format.upper() == 'RCOUT':
+            return _parse_theory_tleed(filename)
+        elif format.upper() == 'PLOT':
+            return _parse_ivcurves_plotfmt(filename)
+        else:
+            raise ValueError("Unknown format: {}".format(format))
+    except Exception as e:
+        logging.error("Error in parsing curve file {}!".format(filename))
+        raise e
 
 
 @njit
