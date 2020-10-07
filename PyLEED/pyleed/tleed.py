@@ -431,6 +431,11 @@ class RefCalc:
             self.wait()
         return parse_ivcurves(self.result_filename, format='RCOUT')
 
+    def rfactor(self, exp_curves: IVCurveSet, **kwargs) -> float:
+        calc_curves = self.produce_curves()
+        calc_rfactor = min(avg_rfactors(exp_curves, calc_curves, **kwargs))
+        return calc_rfactor
+
 
 def parse_ref_calc(filename: str) -> RefCalc:
     """ Parses a RefCalc from the input script. Checks for completion by the presence
