@@ -622,13 +622,14 @@ class DeltaCalc:
             ]))
             self._vibs.append(struct.sites[delta_atom.sitenum].vib)
 
-    def _write_scripts(self) -> List[str]:
-        """ Writes one script for each atom which we need to perturb.
+    def _write_scripts(self, directory: Optional[str] = None) -> List[str]:
+        """ Writes one script into the target directory for each atom which we need to perturb.
             Returns a list of the script paths.
         """
+        directory = self.ref_calc.workdir if directory is None else directory
         script_paths = []
         for iatom, atom in enumerate(self.struct.layers[0]):
-            subworkdir = os.path.join(self.ref_calc.workdir, "delta_tmp" + str(iatom + 1))
+            subworkdir = os.path.join(directory, "delta_tmp" + str(iatom + 1))
             try:
                 os.mkdir(subworkdir)
             except FileExistsError:
@@ -685,9 +686,9 @@ class DeltaCalc:
         self._script_paths = script_paths
         return script_paths
 
-    def run(self):
+    def run(self, directory: Optional[str] = None):
         self.state = CalcState.RUNNING
-        script_paths = self._write_scripts()
+        script_paths = self._write_scripts(directory=directory)
         for iatom, script_path in enumerate(script_paths):
             scriptdir = os.path.dirname(script_path)
 
@@ -727,6 +728,8 @@ class DeltaCalc:
         """ Polls to check if ALL delta sub-calculations are done.
             Returns CalcState.RUNNNING if any calculations still ongoing.
         """
+        if self.state == CalcState.INIT:
+            return CalcState.INIT
         for p in self._processes:
             completion = p.poll()
             if completion is not None:
@@ -1015,6 +1018,7 @@ class LEEDManager:
         os.makedirs(newdir, exist_ok=True)
         ref_calc = RefCalc(structure, self.phaseshifts, self.beaminfo, self.beamlist,
                            self.leed_exe, newdir, produce_tensors=produce_tensors)
+        ref_calc.run()
         self.calc_number += 1
         self.active_calcs.append(ref_calc)
         return ref_calc
@@ -1024,6 +1028,11 @@ class LEEDManager:
             Adds this subprocess to the manager's list of active calculations.
         """
         delta_calc = DeltaCalc(structure, ref_calc, self._delta_exe)
+        directory = os.path.join(ref_calc.workdir, "delta_calc" + str(self.calc_number))
+        # Make directory if it does not exist
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+        delta_calc.run(directory=directory)
         self.calc_number += 1
         self.active_calcs.append(delta_calc)
         return delta_calc
@@ -1055,10 +1064,6 @@ class LEEDManager:
             for struct in structures
         ]
 
-        # Start up all of the calculation processes
-        for r in refcalcs:
-            r.run()
-
         return refcalcs
 
     def batch_delta_calcs(self, structures: Collection[Tuple[AtomicStructure, RefCalc]]):
@@ -1074,10 +1079,6 @@ class LEEDManager:
             self._spawn_delta_calc(struct, ref_calc)
             for struct, ref_calc in structures
         ]
-
-        # Start up all of the calculation processes
-        for r in deltacalcs:
-            r.run()
 
         return deltacalcs
 
