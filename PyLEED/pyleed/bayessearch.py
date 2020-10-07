@@ -192,7 +192,7 @@ def decide_tleed(
 
 
 def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, problem, ncores, ncalcs,
-         tleed_radius=0.0, warm=None, seed=None, start_pts_file=None, num_existing_calcs=None,
+         tleed_radius=0.0, warm=None, seed=None, start_pts_file=None, detect_existing_calcs=None,
          early_stop=None, random=False):
     workdir, executable = os.path.split(leed_executable)
     tested_filename = os.path.join(workdir, "tested_point.txt")
@@ -208,16 +208,18 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
     search_problem = problems.problems[problem]
     num_params = search_problem.num_params
 
-    if num_existing_calcs is not None:
+    if detect_existing_calcs:
         logging.info("Loading points from reference calculations in directory {}".format(workdir))
         filename_pat = r"ref-calc\d+"
         calcs = [
             parse_ref_calc(os.path.join(workdir, f, "FIN")) for f in os.listdir(workdir)
             if re.match(filename_pat, f) is not None
         ]
-        assert all(calc.state == CalcState.COMPLETED for calc in calcs)
+        # Keep only the calcs with a discovered fd.out
+        calcs = [c for c in calcs if c.state == CalcState.COMPLETED]
         start_pts = search_problem.to_normalized([calc.struct for calc in calcs])
         rfactors = np.array([calc.rfactor(manager.exp_curves) for calc in calcs])
+        manager.calc_number = len(start_pts)
     elif start_pts_file is not None:
         logging.info("Loading points from file: {}".format(start_pts_file))
         data = np.loadtxt(start_pts_file, skiprows=1)
@@ -388,9 +390,9 @@ if __name__ == "__main__":
     parser.add_argument('--start-pts', type=str, default=None,
         help="Given a file of tested points, continues from there."
     )
-    parser.add_argument('--start-calcs', type=int, default=None,
-        help="Asserts that there are this many reference calculations complete already"
-             " in the work directory, named ref-calc{i}. Supercedes --start-pts."
+    parser.add_argument('--detect-calcs', action='store_true', default=None,
+        help="Attempts to detect exisiting finished reference calculations in the targeted work"
+             " directory named ref-calc{i}. Overrides --start-pts."
     )
     parser.add_argument('--random', action='store_true',
         help="If set, performs random search rather than Bayesian Optimization."
@@ -412,4 +414,4 @@ if __name__ == "__main__":
     main(args.leed_executable, args.tleed, args.phaseshifts, args.lmax, args.beaminfo,
          args.beamlist, args.problem, args.ncores, args.num_calcs,
          tleed_radius=args.radius_tleed, seed=args.seed, start_pts_file=args.start_pts,
-         num_existing_calcs=args.start_calcs, random=args.random)
+         detect_existing_calcs=args.detect_calcs, random=args.random)

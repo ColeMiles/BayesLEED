@@ -157,16 +157,24 @@ class SearchSpace:
         structs = [self._normal_to_structure(vec) for vec in norm_vecs]
         return structs
 
-    def to_normalized(self, struct: AtomicStructure) -> np.ndarray:
-        """ Converts a single AtomicStructure to a normalized feature vector.
-            TODO: Should this also work on list of structures?
-        """
+    def _structure_to_normal(self, struct: AtomicStructure) -> np.ndarray:
         norm_vec = np.empty(self.num_params)
         for i, (param, lims) in enumerate(zip(self.search_params, self.search_bounds)):
             key, idx = param
             norm_vec[i] = ((struct[key, idx] - self.atomic_structure[key, idx] - lims[0])
                            / (lims[1] - lims[0]))
         return norm_vec
+
+    # TODO: Must be cleaner way of recursing than manual inspection
+    def to_normalized(self, struct: Union[AtomicStructure, List[AtomicStructure]]) -> np.ndarray:
+        """ Converts either a single or a list of AtomicStructure to a normalized feature vector,
+             or an array of vectors.
+        """
+        if type(struct) is list:
+            vecs = [self._structure_to_normal(s) for s in struct]
+            return np.stack(vecs, axis=0)
+        else:
+            return self._structure_to_normal(struct)
 
 
 # While the search space in the full space is continuous, due to how TensErLEED functions

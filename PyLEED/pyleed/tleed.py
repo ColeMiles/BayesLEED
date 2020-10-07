@@ -447,7 +447,7 @@ def parse_ref_calc(filename: str) -> RefCalc:
             contents = f.readlines()
         ref_calc = _parse_ref_calc_str(contents)
         ref_calc.workdir = os.path.dirname(filename)
-        ref_calc.script_filename = os.path.join(ref_calc.workdir, "FIN")
+        ref_calc.script_filename = os.path.join(ref_calc.workdir, os.path.basename(filename))
         ref_calc.result_filename = os.path.join(ref_calc.workdir, "fd.out")
         ref_calc.tensorfiles = [
             os.path.join(ref_calc.workdir, fname) for fname in ref_calc.tensorfiles
@@ -544,7 +544,10 @@ def _parse_ref_calc_str(lines: List[str]) -> RefCalc:
         linenum += 1
         atoms = []
         for _ in range(numsublayer):
-            sitenum, x, y, z = map(float, lines[linenum].split())
+            sitenum = int(lines[linenum][:3])
+            x = float(lines[linenum][3:10])
+            y = float(lines[linenum][10:17])
+            z = float(lines[linenum][17:24])
             sitenum = int(sitenum)
             atoms.append(Atom(sitenum, x, y, z))
             linenum += 1
@@ -557,9 +560,9 @@ def _parse_ref_calc_str(lines: List[str]) -> RefCalc:
     surf_interlayer_dist = float(lines[linenum][3:10])
 
     cell_a, cell_b = lat_vec_a[0], lat_vec_b[1]
-    # TODO: This is an assumption that the user always sets up bulk cells
-    #  such that at least one atom has z coordinate at the top edge of the cell
-    cell_c = bulk_interlayer_dist
+    # TODO: This is certainly not true in general
+    max_bulkz = max(a.z for a in layers[1])
+    cell_c = max_bulkz + bulk_interlayer_dist
 
     # Normalize all Layer coordinates
     for layer in layers:
