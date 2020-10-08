@@ -927,6 +927,7 @@ def _parse_deltas_str(lines: List[str]) -> SiteDeltaAmps:
     # Each iteration of this is a single energy
     nit = 0
     while linenum < len(lines):
+        line = lines[linenum]
         crystal_energy = float(line[:13])
         substrate_energy = float(line[13:26]) * 1j
         overlayer_energy = float(line[26:39])
@@ -940,20 +941,20 @@ def _parse_deltas_str(lines: List[str]) -> SiteDeltaAmps:
         # Read in the original reference calculation amplitudes
         ref_amplitudes = np.empty(delta_amp.nbeams, np.complex64)
         n = 0
-        linenum += 1
         while n < delta_amp.nbeams:
+            linenum += 1
             line = lines[linenum]
             for i in range(len(line) // 26):
                 ref_amplitudes[n] = float(line[26*i:26*i+13])
                 ref_amplitudes[n] += float(line[26*i+13:26*i+26]) * 1j
                 n += 1
-            linenum += 1
         all_ref_amplitudes.append(ref_amplitudes)
 
         # Read in the delta amplitudes for each search delta
         delta_amplitudes = np.empty((delta_amp.nbeams, delta_amp.nvibs, delta_amp.nshifts), np.complex64)
         n = 0
         while n < delta_amp.nbeams * delta_amp.nvibs * delta_amp.nshifts:
+            linenum += 1
             line = lines[linenum]
             for i in range(len(line) // 26):
                 delta_idx, beam_idx = divmod(n, delta_amp.nbeams)
@@ -961,9 +962,9 @@ def _parse_deltas_str(lines: List[str]) -> SiteDeltaAmps:
                 delta_amplitudes[beam_idx, vib_idx, disp_idx] = float(line[26*i:26*i+13])
                 delta_amplitudes[beam_idx, vib_idx, disp_idx] += float(line[26*i+13:26*i+26]) * 1j
                 n += 1
-            linenum += 1
         all_delta_amplitudes.append(delta_amplitudes)
         nit += 1
+        linenum += 1
 
     delta_amp.crystal_energies = np.array(crystal_energies)
     delta_amp.substrate_energies = np.array(substrate_energies)

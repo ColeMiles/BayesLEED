@@ -316,7 +316,7 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
                 ))
 
                 # Update the global tensors with the new (point, rfactor) values
-                new_completed_pts = torch.tensor(new_completed_pts)
+                new_completed_pts = torch.tensor(new_completed_pts, device=device)
                 normalized_pts = torch.cat((normalized_pts, new_completed_pts))
                 new_rfactors = torch.tensor(new_rfactors, device=device, dtype=torch.float64)
                 rfactors = torch.cat((rfactors, new_rfactors))
