@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import logging
 import multiprocessing as mp
 import gc
@@ -15,6 +16,13 @@ import botorch
 from pyleed import problems, tleed
 from pyleed.structure import AtomicStructure
 from pyleed.tleed import RefCalc, parse_ref_calc, CalcState
+
+
+def pretty_print_args(args):
+    logging.info("Running BayesSearch with the following parameters:")
+    for arg in vars(args):
+        logging.info("| {} {}".format(arg, getattr(args, arg) or 'None'))
+    logging.info("----------------------------------")
 
 
 def append_arrays_to_file(filename, pts, rfactors):
@@ -336,11 +344,6 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        format="[%(asctime)s] %(message)s", 
-        datefmt="%m/%d/%Y %I:%M:%S %p",
-        level=logging.INFO
-    )
     parser = argparse.ArgumentParser()
     parser.add_argument("leed_executable", 
         help="Path to LEED executable. Directory containing it treated as work directory."
@@ -397,13 +400,30 @@ if __name__ == "__main__":
     parser.add_argument('--random', action='store_true',
         help="If set, performs random search rather than Bayesian Optimization."
     )
+    parser.add_argument('--log', type=str, default='./search.log',
+        help="Name of outputted log file. [Default: search.log]"
+    )
     args = parser.parse_args()
+
+    # Set up logger
+    logging.basicConfig(
+        format="[%(asctime)s] %(message)s",
+        datefmt='%m/%d/%Y %I:%M:%S %p',
+        level=logging.INFO,
+        handlers=[
+            logging.FileHandler(args.log),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+
+    pretty_print_args(args)
+
 
     # Check for GPU presence
     if torch.cuda.is_available():
         logging.info("Found CUDA-capable GPU.")
     else:
-        logging.warning("No CUDA-capable GPU found, continuing on CPU.")
+        logging.info("No CUDA-capable GPU found, continuing on CPU.")
 
     # Set random seeds to get reproducible behavior
     if args.seed is not None:
