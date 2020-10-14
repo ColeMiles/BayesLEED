@@ -338,7 +338,7 @@ class RefCalc:
             # Find bulk interlayer vector from bottom atom of bulk layer
             bulk_maxz = max(self.struct.layers[1].zs)
             num_cells = np.ceil(bulk_maxz)
-            bulk_interlayer_dist = (num_cells - bulk_maxz) * self.struct.cell_params[2]
+            bulk_interlayer_dist = num_cells * self.struct.cell_params[2]
 
             ofile.write("  0" + 23 * " " + "TSLAB = 0: compute bulk using subras\n")
             ofile.write("{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist))
@@ -357,7 +357,7 @@ class RefCalc:
             # Find surface interlayer vector from bottom atom to bulk
             layer_maxz = max(self.struct.layers[0].zs)
             num_cells = np.ceil(layer_maxz)
-            surf_interlayer_dist = (num_cells - layer_maxz) * self.struct.cell_params[2]
+            surf_interlayer_dist = num_cells * self.struct.cell_params[2]
             ofile.write("  1\n")
             ofile.write("  1{:>7.4f} 0.0000 0.0000".format(surf_interlayer_dist))
             ofile.write("  surface layer is of type 1: interlayer vector connecting it to bulk\n")
