@@ -623,7 +623,9 @@ class DeltaCalc:
                 b * (delta_atom.y - ref_atom.y),
                 c * (delta_atom.z - ref_atom.z)
             ]))
-            self._vibs.append(struct.sites[delta_atom.sitenum].vib)
+            self._vibs.append(
+                struct.sites[delta_atom.sitenum].vib - ref_calc.struct.sites[ref_atom.sitenum].vib
+            )
 
     def _write_scripts(self, directory: Optional[str] = None) -> List[str]:
         """ Writes one script into the target directory for each atom which we need to perturb.
