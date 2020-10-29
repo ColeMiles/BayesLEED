@@ -441,16 +441,18 @@ def parse_ref_calc(filename: str) -> RefCalc:
     """ Parses a RefCalc from the input script. Checks for completion by the presence
          of a fd.out file in the same directory as the script. Attempts to look for
          tensors from completed run.
+        Warning: Some subfields will have incorrect filenames because this information
+         is not present in the input file (e.g. ref_calc.phaseshifts.filename)
     """
     try:
         with open(filename, 'r') as f:
             contents = f.readlines()
         ref_calc = _parse_ref_calc_str(contents)
-        ref_calc.workdir = os.path.dirname(filename)
+        ref_calc.workdir = os.path.abspath(os.path.dirname(filename))
         ref_calc.script_filename = os.path.join(ref_calc.workdir, os.path.basename(filename))
         ref_calc.result_filename = os.path.join(ref_calc.workdir, "fd.out")
         ref_calc.tensorfiles = [
-            os.path.join(ref_calc.workdir, fname) for fname in ref_calc.tensorfiles
+            os.path.abspath(os.path.join(ref_calc.workdir, fname)) for fname in ref_calc.tensorfiles
         ]
         if os.path.exists(ref_calc.result_filename):
             ref_calc.state = CalcState.COMPLETED
