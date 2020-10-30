@@ -1269,7 +1269,7 @@ class LEEDManager:
             if delta_exe is None:
                 # In that directory, compile a version of delta.f with the parameters
                 # of this search dimension
-                self._compile_delta_program(dst_exe, search_dim)
+                self._compile_delta_program(dst_exe, len(search_dim[1]), len(search_dim[2]))
             else:
                 if os.path.exists(dst_exe):
                     os.remove(dst_exe)

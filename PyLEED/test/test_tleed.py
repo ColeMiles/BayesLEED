@@ -173,10 +173,11 @@ def test_write_delta_script():
 def test_produce_delta_amps():
     manager = _make_test_manager()
     ref_calc_dir = os.path.join(manager.workdir, "ref-calc-results")
-    ref_calc = tleed.RefCalc(problems.FESE_20UC, manager.leed_exe, manager.input_template,
+    ref_calc = tleed.RefCalc(problems.FESE_20UC, manager.phaseshifts,
+                             manager.beaminfo, manager.beamlist, manager.leed_exe,
                              ref_calc_dir, produce_tensors=True)
     # Manually assert that the ref calc has been done
-    ref_calc.completed = True
+    ref_calc.state = tleed.CalcState.COMPLETED
     ref_calc.tensorfiles = [
         os.path.join(ref_calc_dir, "LAY1{}".format(i+1))
         for i in range(len(ref_calc.struct.layers[0]))

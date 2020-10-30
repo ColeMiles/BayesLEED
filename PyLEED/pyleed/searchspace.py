@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import typing
 from copy import deepcopy
-from typing import List, Tuple, Union, Sequence
+from typing import List, Tuple, Union, Sequence, Optional
 
 import numpy as np
 
@@ -184,7 +184,7 @@ class SearchSpace:
 # Maybe there is some nice compromise?
 # TODO: Make a continuous version for comparison.
 # (atom_idx, disps_list, vibs_list) : Displacements should be in un-normalized coordinates
-#   (Aangstroms)!
+#   (Angstroms)!
 DeltaSearchDim = Tuple[int, List[Sequence[float]], Sequence[float]]
 
 
@@ -216,13 +216,18 @@ class DeltaSearchSpace:
 def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: MultiDeltaAmps,
                           exp_curves: IVCurveSet, nindivs: int = 25,
                           nepochs: int = 100000, init_gaus: float = 0.5,
-                          gaus_decay: float = 0.9999) -> Tuple[Tuple[int, int], float]:
+                          gaus_decay: float = 0.9999, seed: Optional[int] = None,
+                          ) -> Tuple[Tuple[int, int], float]:
     """ Optimize the TLEED problem using a simulated-annealing type algorithm, similar to
          how the original Fortran implements this.
         Returns (disp, rfactor) of the integer index of the displacement
          and the corresponding r-factor.
     """
+    if seed is not None:
+        np.random.seed(seed)
+
     shifts, vibs = search_space.search_disps[0], search_space.search_vibs[0]
+    shifts, vibs = np.array(shifts), np.array(vibs)
     # TODO: Change language globally. Disps are combined geo/shifts + vib.
     nsites, ngeo, nvibs = len(multi_delta_amps), len(shifts), len(vibs)
     ndisps = ngeo * nvibs
@@ -232,6 +237,20 @@ def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: Mult
     disps = np.empty((ndisps, 4))
     disps[:, :3] = np.tile(shifts, (nvibs, 1))
     disps[:, 3] = np.repeat(vibs, ngeo)
+
+    # Assume that the displacements live on a rectangular grid, and that x is the most
+    #  rapidly varying index, followed by y, then z
+    # Figure out the parameters of this grid
+    min_disp = np.min(disps, axis=0)
+    max_disp = np.max(disps, axis=0)
+    num_vals_x = len(np.unique(shifts[:, 0]))
+    num_vals_y = len(np.unique(shifts[:, 1]))
+    num_vals_z = len(np.unique(shifts[:, 2]))
+    num_vals = np.array([num_vals_x, num_vals_y, num_vals_z, nvibs]).astype(np.int64)
+    step_disp = (max_disp - min_disp) / np.maximum(1, num_vals - 1)
+    # If the step is zero, there is only one possible value along this axis,
+    #   so set the step to infinity so that any displacement gives you 0 index
+    step_disp[step_disp == 0] = float('inf')
 
     # Randomly initialize each individual to a lattice point
     indivs = np.random.randint(0, ndisps, (nindivs, nsites))
@@ -258,22 +277,31 @@ def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: Mult
             # Sample a move
             propose_disp = curr_disp + gaus_width * np.random.randn(nsites, 4)
 
+            # Clip the displacement to within the search cube
+            propose_disp = np.clip(propose_disp, min_disp, max_disp)
+
             # Get the nearest grid points in the lattice
-            propose_grid_pt = np.empty(nsites, dtype=np.int64)
-            for isite in range(nsites):
-                propose_grid_pt[isite] = np.argmin(
-                    np.sum(np.square(disps - propose_disp[isite]), axis=-1)
-                )
+            propose_grid_pts = np.round((propose_disp - min_disp) / step_disp).astype(np.int64)
+            try:
+                propose_idxs = np.ravel_multi_index(propose_grid_pts.T, num_vals)
+            except:
+                import IPython
+                IPython.embed()
+            # for isite in range(nsites)
+            #
+            #     propose_grid_pt[isite] = np.argmin(
+            #         np.sum(np.square(disps - propose_disp[isite]), axis=-1)
+            #     )
 
             # Calculate new IV curves
-            propose_curves = multi_delta_amps.compute_curves(propose_grid_pt)
+            propose_curves = multi_delta_amps.compute_curves(propose_idxs)
             # Calculate new rfactor
             propose_rfactor = np.min(curves.avg_rfactors(exp_curves, propose_curves))
 
             # Check if better than current rfactor; if so, make the move
             if propose_rfactor < rfactors[iindiv]:
                 rfactors[iindiv] = propose_rfactor
-                indivs[iindiv] = propose_grid_pt
+                indivs[iindiv] = propose_idxs
 
         # Decay the gaussian width
         gaus_width *= gaus_decay
