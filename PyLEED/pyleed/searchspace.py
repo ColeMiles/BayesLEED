@@ -215,7 +215,7 @@ class DeltaSearchSpace:
 
 def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: MultiDeltaAmps,
                           exp_curves: IVCurveSet, nindivs: int = 25,
-                          nepochs: int = 100000, init_gaus: float = 0.5,
+                          nepochs: int = 50000, init_gaus: float = 0.5,
                           gaus_decay: float = 0.9999, seed: Optional[int] = None,
                           ) -> Tuple[Tuple[int, int], float]:
     """ Optimize the TLEED problem using a simulated-annealing type algorithm, similar to
@@ -282,11 +282,7 @@ def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: Mult
 
             # Get the nearest grid points in the lattice
             propose_grid_pts = np.round((propose_disp - min_disp) / step_disp).astype(np.int64)
-            try:
-                propose_idxs = np.ravel_multi_index(propose_grid_pts.T, num_vals)
-            except:
-                import IPython
-                IPython.embed()
+            propose_idxs = np.ravel_multi_index(propose_grid_pts.T, num_vals)
             # for isite in range(nsites)
             #
             #     propose_grid_pt[isite] = np.argmin(

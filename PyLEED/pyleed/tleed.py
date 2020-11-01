@@ -8,12 +8,14 @@ import subprocess
 import logging
 import enum
 import time
+import itertools
+import multiprocessing as mp
 from typing import List, Tuple, Collection, Optional, Union
 
 import numpy as np
 
 from .structure import AtomicStructure, Site, Layer, Atom
-from .searchspace import DeltaSearchDim, DeltaSearchSpace
+from .searchspace import DeltaSearchDim, DeltaSearchSpace, Constraint, optimize_delta_anneal
 from .curves import IVCurve, IVCurveSet, parse_ivcurves, avg_rfactors
 
 
@@ -1018,6 +1020,12 @@ class LEEDManager:
         logging.info("Compiling TLEED delta program...")
         self._compile_delta_program(self._delta_exe, 1, 1)
 
+    def change_delta_exe(self, ndisps: int, nvibs: int,
+                         compiler: str = "gfortran", options: List[str] = None):
+        """ Reset self._delta_exe to one which is prepared for a larger number of disps/vibs
+        """
+        self._compile_delta_program(self._delta_exe, ndisps, nvibs, compiler, options)
+
     def _spawn_ref_calc(self, structure: AtomicStructure, produce_tensors=False):
         """ Spawns a subprocess running a reference calculation for the given AtomicStructure.
             Adds this subprocess to the manager's list of active calculations.
@@ -1089,6 +1097,50 @@ class LEEDManager:
         ]
 
         return deltacalcs
+
+    def batch_ref_calc_local_searches(self, structures: Collection[AtomicStructure],
+                                      search_dims: List[DeltaSearchDim],
+                                      constraints: List[Constraint] = None,
+                                      search_epochs: int = 100000, search_indivs: int = 25
+                                      ) -> List[float]:
+        """ Starts (and waits for completion of) multiple reference calculations
+             in parallel. Once all are done, computes a local TLEED search within
+             the given radii of the reference calc.
+        """
+        num_structs = len(structures)
+
+        # Create RefCalc objects for each calculation
+        logging.info("Starting {} reference calculations...".format(num_structs))
+        refcalcs = [
+            self._spawn_ref_calc(struct, produce_tensors=True)
+            for struct in structures
+        ]
+
+        # Wait for each to finish
+        for calc in refcalcs:
+            calc.wait()
+
+        # Set up the delta search spaces
+        search_spaces = [
+            DeltaSearchSpace(calc, search_dims, constraints) for calc in refcalcs
+        ]
+
+        logging.info("Producing delta amplitudes around {} reference calcs.".format(num_structs))
+        # Make MultiDeltaAmps for each, just do this in serial for now
+        deltacalcs = [
+            self.produce_delta_amps(delta_space, delta_exe=self._delta_exe)
+            for delta_space in search_spaces
+        ]
+
+        logging.info("Starting local searches around {} reference calcs.".format(num_structs))
+        # Run those searches (in parallel)
+        with mp.Pool(num_structs) as pool:
+            results = pool.starmap(
+                optimize_delta_anneal,
+                zip(search_spaces, deltacalcs, itertools.repeat(self.exp_curves))
+            )
+
+        return [r[2] for r in results]
 
     def poll_active_calcs(self) -> List[Tuple[Calc, float]]:
         """ Polls all of the 'active calculations' to check if any have completed,
@@ -1298,7 +1350,9 @@ class LEEDManager:
 
         # Wait for all of the processes to complete
         for p in processes:
-            p.wait()
+            retcode = p.wait()
+            if retcode != 0:
+                raise RuntimeError("Encountered an error while executing delta calculation")
 
         # Parse all of the produced files into SiteDeltaAmps objects
         delta_amps = []
@@ -1306,7 +1360,7 @@ class LEEDManager:
             subworkdir = os.path.join(workdir, "delta_tmp" + str(i + 1))
             delta_amps.append(parse_deltas(os.path.join(subworkdir, "DELWV")))
             # Remove directory once we are done with it
-            shutil.rmtree(subworkdir)
+            # shutil.rmtree(subworkdir)
 
         return MultiDeltaAmps(delta_amps)
 

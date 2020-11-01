@@ -61,15 +61,15 @@ def create_model(pts, targets, state_dict=None):
     #   negative r-factor to minimize it
     # In addition, our LEED evaluations are noiseless, so assert a
     #   noise level of zero
-    model = botorch.models.FixedNoiseGP(
+    # model = botorch.models.FixedNoiseGP(
+    #     pts,
+    #     targets,
+    #     torch.zeros_like(targets)
+    # )
+    model = botorch.models.SingleTaskGP(
         pts,
         targets,
-        torch.zeros_like(targets)
     )
-    # model = botorch.models.SingleTaskGP(
-    #     pts,
-    #     -targets,
-    # )
 
     # Set the prior for the rfactor mean to be at a reasonable level
     # model.mean_module.load_state_dict(
@@ -164,41 +164,6 @@ def acquire_sample_points(
     return new_normalized_pts.cpu().numpy()
 
 
-def decide_tleed(
-    new_structs: List[AtomicStructure], prev_refcalcs: List[RefCalc], tleed_radius: float
-) -> Tuple[List[AtomicStructure], List[Tuple[AtomicStructure, RefCalc]]]:
-    """ Given a list of new trial atomic structure, decides which should be evaluated as
-         reference calculations, which should be evaluated using TLEED, based on if the
-         new point is within tleed_radius of an exising reference calculation.
-        Returns (List[structs for RefCalcs], List[(struct for DeltaCalc, RefCalc to perturb from)])
-        TODO: Could be sped up if this is too slow.
-    """
-    # If no previous ref calcs, all new calcs must be ref calcs
-    if len(prev_refcalcs) == 0:
-        return new_structs.copy(), []
-
-    ref_structs = []
-    delta_pairs = []
-
-    # Distance from each structure to each previous reference calculation structure
-    struct_dists = np.empty((len(new_structs), len(prev_refcalcs)))
-    for i, trial_struct in enumerate(new_structs):
-        for j, calc in enumerate(prev_refcalcs):
-            struct_dists[i, j] = calc.struct.dist(trial_struct)
-
-    closest_calcs = np.argmin(struct_dists, axis=1)
-    # This is gross -_-
-    closest_dists = np.take_along_axis(
-        struct_dists, np.expand_dims(closest_calcs, axis=1), axis=1
-    )
-    for closest_idx, dist, struct in zip(closest_calcs, closest_dists, new_structs):
-        if dist < tleed_radius:
-            delta_pairs.append((struct, prev_refcalcs[closest_idx]))
-        else:
-            ref_structs.append(struct)
-    return ref_structs, delta_pairs
-
-
 def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, problem, ncores, ncalcs,
          tleed_radius=0.0, warm=None, seed=None, start_pts_file=None, detect_existing_calcs=None,
          early_stop=None, random=False):
@@ -215,6 +180,10 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
 
     search_problem = problems.problems[problem]
     num_params = search_problem.num_params
+
+    delta_search_dims = problems.FESE_DELTA_SEARCHDIMS
+    # Re-compile the delta exe to expect these search dimensions
+    manager.change_delta_exe(len(delta_search_dims[0][1]), len(delta_search_dims[0][2]))
 
     if detect_existing_calcs:
         logging.info("Loading points from reference calculations in directory {}".format(workdir))
@@ -242,9 +211,8 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
         # Replace one of the random pts with the "ideal" structure (no perturbations)
         start_pts[0] = search_problem.to_normalized(search_problem.atomic_structure)
         random_structs[0] = search_problem.atomic_structure
-        manager.batch_ref_calcs(random_structs, produce_tensors=True)
-        calc_list = manager.wait_active_calcs()
-        rfactors = np.array([rfact for _, rfact in calc_list])
+        rfactors = manager.batch_ref_calc_local_searches(random_structs, delta_search_dims)
+        rfactors = np.array(rfactors)
 
     # Normalize rfactors to zero mean, unit variance
     normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std(ddof=1)
@@ -273,68 +241,42 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
     # Main Bayesian Optimization Loop
     num_to_opt = ncores
     while ncalcs_completed < ncalcs:
-        # Collect points which are still in progress of being evaluated
-        pending_pts = [torch.tensor(search_problem.to_normalized(calc.struct))
-                       for calc in manager.active_calcs]
-        pending_pts = None if len(pending_pts) == 0 else torch.stack(
-            pending_pts, dim=0
-        ).to(device=device)
-
         # Sample new points from the search space
         new_normalized_pts = acquire_sample_points(
-            normalized_pts, normalized_rfactors, num_to_opt, pending_pts=pending_pts,
+            normalized_pts, normalized_rfactors, num_to_opt,
             method='random' if random else 'bayes', tleed_radius=tleed_radius,
             state_dict=model.state_dict(), save_model=model_filename, device=device
         )
 
         trial_structs = search_problem.to_structures(new_normalized_pts)
 
-        # Decide which of these points will be reference calculations, which will be tleed
-        completed_refcalcs = [c[0] for c in manager.completed_refcalcs]
-        ref_structs, tleed_pairs = decide_tleed(
-            trial_structs, completed_refcalcs, tleed_radius
+        new_rfactors = manager.batch_ref_calc_local_searches(
+            trial_structs,
+            delta_search_dims
         )
 
-        manager.batch_ref_calcs(ref_structs, produce_tensors=True)
-        manager.batch_delta_calcs(tleed_pairs)
+        # Get the new best pt, rfactor
+        best_new_idx = np.argmin(new_rfactors).item()
+        best_new_rfactor = new_rfactors[best_new_idx]
+        if best_new_rfactor < best_rfactor:
+            best_rfactor = best_new_rfactor
+            best_pt = new_normalized_pts[best_new_idx]
+        append_arrays_to_file(tested_filename, new_normalized_pts, new_rfactors)
+        rfactor_progress.append(best_rfactor)
+        np.savetxt(rfactor_filename, rfactor_progress)
 
-        num_to_opt -= len(trial_structs)
+        logging.info("{} calculations completed. New best rfactor = {}".format(
+            len(new_normalized_pts), best_rfactor
+        ))
 
-        # Wait for some calculations to finish
-        while num_to_opt == 0:
-            completed_calcs = manager.poll_active_calcs()
+        # Update the global tensors with the new (point, rfactor) values
+        new_normalized_pts = torch.tensor(new_normalized_pts, device=device)
+        normalized_pts = torch.cat((normalized_pts, new_normalized_pts))
+        new_rfactors = torch.tensor(new_rfactors, device=device, dtype=torch.float64)
+        rfactors = torch.cat((rfactors, new_rfactors))
+        normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std()
 
-            if len(completed_calcs) != 0:
-                new_completed_pts, new_rfactors = [], []
-                for calc, rfactor in completed_calcs:
-                    new_completed_pts.append(search_problem.to_normalized(calc.struct))
-                    new_rfactors.append(rfactor)
-                # Get the new best pt, rfactor
-                best_new_idx = np.argmin(new_rfactors).item()
-                best_new_rfactor = new_rfactors[best_new_idx]
-                if best_new_rfactor < best_rfactor:
-                    best_rfactor = best_new_rfactor
-                    best_pt = new_completed_pts[best_new_idx]
-                append_arrays_to_file(tested_filename, new_completed_pts, new_rfactors)
-                rfactor_progress.append(best_rfactor)
-                np.savetxt(rfactor_filename, rfactor_progress)
-
-                logging.info("{} calculations completed. New best rfactor = {}".format(
-                    len(new_normalized_pts), best_rfactor
-                ))
-
-                # Update the global tensors with the new (point, rfactor) values
-                new_completed_pts = torch.tensor(new_completed_pts, device=device)
-                normalized_pts = torch.cat((normalized_pts, new_completed_pts))
-                new_rfactors = torch.tensor(new_rfactors, device=device, dtype=torch.float64)
-                rfactors = torch.cat((rfactors, new_rfactors))
-                normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std()
-
-                num_to_opt += len(completed_calcs)
-                ncalcs_completed += len(completed_calcs)
-            else:
-                # Sleep a second before polling agin
-                time.sleep(1)
+        ncalcs_completed += num_to_opt
 
         # Early stop if we get a "good enough" solution
         if early_stop is not None and best_rfactor < early_stop:
@@ -417,7 +359,6 @@ if __name__ == "__main__":
     )
 
     pretty_print_args(args)
-
 
     # Check for GPU presence
     if torch.cuda.is_available():
