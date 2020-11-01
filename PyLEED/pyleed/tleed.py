@@ -1132,6 +1132,11 @@ class LEEDManager:
             for delta_space in search_spaces
         ]
 
+        # Everything used by a multiprocessing.Pool must be pickle-able, so we must
+        #  throw away the old processes the ref calcs used
+        for space in search_spaces:
+            space.ref_calc._process = None
+
         logging.info("Starting local searches around {} reference calcs.".format(num_structs))
         # Run those searches (in parallel)
         with mp.Pool(num_structs) as pool:
@@ -1140,7 +1145,7 @@ class LEEDManager:
                 zip(search_spaces, deltacalcs, itertools.repeat(self.exp_curves))
             )
 
-        return [r[2] for r in results]
+        return [r[1] for r in results]
 
     def poll_active_calcs(self) -> List[Tuple[Calc, float]]:
         """ Polls all of the 'active calculations' to check if any have completed,
