@@ -1169,23 +1169,23 @@ alpha-FeSe, two bilayers on bulk with zero buckling
 -------------------------------------------------------------------
   6                       NSITE: number of different site types
 -   site type 1  Fe top layer---
- 1.0000 0.1846            element Fe
- 0.0000 0.1846            element Se
+ 1.0000 0.1000            element Fe
+ 0.0000 0.1000            element Se
 -   site type 2  Fe 2nd layer---
- 1.0000 0.1846            element Fe
- 0.0000 0.1846            element Se
+ 1.0000 0.1000            element Fe
+ 0.0000 0.1000            element Se
 -   site type 3  Fe bulk---
- 1.0000 0.1846            element Fe
- 0.0000 0.1846            element Se
+ 1.0000 0.1000            element Fe
+ 0.0000 0.1000            element Se
 -   site type 4  Se top layer---
- 0.0000 0.1316            element Fe
- 1.0000 0.1316            element Se
+ 0.0000 0.1000            element Fe
+ 1.0000 0.1000            element Se
 -   site type 5  Se 2nd layer---
- 0.0000 0.1316            element Fe
- 1.0000 0.1316            element Se
+ 0.0000 0.1000            element Fe
+ 1.0000 0.1000            element Se
 -   site type 6  Se bulk---
- 0.0000 0.1316            element Fe
- 1.0000 0.1316            element Se
+ 0.0000 0.1000            element Fe
+ 1.0000 0.1000            element Se
 -------------------------------------------------------------------
 --- define different layer types                            *   ---
 -------------------------------------------------------------------
@@ -1221,7 +1221,7 @@ alpha-FeSe, two bilayers on bulk with zero buckling
 -------------------------------------------------------------------
   1
   1 3.3074 0.0000 0.0000  surface layer is of type 1: interlayer vector connecting it to bulk
-  0                       Tensor output is NOT required for this layer
+  1                       Tensor output is NOT required for this layer
 LAY11                      Tensor file name, current layer, sublayer 1
 LAY12                      Tensor file name, current layer, sublayer 2
 LAY13                      Tensor file name, current layer, sublayer 3

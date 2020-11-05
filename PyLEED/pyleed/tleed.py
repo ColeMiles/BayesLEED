@@ -288,7 +288,7 @@ class RefCalc:
             # Various simulation parameters
             ofile.write("{:>7.4f}".format(self.decay_thresh) + 20 * " " + "TST\n")
             for idx in self.beam_idxs:
-                ofile.write("{:>3d}".format(idx))
+                ofile.write("{:>3d}".format(idx+1))
             ofile.write(12 * " " + "NPU(K)\n")
             ofile.write("{:>6.1f} {:>6.1f}".format(self.beaminfo.theta, self.beaminfo.phi))
             ofile.write(16 * " " + "THETA PHI\n")
@@ -628,7 +628,7 @@ class DeltaCalc:
                 c * (delta_atom.z - ref_atom.z)
             ]))
             self._vibs.append(
-                struct.sites[delta_atom.sitenum].vib - ref_calc.struct.sites[ref_atom.sitenum].vib
+                struct.sites[delta_atom.sitenum].vib
             )
 
     def _write_scripts(self, directory: Optional[str] = None) -> List[str]:
@@ -674,7 +674,7 @@ class DeltaCalc:
                         "-------------------------------------------------------------------\n")
                 f.write("{:>4d}\n".format(elem_num))
                 f.write("-------------------------------------------------------------------\n"
-                        "--- unused relic of the old code                                ---\n"
+                        "--- reference undisplaced position of site                      ---\n"
                         "-------------------------------------------------------------------\n")
                 f.write(" 0.0000 0.0000 0.0000\n")
                 f.write("-------------------------------------------------------------------\n"
@@ -772,11 +772,12 @@ class DeltaCalc:
 
 
 class SiteDeltaAmps:
-    """ Class representing a set of delta amplitudes for perturbations of a single site produced by delta.f """
+    """ Class representing a set of delta amplitudes for perturbations of a single site
+        produced by delta.f """
     def __init__(self):
         # All of this should be manually initialized, in parse_deltas
         self.theta, self.phi = 0.0, 0.0
-        self.substrate_recip, self.overlayer_recip = np.zeros(2), np.zeros(2)
+        self.recip_a, self.recip_b = np.zeros(2), np.zeros(2)  # RAR1, RAR2
         self.nbeams = 0
         self.natoms = 0  # Unused by TensErLEED, will always be read in as 1
         self.nshifts = 0
@@ -784,10 +785,10 @@ class SiteDeltaAmps:
         self.beams = np.empty((0, 2))
         self.shifts = np.empty((0, 3))   # NOTE: These are z x y in file, but x y z here
         self.thermal_amps = np.empty(1)
-        self.crystal_energies = np.empty(0)
-        self.substrate_energies = np.empty(0, dtype=np.complex64)
-        self.overlayer_energies = np.empty(0, dtype=np.complex64)
-        self.real_energies_ev = np.empty(0)
+        self.crystal_energies = np.empty(0)                       # E
+        self.substrate_energies = np.empty(0, dtype=np.complex64) # VV + VPI j
+        self.overlayer_energies = np.empty(0, dtype=np.complex64) # VO
+        self.real_energies_ev = np.empty(0)                       # (E - VV) to eV
         self.ref_amplitudes = np.empty((0, 0), np.complex64)
         self.delta_amplitudes = np.empty((0, 0, 0, 0), np.complex64)
 
@@ -812,6 +813,37 @@ class MultiDeltaAmps:
 
         self.delta_amps_list = delta_amps_list
 
+        # Compute propagators at every energy in the range
+        self.propagators = np.empty((self.nbeams, len(self.energies)))
+        # Assumes theta, fi, energy params, recip vectors same across all SiteDeltaAmps
+        # All of below is more or less directly copied from lib.tleed.f
+        amps = self.delta_amps_list[0]
+        Ak = np.sqrt(
+            np.maximum(2.0 * (amps.crystal_energies - np.real(amps.substrate_energies)), 0.0)
+        )
+        C = Ak * np.cos(amps.theta)
+        Bk2 = Ak * np.sin(amps.theta) * np.cos(amps.phi)
+        Bk3 = Ak * np.sin(amps.theta) * np.sin(amps.phi)
+        Bkz = np.sqrt(
+            2.0 * (amps.crystal_energies - amps.overlayer_energies)
+          - Bk2 * Bk2
+          - Bk3 * Bk3
+          - 2.0j * np.imag(amps.substrate_energies)
+        )
+
+        for ib in range(self.nbeams):
+            Ak2 = (Bk2 + self.beam_labels[ib, 0] * amps.recip_a[0]
+                       + self.beam_labels[ib, 1] * amps.recip_b[0])
+            Ak3 = (Bk3 + self.beam_labels[ib, 0] * amps.recip_a[1]
+                       + self.beam_labels[ib, 1] * amps.recip_b[1])
+            Ak = 2.0 * amps.crystal_energies - Ak2 * Ak2 - Ak3 * Ak3
+            Akz = np.sqrt(
+                Ak - 2.0 * amps.overlayer_energies - 2.0j * np.imag(amps.substrate_energies)
+            )
+            Aperp = np.maximum(Ak - 2.0 * np.real(amps.substrate_energies), 0.0)
+            safe_idxs = Aperp > 0.0
+            self.propagators[ib][safe_idxs] = np.sqrt(Aperp[safe_idxs]) / C[safe_idxs]
+
     def __len__(self):
         return self.nsites
 
@@ -829,7 +861,7 @@ class MultiDeltaAmps:
 
         curves = [IVCurve(
             self.energies,
-            np.abs(new_amplitudes[ibeam]),
+            np.abs(new_amplitudes[ibeam])**2 * self.propagators[ibeam],
             self.beam_labels[ibeam]
         ) for ibeam in range(self.nbeams)]
 
@@ -863,10 +895,10 @@ def _parse_deltas_str(lines: List[str]) -> SiteDeltaAmps:
 
     delta_amp.theta = float(line[:13])
     delta_amp.phi = float(line[13:26])
-    delta_amp.substrate_recip[0] = float(line[26:39])
-    delta_amp.substrate_recip[1] = float(line[39:52])
-    delta_amp.overlayer_recip[0] = float(line[52:65])
-    delta_amp.overlayer_recip[1] = float(line[65:78])
+    delta_amp.recip_a[0] = float(line[26:39])
+    delta_amp.recip_a[1] = float(line[39:52])
+    delta_amp.recip_b[0] = float(line[52:65])
+    delta_amp.recip_b[1] = float(line[65:78])
 
     linenum += 1
     line = lines[linenum]
@@ -1225,7 +1257,7 @@ class LEEDManager:
                     "-------------------------------------------------------------------\n")
             f.write("{:>4d}\n".format(elem_num))
             f.write("-------------------------------------------------------------------\n"
-                    "--- unused relic of the old code                                ---\n"
+                    "--- undisplaced position of original site                       ---\n"
                     "-------------------------------------------------------------------\n")
             f.write(" 0.0000 0.0000 0.0000\n")
             f.write("-------------------------------------------------------------------\n"
@@ -1235,7 +1267,7 @@ class LEEDManager:
             for disp in disps:
                 f.write("{:>7.4f}{:>7.4f}{:>7.4f}\n".format(disp[2], disp[0], disp[1]))
             f.write("-------------------------------------------------------------------\n"
-                    "--- vibrational displacements of atomic site in question        ---\n"
+                    "--- absolute vibrational amplitudes of atomic site in question  ---\n"
                     "-------------------------------------------------------------------\n")
             f.write("{:>4d}\n".format(len(vibs)))
             for vib in vibs:

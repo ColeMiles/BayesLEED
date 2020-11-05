@@ -7,18 +7,6 @@ import numpy as np
 import pyleed
 
 
-def _make_test_manager():
-    # TODO: Make this so that you don't have to call from a specific directory
-    return pyleed.bayessearch.create_manager(
-        'test/test_files/FeSetest/',
-        '/home/cole/ProgScratch/BayesLEED/TLEED/',
-        pyleed.problems.FESE_BEAMINFO_TRIMMED,
-        'test/test_files/FeSetest/NBLIST.FeSe-1x1',
-        'test/test_files/FeSetest/FeSeBulk.eight.phase', 8,
-        executable='ref-calc.FeSe'
-    )
-
-
 def main():
     manager = pyleed.bayessearch.create_manager(
         '../../TLEED/work',
@@ -29,12 +17,12 @@ def main():
         executable='ref-calc.FeSe'
     )
 
-    atom_idxs = [0, 3, 5]
+    atom_idxs = [0, 5]
     # Displacements (in Angstroms)
-    displacements = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+    displacements = np.linspace(0.0, 0.5, num=16)
 
     base_struct = pyleed.problems.FESE_20UC
-    all_joint_disps = list(itertools.product(displacements, displacements, displacements))
+    all_joint_disps = list(itertools.product(displacements, displacements))
 
     for i in range(0, len(all_joint_disps), 8):
         structs = []
@@ -62,7 +50,6 @@ def main():
             for idx, disp in zip(atom_idxs, joint_disps):
                 struct.layers[0].zs[idx] += disp / struct.cell_params[2]
             structs.append(struct)
-        produce_tensors = i == 0
         structs = [(s, base_calc) for s in structs]
         manager.batch_delta_calcs(structs)
         manager.wait_active_calcs()
