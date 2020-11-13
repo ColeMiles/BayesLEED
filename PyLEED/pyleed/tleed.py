@@ -10,6 +10,7 @@ import enum
 import time
 import itertools
 import multiprocessing as mp
+import copy
 from typing import List, Tuple, Collection, Optional, Union
 
 import numpy as np
@@ -777,7 +778,7 @@ class SiteDeltaAmps:
     def __init__(self):
         # All of this should be manually initialized, in parse_deltas
         self.theta, self.phi = 0.0, 0.0
-        self.recip_a, self.recip_b = np.zeros(2), np.zeros(2)  # RAR1, RAR2
+        self.recip_a, self.recip_b = np.zeros(2), np.zeros(2)     # RAR1, RAR2
         self.nbeams = 0
         self.natoms = 0  # Unused by TensErLEED, will always be read in as 1
         self.nshifts = 0
@@ -1043,9 +1044,9 @@ class LEEDManager:
         self.beamlist: BeamList = beamlist
         self.exp_curves: IVCurveSet = exp_curves
 
-        self.completed_calcs: List[Tuple[Calc, float]] = []
-        self.completed_refcalcs: List[Tuple[RefCalc, float]] = []
-        self.completed_deltacalcs: List[Tuple[DeltaCalc, float]] = []
+        self.completed_calcs: List[Tuple[AtomicStructure, float]] = []
+        self.completed_refcalcs: List[Tuple[AtomicStructure, float]] = []
+        self.completed_deltacalcs: List[Tuple[AtomicStructure, float]] = []
         self.calc_number = 0
         self.active_calcs: List[Calc] = []
 
@@ -1134,10 +1135,12 @@ class LEEDManager:
                                       search_dims: List[DeltaSearchDim],
                                       constraints: List[Constraint] = None,
                                       search_epochs: int = 100000, search_indivs: int = 25
-                                      ) -> List[float]:
+                                      ) -> Tuple[List[float], List[AtomicStructure], List[float]]:
         """ Starts (and waits for completion of) multiple reference calculations
              in parallel. Once all are done, computes a local TLEED search within
              the given radii of the reference calc.
+
+            Returns (ref_rfactors, best_delta_structs, best_delta_rfactors)
         """
         num_structs = len(structures)
 
@@ -1152,22 +1155,30 @@ class LEEDManager:
         for calc in refcalcs:
             calc.wait()
 
+        # Calculate r-factors of these initial calculations
+        ref_rfactors = [calc.rfactor(self.exp_curves) for calc in refcalcs]
+        logging.info("Reference calc rfactors: {}".format(ref_rfactors))
+        for struct, rfact in zip(structures, ref_rfactors):
+            self.completed_refcalcs.append((struct, rfact))
+            self.completed_calcs.append((struct, rfact))
+
         # Set up the delta search spaces
         search_spaces = [
             DeltaSearchSpace(calc, search_dims, constraints) for calc in refcalcs
-        ]
-
-        logging.info("Producing delta amplitudes around {} reference calcs.".format(num_structs))
-        # Make MultiDeltaAmps for each, just do this in serial for now
-        deltacalcs = [
-            self.produce_delta_amps(delta_space, delta_exe=self._delta_exe)
-            for delta_space in search_spaces
         ]
 
         # Everything used by a multiprocessing.Pool must be pickle-able, so we must
         #  throw away the old processes the ref calcs used
         for space in search_spaces:
             space.ref_calc._process = None
+
+        logging.info("Producing delta amplitudes around {} reference calcs.".format(num_structs))
+
+        # Make MultiDeltaAmps for each, just do this in serial for now
+        deltacalcs = [
+            self.produce_delta_amps(delta_space, delta_exe=self._delta_exe)
+            for delta_space in search_spaces
+        ]
 
         logging.info("Starting local searches around {} reference calcs.".format(num_structs))
         # Run those searches (in parallel)
@@ -1177,7 +1188,32 @@ class LEEDManager:
                 zip(search_spaces, deltacalcs, itertools.repeat(self.exp_curves))
             )
 
-        return [r[1] for r in results]
+        # Reconstruct the structures which achieved the minimum of each annealing
+        # TODO: Move this inside optimize_delta_anneal?
+        delta_structs = []
+        delta_rfactors = [r[1] for r in results]
+        for i in range(len(structures)):
+            (disp_idxs, vib_idxs), delta_rfactor = results[i]
+            atom_idxs = search_spaces[i].atoms
+            base_struct = search_spaces[i].struct
+            delta_struct = copy.deepcopy(base_struct)
+            for j, (atom_idx, disp_idx, vib_idx) in enumerate(zip(atom_idxs, disp_idxs, vib_idxs)):
+                search_disps = search_spaces[i].search_disps[j]
+                search_vibs = search_spaces[i].search_vibs[j]
+                disp = search_disps[disp_idx]
+                vib = search_vibs[vib_idx]
+
+                delta_struct.layers[0].xs[atom_idx-1] += disp[0] / delta_struct.cell_params[0]
+                delta_struct.layers[0].ys[atom_idx-1] += disp[1] / delta_struct.cell_params[1]
+                delta_struct.layers[0].zs[atom_idx-1] += disp[2] / delta_struct.cell_params[2]
+                sitenum = delta_struct.layers[0].sitenums[atom_idx-1]
+                delta_struct.sites[sitenum-1].vib = vib
+
+            delta_structs.append(delta_struct)
+            self.completed_deltacalcs.append((delta_struct, delta_rfactor))
+            self.completed_calcs.append((delta_struct, delta_rfactor))
+
+        return ref_rfactors, delta_structs, delta_rfactors
 
     def poll_active_calcs(self) -> List[Tuple[Calc, float]]:
         """ Polls all of the 'active calculations' to check if any have completed,

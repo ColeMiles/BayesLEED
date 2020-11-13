@@ -211,8 +211,12 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
         # Replace one of the random pts with the "ideal" structure (no perturbations)
         start_pts[0] = search_problem.to_normalized(search_problem.atomic_structure)
         random_structs[0] = search_problem.atomic_structure
-        rfactors = manager.batch_ref_calc_local_searches(random_structs, delta_search_dims)
-        rfactors = np.array(rfactors)
+        ref_rfactors, delta_structs, delta_rfactors = manager.batch_ref_calc_local_searches(
+            random_structs, delta_search_dims
+        )
+        rfactors = np.array(ref_rfactors + delta_rfactors)
+        delta_pts = search_problem.to_normalized(delta_structs)
+        start_pts = np.concatenate((start_pts, delta_pts), axis=0)
 
     # Normalize rfactors to zero mean, unit variance
     normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std(ddof=1)
@@ -222,7 +226,7 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
     best_idx = np.argmin(rfactors)
     best_rfactor = rfactors[best_idx]
     rfactor_progress = [best_rfactor]
-    ncalcs_completed = len(start_pts)
+    ncalcs_completed = len(start_pts) // 2
 
     # Create header for tested points file
     with open(tested_filename, "w") as ptfile:
@@ -250,10 +254,13 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
 
         trial_structs = search_problem.to_structures(new_normalized_pts)
 
-        new_rfactors = manager.batch_ref_calc_local_searches(
+        ref_rfactors, delta_structs, delta_rfactors = manager.batch_ref_calc_local_searches(
             trial_structs,
             delta_search_dims
         )
+        new_rfactors = ref_rfactors + delta_rfactors
+        delta_pts = search_problem.to_normalized(delta_structs)
+        new_normalized_pts = np.concatenate((new_normalized_pts, delta_pts), axis=0)
 
         # Get the new best pt, rfactor
         best_new_idx = np.argmin(new_rfactors).item()
