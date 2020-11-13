@@ -25,11 +25,15 @@ def pretty_print_args(args):
     logging.info("----------------------------------")
 
 
-def append_arrays_to_file(filename, pts, rfactors):
+def append_arrays_to_file(filename, pts, rfactors, labels=None):
     assert len(pts) == len(rfactors), "do not have same number of pts and rfactors"
+    if labels is None:
+        labels = ("" for _ in pts)
     row_format_string = "{:<8.4f}" * (len(pts[0]) + 1)
+    label_format_string = "{:<7s}"
     with open(filename, "a") as f:
-        for pt, rfactor in zip(pts, rfactors):
+        for pt, rfactor, label in zip(pts, rfactors, labels):
+            f.write(label_format_string.format(label))
             f.write(row_format_string.format(*pt, rfactor) + "\n")
 
 
@@ -197,11 +201,16 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
         start_pts = search_problem.to_normalized([calc.struct for calc in calcs])
         rfactors = np.array([calc.rfactor(manager.exp_curves) for calc in calcs])
         manager.calc_number = len(start_pts)
+        num_ref_calcs = len(start_pts)
+        num_delta_calcs = 0
     elif start_pts_file is not None:
+        # TODO: Needs more logic to parse refcalcs/deltacalcs
         logging.info("Loading points from file: {}".format(start_pts_file))
         data = np.loadtxt(start_pts_file, skiprows=1)
         start_pts = data[:, :-1]
         rfactors = data[:, -1]
+        num_ref_calcs = len(start_pts)
+        num_delta_calcs = 0
     else:
         if warm:
             print("Warm start is unimplemented as of right now")
@@ -217,6 +226,8 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
         rfactors = np.array(ref_rfactors + delta_rfactors)
         delta_pts = search_problem.to_normalized(delta_structs)
         start_pts = np.concatenate((start_pts, delta_pts), axis=0)
+        num_ref_calcs = num_eval
+        num_delta_calcs = num_eval
 
     # Normalize rfactors to zero mean, unit variance
     normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std(ddof=1)
@@ -230,12 +241,14 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
 
     # Create header for tested points file
     with open(tested_filename, "w") as ptfile:
-        header_str = "DISPLACEMENT" + " " * 52 + "RFACTOR"
+        header_str = "LABEL  DISPLACEMENT" + " " * 52 + "RFACTOR"
         if seed is not None:
             header_str += "    SEED: " + str(seed)
         header_str += "\n"
         ptfile.write(header_str)
-    append_arrays_to_file(tested_filename, start_pts, rfactors)
+    labels = ["R"+str(i) for i in range(num_ref_calcs)]
+    labels += ["D"+str(i) for i in range(num_delta_calcs)]
+    append_arrays_to_file(tested_filename, start_pts, rfactors, labels)
     logging.info("Best r-factor from initial set: {:.4f}".format(best_rfactor))
 
     normalized_pts = torch.tensor(start_pts, device=device, dtype=torch.float64)
@@ -268,9 +281,15 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
         if best_new_rfactor < best_rfactor:
             best_rfactor = best_new_rfactor
             best_pt = new_normalized_pts[best_new_idx]
-        append_arrays_to_file(tested_filename, new_normalized_pts, new_rfactors)
+
+        # Log some output
+        labels = ["R" + str(i) for i in range(num_ref_calcs, num_ref_calcs + num_to_opt)]
+        labels += ["D" + str(i) for i in range(num_delta_calcs, num_delta_calcs + num_to_opt)]
+        append_arrays_to_file(tested_filename, new_normalized_pts, new_rfactors, labels)
         rfactor_progress.append(best_rfactor)
         np.savetxt(rfactor_filename, rfactor_progress)
+        num_ref_calcs += len(ref_rfactors)
+        num_delta_calcs += len(delta_rfactors)
 
         logging.info("{} calculations completed. New best rfactor = {}".format(
             len(new_normalized_pts), best_rfactor

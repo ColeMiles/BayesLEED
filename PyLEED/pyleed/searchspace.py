@@ -213,6 +213,7 @@ class DeltaSearchSpace:
         self.constraints = constraints
 
 
+# TODO: Profile / optimize
 def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: MultiDeltaAmps,
                           exp_curves: IVCurveSet, nindivs: int = 25,
                           nepochs: int = 30000, init_gaus: float = 0.5,
@@ -301,4 +302,5 @@ def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: Mult
 
     best_idx = np.argmin(rfactors)
     best_indiv, best_rfactor = indivs[best_idx], rfactors[best_idx]
-    return divmod(best_indiv, nvibs), best_rfactor
+    vib_idxs, geo_idxs = divmod(best_indiv, ngeo)
+    return (geo_idxs, vib_idxs), best_rfactor

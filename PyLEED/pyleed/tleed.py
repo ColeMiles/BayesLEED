@@ -1193,19 +1193,19 @@ class LEEDManager:
         delta_structs = []
         delta_rfactors = [r[1] for r in results]
         for i in range(len(structures)):
-            (disp_idxs, vib_idxs), delta_rfactor = results[i]
+            (geo_idxs, vib_idxs), delta_rfactor = results[i]
             atom_idxs = search_spaces[i].atoms
             base_struct = search_spaces[i].struct
             delta_struct = copy.deepcopy(base_struct)
-            for j, (atom_idx, disp_idx, vib_idx) in enumerate(zip(atom_idxs, disp_idxs, vib_idxs)):
+            for j, (atom_idx, geo_idx, vib_idx) in enumerate(zip(atom_idxs, geo_idxs, vib_idxs)):
                 search_disps = search_spaces[i].search_disps[j]
                 search_vibs = search_spaces[i].search_vibs[j]
-                disp = search_disps[disp_idx]
+                geo = search_disps[geo_idx]
                 vib = search_vibs[vib_idx]
 
-                delta_struct.layers[0].xs[atom_idx-1] += disp[0] / delta_struct.cell_params[0]
-                delta_struct.layers[0].ys[atom_idx-1] += disp[1] / delta_struct.cell_params[1]
-                delta_struct.layers[0].zs[atom_idx-1] += disp[2] / delta_struct.cell_params[2]
+                delta_struct.layers[0].xs[atom_idx-1] += geo[0] / delta_struct.cell_params[0]
+                delta_struct.layers[0].ys[atom_idx-1] += geo[1] / delta_struct.cell_params[1]
+                delta_struct.layers[0].zs[atom_idx-1] += geo[2] / delta_struct.cell_params[2]
                 sitenum = delta_struct.layers[0].sitenums[atom_idx-1]
                 delta_struct.sites[sitenum-1].vib = vib
 
