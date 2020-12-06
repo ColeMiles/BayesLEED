@@ -115,7 +115,7 @@ class Phaseshifts:
 
         self.num_energies = self.phases.shape[0]  # Number of energies tabulated
         self.num_elem = self.phases.shape[1]      # Number of elements
-        self.lmax = self.phases.shape[2]          # Maximum angular momentum quantum number
+        self.lmax = self.phases.shape[2] - 1      # Maximum angular momentum quantum number
 
     def to_script(self) -> str:
         """ Returns a string to be inserted into scripts which expect phaseshifts as text """
@@ -139,6 +139,7 @@ def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
     return phaseshifts
 
 
+# TODO: Improve with idea in Julia code
 def _parse_phaseshifts_str(lines: List[str], l_max: int) -> Phaseshifts:
     energies = []
     # Will become a triply-nested list of dimensions [NENERGIES, NELEM, NANG_MOM],
@@ -156,7 +157,7 @@ def _parse_phaseshifts_str(lines: List[str], l_max: int) -> Phaseshifts:
     num_elem = 0
     # Once len(line) == 8, we've hit a new energy rather than more phaseshifts
     while len(line) != 7:
-        if len(line) != min(70, 7 * l_max):
+        if len(line) != min(70, 7 * (l_max + 1)):
             raise ValueError(
                 "Provided l_max does not agree with phaseshift file: Line {}".format(
                     linenum + 1
@@ -168,8 +169,8 @@ def _parse_phaseshifts_str(lines: List[str], l_max: int) -> Phaseshifts:
         # This line is extraneous if l_max <= 9, but will contain more phaseshifts otherwise
         linenum += 1
         line = lines[linenum]
-        if l_max > 10:
-            for i in range(l_max - 10):
+        if l_max > 9:
+            for i in range(l_max - 9):
                 elem_phases.append(float(line[7*i:7*(i+1)]))
 
         phases[0].append(elem_phases)
@@ -186,8 +187,8 @@ def _parse_phaseshifts_str(lines: List[str], l_max: int) -> Phaseshifts:
             linenum += 1
             line = lines[linenum]
             elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
-            if l_max > 10:
-                for i in range(l_max - 10):
+            if l_max > 9:
+                for i in range(l_max - 9):
                     elem_phases[n].append(float(line[7*i:7*(i+1)]))
             linenum += 1
         phases.append(elem_phases)
@@ -550,9 +551,9 @@ def _parse_ref_calc_str(lines: List[str]) -> RefCalc:
         atoms = []
         for _ in range(numsublayer):
             sitenum = int(lines[linenum][:3])
-            x = float(lines[linenum][3:10])
-            y = float(lines[linenum][10:17])
-            z = float(lines[linenum][17:24])
+            z = float(lines[linenum][3:10])
+            x = float(lines[linenum][10:17])
+            y = float(lines[linenum][17:24])
             sitenum = int(sitenum)
             atoms.append(Atom(sitenum, x, y, z))
             linenum += 1
@@ -566,8 +567,7 @@ def _parse_ref_calc_str(lines: List[str]) -> RefCalc:
 
     cell_a, cell_b = lat_vec_a[0], lat_vec_b[1]
     # TODO: This is certainly not true in general
-    max_bulkz = max(a.z for a in layers[1])
-    cell_c = max_bulkz + bulk_interlayer_dist
+    cell_c = bulk_interlayer_dist
 
     # Normalize all Layer coordinates
     for layer in layers:
@@ -1044,9 +1044,9 @@ class LEEDManager:
         self.beamlist: BeamList = beamlist
         self.exp_curves: IVCurveSet = exp_curves
 
-        self.completed_calcs: List[Tuple[AtomicStructure, float]] = []
-        self.completed_refcalcs: List[Tuple[AtomicStructure, float]] = []
-        self.completed_deltacalcs: List[Tuple[AtomicStructure, float]] = []
+        self.completed_calcs: List[Tuple[Calc, float]] = []
+        self.completed_refcalcs: List[Tuple[RefCalc, float]] = []
+        self.completed_deltacalcs: List[Tuple[DeltaCalc, float]] = []
         self.calc_number = 0
         self.active_calcs: List[Calc] = []
 
@@ -1158,9 +1158,9 @@ class LEEDManager:
         # Calculate r-factors of these initial calculations
         ref_rfactors = [calc.rfactor(self.exp_curves) for calc in refcalcs]
         logging.info("Reference calc rfactors: {}".format(ref_rfactors))
-        for struct, rfact in zip(structures, ref_rfactors):
-            self.completed_refcalcs.append((struct, rfact))
-            self.completed_calcs.append((struct, rfact))
+        for calc, rfact in zip(refcalcs, ref_rfactors):
+            self.completed_refcalcs.append((calc, rfact))
+            self.completed_calcs.append((calc, rfact))
 
         # Set up the delta search spaces
         search_spaces = [
@@ -1197,6 +1197,7 @@ class LEEDManager:
             atom_idxs = search_spaces[i].atoms
             base_struct = search_spaces[i].struct
             delta_struct = copy.deepcopy(base_struct)
+            ref_calc = search_spaces[i].ref_calc
             for j, (atom_idx, geo_idx, vib_idx) in enumerate(zip(atom_idxs, geo_idxs, vib_idxs)):
                 search_disps = search_spaces[i].search_disps[j]
                 search_vibs = search_spaces[i].search_vibs[j]
@@ -1210,8 +1211,9 @@ class LEEDManager:
                 delta_struct.sites[sitenum-1].vib = vib
 
             delta_structs.append(delta_struct)
-            self.completed_deltacalcs.append((delta_struct, delta_rfactor))
-            self.completed_calcs.append((delta_struct, delta_rfactor))
+            delta_calc = DeltaCalc(delta_struct, ref_calc)
+            self.completed_deltacalcs.append((delta_calc, delta_rfactor))
+            self.completed_calcs.append((delta_calc, delta_rfactor))
 
         return ref_rfactors, delta_structs, delta_rfactors
 
