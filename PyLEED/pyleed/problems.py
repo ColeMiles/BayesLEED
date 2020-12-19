@@ -5,6 +5,8 @@ from .searchspace import *
 from .tleed import *
 import numpy as np
 
+# TODO: BeamInfo can be automatically obtained from exp curve file
+
 FESE_BEAMINFO_TRIMMED = BeamInfo(
     0.0, 0.0,         # Incident theta, phi
     [                 # (kx, ky) of beams
@@ -15,6 +17,27 @@ FESE_BEAMINFO_TRIMMED = BeamInfo(
         (3, 0)
     ],
     30.0, 550.0, 2.0  # Emin, Emax, dE
+)
+
+FESE1UC_BEAMINFO = BeamInfo(
+    0.0, 0.0,
+    [
+        (0, 1),
+        (1, 0),
+        (1, 1),
+        (0, 2),
+        (2, 0),
+        (1, 2),
+        (2, 1),
+        (2, 2),
+        (0, 3),
+        (1, 3),
+        (3, 1),
+        (2, 3),
+        (3, 2),
+        (3, 3)
+    ],
+    16.0, 410.0, 2.0  # Emin, Emax, dE
 )
 
 FESE_20UC = AtomicStructure(
@@ -52,6 +75,56 @@ FESE_20UC = AtomicStructure(
     ],
     # Unit cell parameters
     [3.7676, 3.7676, 5.5180]
+)
+
+# TODO: Support more than 2 layers!
+FESE_1UC_2x1 = AtomicStructure(
+    # Atomic sites
+    [
+     Site([1.0, 0.0, 0.0, 0.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Fe film"),
+     Site([0.0, 1.0, 0.0, 0.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Se film"),
+     Site([0.0, 0.0, 1.0, 0.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Sr bulk"),
+     Site([0.0, 0.0, 0.0, 1.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Ti bulk"),
+     Site([0.0, 0.0, 0.0, 0.0, 1.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "O  bulk"),
+    ],
+    # Layer definitions (fractional coordinates)
+    [
+     Layer([
+         Atom(1, 0.25, 0.75, 0.25),  # Top Layer Fe, cell 1
+         Atom(1, 0.75, 0.25, 0.25),  # Top Layer Fe, cell 1
+         Atom(2, 0.25, 0.25, 0.00),  # Top Layer Se, cell 1
+         Atom(2, 0.75, 0.75, 0.50),  # Top Layer Se, cell 1
+         Atom(1, 0.25, 0.75, 0.25),  # Top Layer Fe, cell 2
+         Atom(1, 0.75, 0.25, 0.25),  # Top Layer Fe, cell 2
+         Atom(2, 0.25, 0.25, 0.00),  # Top Layer Se, cell 2
+         Atom(2, 0.75, 0.75, 0.50),  # Top Layer Se, cell 2
+         ], "Top FeSe film"
+     ),
+     Layer([
+         Atom(4, 0.0, 0.0, 0.0),     # Ti, doubled overlayer, cell 1
+         Atom(4, 0.0, 0.0, 0.0),     # Ti, doubled overlayer, cell 2
+         Atom(5, 0.0, 0.0, 0.0),     # O, doubled overlayer, cell 1
+         Atom(5, 0.0, 0.0, 0.0),     # O, doubled overlayer, cell 1
+         Atom(5, 0.0, 0.0, 0.0),     # O, doubled overlayer, cell 2
+         Atom(5, 0.0, 0.0, 0.0),     # O, doubled overlayer, cell 2
+         ], "TiO2 doubled overlayer"
+     ),
+     Layer([
+         Atom(4, 0.0, 0.0, 0.0),     # Ti, bulk, cell 1
+         Atom(4, 0.0, 0.0, 0.0),     # Ti, bulk, cell 2
+         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 1
+         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 1
+         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 2
+         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 2
+         Atom(3, 0.0, 0.0, 0.0),     # Sr, bulk, cell 1
+         Atom(3, 0.0, 0.0, 0.0),     # Sr, bulk, cell 2
+         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 1
+         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 1
+         ], "SrTiO3 bulk"
+     ),
+    ],
+    # Unit cell parameters
+    [7.5352, 3.7676, 5.5180]
 )
 
 FESE_20UC_SINGLEZREGRESSED = AtomicStructure(
@@ -370,6 +443,31 @@ FESE_20UC_PROBLEM_SECONDXY = SearchSpace(
     ]
 )
 
+FESE_1UC_PROBLEM = SearchSpace(
+    FESE_1UC_2x1,
+    [
+        (SearchKey.CELLB, -1, (-0.01, 0.01)),
+        (SearchKey.CELLC, -1, (-0.01, 0.01)),
+        (SearchKey.ATOMZ,  1, (-0.1, 0.1)),
+        (SearchKey.ATOMZ,  2, (-0.1, 0.1)),
+        (SearchKey.ATOMZ,  3, (-0.1, 0.1)),
+        (SearchKey.ATOMZ,  4, (-0.1, 0.1)),
+        (SearchKey.ATOMZ,  5, (-0.1, 0.1)),
+        (SearchKey.ATOMZ,  6, (-0.1, 0.1)),
+        (SearchKey.ATOMZ,  7, (-0.1, 0.1)),
+        (SearchKey.ATOMZ,  8, (-0.1, 0.1)),
+        (SearchKey.ATOMZ,  9, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 10, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 11, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 12, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 13, (-0.1, 0.1)),
+        (SearchKey.ATOMZ, 14, (-0.1, 0.1)),
+    ],
+    constraints=[   # Bind cell's a axis to be twice the b axis
+        LambdaConstraint(SearchKey.CELLB, -1, SearchKey.CELLA, -1, lambda x: 2*x)
+    ]
+)
+
 DEFAULT_DELTA_DISPS = np.zeros((21, 3))
 DEFAULT_DELTA_DISPS[:, 2] = np.arange(-0.2, 0.22, step=0.02)
 DEFAULT_DELTA_VIBS = np.arange(0.1, 0.3, step=0.04)
@@ -397,4 +495,5 @@ problems = {
 
 beaminfos = {
     "FESE_TRIM": FESE_BEAMINFO_TRIMMED,
+    "FESE_1UC": FESE1UC_BEAMINFO,
 }

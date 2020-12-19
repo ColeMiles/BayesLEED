@@ -5,10 +5,13 @@ import numpy as np
 
 plt.style.use("seaborn-talk")
 
-def plot_data(exp_data, sim_data, title="", rfactors=None, scale=False):
+def plot_data(exp_data, sim_data=None, title="", rfactors=None, scale=False):
     """ Plots an array of I(E) data, assuming that every two columns
          forms an (E, I) curve to plot.
     """
+    if sim_data is None:
+        sim_data = np.array([[], []])
+
     # Check that there is an even number of columns
     if exp_data.shape[1] % 2 != 0 or sim_data.shape[1] % 2 != 0:
         raise ValueError("Not an even number of columns in data array!")
@@ -68,11 +71,14 @@ def plot_data(exp_data, sim_data, title="", rfactors=None, scale=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="I(E) Plotter")
     parser.add_argument("exp_datafile", type=str)
-    parser.add_argument("sim_datafile", type=str)
+    parser.add_argument("sim_datafile", type=str, nargs='?')
     parser.add_argument("--title", type=str, default="")
     parser.add_argument("--rfactors", nargs="+", type=float)
     parser.add_argument("--scale", action="store_true", help="If set, scales curves to match maxima heights")
     args = parser.parse_args()
     exp_data = np.loadtxt(args.exp_datafile)
-    sim_data = np.loadtxt(args.sim_datafile)
+    if args.sim_datafile is None:
+        sim_data = None
+    else:
+        sim_data = np.loadtxt(args.sim_datafile)
     plot_data(exp_data, sim_data, title=args.title, rfactors=args.rfactors, scale=args.scale)

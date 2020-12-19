@@ -46,6 +46,12 @@ class EqualShiftConstraint(Constraint):
         super().__init__(search_key, search_idx, bound_key, bound_idx)
 
 
+class LambdaConstraint(Constraint):
+    def __init__(self, search_key, search_idx, bound_key, bound_idx, f):
+        super().__init__(search_key, search_idx, bound_key, bound_idx)
+        self.f = f
+
+
 SearchParam = Tuple[SearchKey, int]
 SearchDim = Tuple[SearchKey, int, Tuple[float, float]]
 
@@ -63,10 +69,6 @@ class SearchSpace:
         Also note that this assumes that all atoms to search over are in the
          first layer. (Except for lattice parameters, which also apply to the bulk)
 
-        Constraints can be provided as a list of tuples of the form
-            (SEARCH_KEY, SEARCH_IDX, BOUND_IDX)
-        which will make it so that whenever the search parameter (SEARCH_KEY, SEARCH_IDX)
-         is sampled/changed, the variable at idx BOUND_IDX is changed to match the constraint.
         TODO: Re-do how constraints are handled to allow arbitrary multi-atom constraints
     """
 
@@ -140,10 +142,14 @@ class SearchSpace:
             for constraint in bound_constraints:
                 b_key = constraint.bound_key
                 b_idx = constraint.bound_idx
+                # TODO: This is gross, there should be a general interface
                 if isinstance(constraint, EqualityConstraint):
                     new_struct[b_key, b_idx] = new_struct[key, idx]
                 elif isinstance(constraint, EqualShiftConstraint):
                     new_struct[b_key, b_idx] += lims[0] + val * (lims[1] - lims[0])
+                elif isinstance(constraint, LambdaConstraint):
+                    new_struct[b_key, b_idx] = constraint.f(new_struct[key, idx])
+
 
         return new_struct
 

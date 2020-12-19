@@ -102,6 +102,7 @@ class Layer:
         return output
 
 
+# TODO: Mapping of siteidx -> element name should be global within this class
 class AtomicStructure:
     """ Class holding all of the information needed to write the structure
          sections of the input LEED script. Layer coordinates should be in
