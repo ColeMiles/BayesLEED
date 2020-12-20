@@ -77,7 +77,8 @@ FESE_20UC = AtomicStructure(
     [3.7676, 3.7676, 5.5180]
 )
 
-# TODO: Support more than 2 layers!
+# TODO: Should I add one more tunable layer of TiO2?
+# TODO: Need to figure out the interlayer vector business once and for all
 FESE_1UC_2x1 = AtomicStructure(
     # Atomic sites
     [
@@ -90,41 +91,41 @@ FESE_1UC_2x1 = AtomicStructure(
     # Layer definitions (fractional coordinates)
     [
      Layer([
-         Atom(1, 0.25, 0.75, 0.25),  # Top Layer Fe, cell 1
-         Atom(1, 0.75, 0.25, 0.25),  # Top Layer Fe, cell 1
-         Atom(2, 0.25, 0.25, 0.00),  # Top Layer Se, cell 1
-         Atom(2, 0.75, 0.75, 0.50),  # Top Layer Se, cell 1
-         Atom(1, 0.25, 0.75, 0.25),  # Top Layer Fe, cell 2
-         Atom(1, 0.75, 0.25, 0.25),  # Top Layer Fe, cell 2
-         Atom(2, 0.25, 0.25, 0.00),  # Top Layer Se, cell 2
-         Atom(2, 0.75, 0.75, 0.50),  # Top Layer Se, cell 2
-         ], "Top FeSe film"
+         Atom(1, 0.25, 0.50, 0.25),   # Top Layer Fe, cell 1
+         Atom(1, 0.50, 0.00, 0.25),   # Top Layer Fe, cell 1
+         Atom(2, 0.25, 0.00, 0.00),   # Top Layer Se, cell 1
+         Atom(2, 0.50, 0.50, 0.50),   # Top Layer Se, cell 1
+         Atom(1, 0.75, 0.50, 0.25),   # Top Layer Fe, cell 2
+         Atom(1, 1.00, 0.00, 0.25),   # Top Layer Fe, cell 2
+         Atom(2, 0.75, 0.00, 0.00),   # Top Layer Se, cell 2
+         Atom(2, 1.00, 0.50, 0.50),   # Top Layer Se, cell 2
+         ], [0.0, 0.0, 5.5180 / 2], "Top FeSe film"
      ),
      Layer([
-         Atom(4, 0.0, 0.0, 0.0),     # Ti, doubled overlayer, cell 1
-         Atom(4, 0.0, 0.0, 0.0),     # Ti, doubled overlayer, cell 2
-         Atom(5, 0.0, 0.0, 0.0),     # O, doubled overlayer, cell 1
-         Atom(5, 0.0, 0.0, 0.0),     # O, doubled overlayer, cell 1
-         Atom(5, 0.0, 0.0, 0.0),     # O, doubled overlayer, cell 2
-         Atom(5, 0.0, 0.0, 0.0),     # O, doubled overlayer, cell 2
-         ], "TiO2 doubled overlayer"
+         Atom(4, 0.75, 0.00, 0.00),   # Ti, doubled overlayer, cell 1
+         Atom(4, 0.50, 0.50, 0.00),   # Ti, doubled overlayer, cell 2
+         Atom(5, 0.50, 0.00, 0.00),   # O, doubled overlayer, cell 1
+         Atom(5, 0.75, 0.50, 0.00),   # O, doubled overlayer, cell 1
+         Atom(5, 0.25, 0.50, 0.00),   # O, doubled overlayer, cell 2
+         Atom(5, 0.00, 0.00, 0.00),   # O, doubled overlayer, cell 2
+         ], [0.0, 0.0, 3.945 / 2], "TiO2 doubled overlayer"
      ),
      Layer([
-         Atom(4, 0.0, 0.0, 0.0),     # Ti, bulk, cell 1
-         Atom(4, 0.0, 0.0, 0.0),     # Ti, bulk, cell 2
-         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 1
-         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 1
-         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 2
-         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 2
-         Atom(3, 0.0, 0.0, 0.0),     # Sr, bulk, cell 1
-         Atom(3, 0.0, 0.0, 0.0),     # Sr, bulk, cell 2
-         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 1
-         Atom(5, 0.0, 0.0, 0.0),     # O, bulk, cell 1
-         ], "SrTiO3 bulk"
+         Atom(4, 0.25, 0.50, 0.50),   # Ti, bulk, cell 1
+         Atom(4, 0.75, 0.50, 0.50),   # Ti, bulk, cell 2
+         Atom(5, 0.00, 0.50, 0.50),   # O, bulk, cell 1
+         Atom(5, 0.25, 0.00, 0.50),   # O, bulk, cell 1
+         Atom(5, 0.50, 0.00, 0.50),   # O, bulk, cell 2
+         Atom(5, 0.75, 0.00, 0.50),   # O, bulk, cell 2
+         Atom(3, 0.00, 0.00, 0.00),   # Sr, bulk, cell 1
+         Atom(3, 0.50, 0.00, 0.00),   # Sr, bulk, cell 2
+         Atom(5, 0.25, 0.50, 0.00),   # O, bulk, cell 1
+         Atom(5, 0.75, 0.50, 0.00),   # O, bulk, cell 2
+         ], [0.0, 0.0, 3.945 / 2], "SrTiO3 bulk"
      ),
     ],
     # Unit cell parameters
-    [7.5352, 3.7676, 5.5180]
+    [7.810, 3.905, 3.945]
 )
 
 FESE_20UC_SINGLEZREGRESSED = AtomicStructure(

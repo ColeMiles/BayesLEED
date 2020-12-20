@@ -229,8 +229,9 @@ class RefCalc:
         self.tensorfiles = []
         if produce_tensors:
             self.tensorfiles = [
-                os.path.join(self.workdir, "LAY1{}".format(i + 1))
-                for i in range(len(self.struct.layers[0]))
+                os.path.join(self.workdir, "LAY{}_{}".format(i+1, j+1))
+                for i in range(len(self.struct.layers) - 1)
+                for j in range(len(self.struct.layers[i]))
             ]
 
         # Check that beams in BeamInfo are contained in BeamList, and record their indices
@@ -333,23 +334,23 @@ class RefCalc:
                 ofile.write(23 * " " + "LAY = {}\n".format(i + 1))
                 ofile.write(layer.to_script(self.struct.cell_params))
 
+            num_layer_types = len(self.struct.layers)
+
             # Bulk stacking section
             ofile.write(
                 "-------------------------------------------------------------------\n"
                 "--- define bulk stacking sequence                           *   ---\n"
                 "-------------------------------------------------------------------\n"
             )
-            # Find bulk interlayer vector from bottom atom of bulk layer
-            bulk_maxz = max(self.struct.layers[1].zs)
-            num_cells = np.ceil(bulk_maxz)
-            bulk_interlayer_dist = num_cells * self.struct.cell_params[2]
 
             ofile.write("  0" + 23 * " " + "TSLAB = 0: compute bulk using subras\n")
-            ofile.write("{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist))
+            ofile.write("{:>7.4f}{:>7.4f}{:>7.4f}".format(*self.struct.layers[-1].interlayer_vec))
             ofile.write("     ASA interlayer vector between different bulk units *\n")
-            ofile.write("  2" + 23 * " " + "top layer of bulk unit: type 2\n")
-            ofile.write("  2" + 23 * " " + "bottom layer of bulk unit: type 2\n")
-            ofile.write("{:>7.4f} 0.0000 0.0000".format(bulk_interlayer_dist))
+            ofile.write("{:>3d}".format(num_layer_types))
+            ofile.write(23 * " " + "top layer of bulk unit: type {}\n".format(num_layer_types))
+            ofile.write("{:>3d}".format(num_layer_types))
+            ofile.write(23 * " " + "bottom layer of bulk unit: type {}\n".format(num_layer_types))
+            ofile.write("{:>7.4f}{:>7.4f}{:>7.4f}".format(*self.struct.layers[-1].interlayer_vec))
             ofile.write("     ASBULK between the two bulk unit layers (may differ from ASA)\n")
 
             # Surface layer stacking sequence
@@ -358,20 +359,19 @@ class RefCalc:
                 "--- define layer stacking sequence and Tensor LEED output   *   ---\n"
                 "-------------------------------------------------------------------\n"
             )
-            # Find surface interlayer vector from bottom atom to bulk
-            layer_maxz = max(self.struct.layers[0].zs)
-            num_cells = np.ceil(layer_maxz)
-            surf_interlayer_dist = num_cells * self.struct.cell_params[2]
-            ofile.write("  1\n")
-            ofile.write("  1{:>7.4f} 0.0000 0.0000".format(surf_interlayer_dist))
-            ofile.write("  surface layer is of type 1: interlayer vector connecting it to bulk\n")
-            if self.produce_tensors:
-                ofile.write("  1" + 23 * " " + "Tensor output is required for this layer\n")
-            else:
-                ofile.write("  0" + 23 * " " + "Tensor output is NOT required for this layer\n")
-
-            for i in range(len(self.struct.layers[0])):
-                ofile.write("LAY1" + str(i+1) + 22 * " " + "Tensorfile, sublayer " + str(i+1) + "\n")
+            ofile.write("{:>3d}".format(num_layer_types - 1))
+            ofile.write(23 * " " + "Number of surface layers(?)\n")
+            for i, layer in enumerate(self.struct.layers[:-1]):
+                ofile.write("{:>3d}{:>7.4f}{:>7.4f}{:>7.4f}".format(i+1, *layer.interlayer_vec))
+                ofile.write("  this layer is of type {}:".format(i+1) +
+                            "interlayer vector connecting it to bulk\n")
+                if self.produce_tensors:
+                    ofile.write("  1" + 23 * " " + "Tensor output is required for this layer\n")
+                    for j in range(len(layer)):
+                        ofile.write("LAY{}_{}".format(i + 1, j + 1) + 22 * " " +
+                                    "Tensorfile, layer {}, sublayer {}\n".format(i, j))
+                else:
+                    ofile.write("  0" + 23 * " " + "Tensor output is NOT required for this layer\n")
 
             ofile.write(
                 "-------------------------------------------------------------------\n"
@@ -607,6 +607,11 @@ class DeltaCalc:
                 "TLEED calculations must be made on a structure with identical"
                 " unit cell parameters as the reference structure perturbed from"
             )
+        if not len(struct.layers) == len(ref_calc.struct.layers):
+            raise ValueError(
+                "TLEED calculations must be made on a structure with the same number"
+                " of layers as the reference structure perturbed from"
+            )
         if not ref_calc.produce_tensors:
             raise ValueError(
                 "Tensors are required to be output by the reference calc to compute deltas!"
@@ -622,15 +627,16 @@ class DeltaCalc:
         # Determine the delta displacements which brings the ref_calc to the target struct
         self._disps, self._vibs = [], []
         a, b, c = self.struct.cell_params
-        for ref_atom, delta_atom in zip(ref_calc.struct.layers[0], struct.layers[0]):
-            self._disps.append(np.array([
-                a * (delta_atom.x - ref_atom.x),
-                b * (delta_atom.y - ref_atom.y),
-                c * (delta_atom.z - ref_atom.z)
-            ]))
-            self._vibs.append(
-                struct.sites[delta_atom.sitenum].vib
-            )
+        for ref_layer, delta_layer in zip(ref_calc.struct.layers, struct.layers):
+            for ref_atom, delta_atom in zip(ref_layer, delta_layer):
+                self._disps.append(np.array([
+                    a * (delta_atom.x - ref_atom.x),
+                    b * (delta_atom.y - ref_atom.y),
+                    c * (delta_atom.z - ref_atom.z)
+                ]))
+                self._vibs.append(
+                    struct.sites[delta_atom.sitenum].vib
+                )
 
     def _write_scripts(self, directory: Optional[str] = None) -> List[str]:
         """ Writes one script into the target directory for each atom which we need to perturb.

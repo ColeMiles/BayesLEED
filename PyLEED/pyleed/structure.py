@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Tuple
+from typing import List, Tuple, Collection
 
 from .searchspace import SearchKey
 
@@ -66,14 +66,19 @@ class Layer:
     """ Stores the coordinates of atoms within a single 'layer' in the LEED
          context. Coordinates should be normalized, to be converted using
          the unit cell parameters in a surrounding AtomicStructure.
+        The interlayer_vec is the vector from the bottom of this layer to the
+         (0, 0, 0) coordinate of the next layer. This should be in unnormalized
+         coordinates (Angstroms).
     """
-    def __init__(self, atoms: List[Atom], name: str = ""):
+    def __init__(self, atoms: List[Atom], interlayer_vec: Collection[float], name: str = ""):
         self.sitenums = np.array([a.sitenum for a in atoms])
         self.xs = np.array([a.x for a in atoms])
         self.ys = np.array([a.y for a in atoms])
         self.zs = np.array([a.z for a in atoms])
         self.name = name
         self.atoms = atoms
+        self.interlayer_vec = np.array(interlayer_vec)
+        assert len(interlayer_vec) == 3, "Interlayer vector must be 3-dimensional"
 
     def __len__(self):
         return len(self.sitenums)
@@ -87,6 +92,7 @@ class Layer:
         for atom in iter(self):
             result += "    " + repr(atom) + ",\n"
         result += "],\n"
+        result += "    " + repr(self.interlayer_vec) + ",\n"
         result += "    " + repr(self.name) + "\n"
         result += ")"
         return result
