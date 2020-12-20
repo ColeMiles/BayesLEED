@@ -84,6 +84,7 @@ class SearchSpace:
             constraints = list()
 
         # Validate search parameters
+        num_atoms = np.prod(list(map(len, self.atomic_structure.layers))).item()
         for key, idx in self.search_params:
             if key == SearchKey.CONC:
                 raise NotImplementedError("SearchKey.CONC not implemented yet.")
@@ -93,7 +94,7 @@ class SearchSpace:
                 if idx > len(self.atomic_structure.sites):
                     raise ValueError("SearchSpace idx out of bounds")
             else:
-                if idx > len(self.atomic_structure.layers[0]):
+                if idx > num_atoms:
                     raise ValueError("SearchSpace idx out of bounds")
             if idx < 0:
                 raise ValueError("SearchSpace idx out of bounds")

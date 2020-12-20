@@ -156,22 +156,26 @@ def _parse_phaseshifts_str(lines: List[str], l_max: int) -> Phaseshifts:
 
     num_elem = 0
     # Once len(line) == 8, we've hit a new energy rather than more phaseshifts
+    # TODO (URGENT): TEMPORARY BREAKING CHANGE TO ACCOMODATE NEW PHASESHIFT FILES
+    #  OLD STUFF IS COMMENTED OUT
     while len(line) != 7:
-        if len(line) != min(70, 7 * (l_max + 1)):
+        # if len(line) != min(70, 7 * (l_max + 1)):
+        if len(line) != 7 * (l_max + 1):
             raise ValueError(
                 "Provided l_max does not agree with phaseshift file: Line {}".format(
                     linenum + 1
                 )
             )
 
-        elem_phases = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
+        # elem_phases = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
+        elem_phases = [float(line[7*i:7*(i+1)]) for i in range(l_max+1)]
 
-        # This line is extraneous if l_max <= 9, but will contain more phaseshifts otherwise
-        linenum += 1
-        line = lines[linenum]
-        if l_max > 9:
-            for i in range(l_max - 9):
-                elem_phases.append(float(line[7*i:7*(i+1)]))
+        # # This line is extraneous if l_max <= 9, but will contain more phaseshifts otherwise
+        # linenum += 1
+        # line = lines[linenum]
+        # if l_max > 9:
+        #     for i in range(l_max - 9):
+        #         elem_phases.append(float(line[7*i:7*(i+1)]))
 
         phases[0].append(elem_phases)
         num_elem += 1
@@ -186,11 +190,12 @@ def _parse_phaseshifts_str(lines: List[str], l_max: int) -> Phaseshifts:
         for n in range(num_elem):
             linenum += 1
             line = lines[linenum]
-            elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
-            if l_max > 9:
-                for i in range(l_max - 9):
-                    elem_phases[n].append(float(line[7*i:7*(i+1)]))
-            linenum += 1
+            # elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
+            elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(l_max+1)]
+            # if l_max > 9:
+            #     for i in range(l_max - 9):
+            #         elem_phases[n].append(float(line[7*i:7*(i+1)]))
+            # linenum += 1
         phases.append(elem_phases)
         linenum += 1
 

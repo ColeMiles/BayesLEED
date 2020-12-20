@@ -120,6 +120,7 @@ class AtomicStructure:
         self.layers = layers
         self.cell_params = np.array(cell_params)
         self.num_elems = len(sites[0].elems)
+        self._lay_counts = np.cumsum([0] + [len(lay) for lay in layers])
 
     def __repr__(self):
         result = "AtomicStructure(\n"
@@ -182,11 +183,17 @@ class AtomicStructure:
             site_idx, conc_idx = divmod(idx, len(self.sites[0].concs))
             return self.sites[site_idx].concs[conc_idx]
         elif key == SearchKey.ATOMX:
-            return self.layers[0].xs[idx]
+            lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
+            at_idx = idx - self._lay_counts[lay_idx]
+            return self.layers[lay_idx].xs[at_idx]
         elif key == SearchKey.ATOMY:
-            return self.layers[0].ys[idx]
+            lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
+            at_idx = idx - self._lay_counts[lay_idx]
+            return self.layers[lay_idx].ys[at_idx]
         elif key == SearchKey.ATOMZ:
-            return self.layers[0].zs[idx]
+            lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
+            at_idx = idx - self._lay_counts[lay_idx]
+            return self.layers[lay_idx].zs[at_idx]
         elif key == SearchKey.CELLA:
             return self.cell_params[0]
         elif key == SearchKey.CELLB:
@@ -206,11 +213,17 @@ class AtomicStructure:
             site_idx, conc_idx = divmod(idx, len(self.sites[0].concs))
             self.sites[site_idx].concs[conc_idx] = value
         elif key == SearchKey.ATOMX:
-            self.layers[0].xs[idx] = value
+            lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
+            at_idx = idx - self._lay_counts[lay_idx]
+            self.layers[lay_idx].xs[at_idx] = value
         elif key == SearchKey.ATOMY:
-            self.layers[0].ys[idx] = value
+            lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
+            at_idx = idx - self._lay_counts[lay_idx]
+            self.layers[lay_idx].ys[at_idx] = value
         elif key == SearchKey.ATOMZ:
-            self.layers[0].zs[idx] = value
+            lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
+            at_idx = idx - self._lay_counts[lay_idx]
+            self.layers[lay_idx].zs[at_idx] = value
         elif key == SearchKey.CELLA:
             self.cell_params[0] = value
         elif key == SearchKey.CELLB:
