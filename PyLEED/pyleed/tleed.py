@@ -117,6 +117,7 @@ class Phaseshifts:
         self.num_elem = self.phases.shape[1]      # Number of elements
         self.lmax = self.phases.shape[2] - 1      # Maximum angular momentum quantum number
 
+    # TODO: URGENT: Needs to write out to TLEED specs (max 10 phases per line, gross)
     def to_script(self) -> str:
         """ Returns a string to be inserted into scripts which expect phaseshifts as text """
         with open(self.filename, "r") as f:
