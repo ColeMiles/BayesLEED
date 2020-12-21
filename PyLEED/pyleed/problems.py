@@ -113,6 +113,7 @@ FESE_1UC_2x1 = AtomicStructure(
          Atom(5, 0.00, 0.00, 0.00),   # O, doubled overlayer, cell 2
          ], [0.0, 0.0, 3.945 / 2], "TiO2 doubled overlayer"
      ),
+     # TODO: For efficiency, split the bulk into two layers and alternate?
      Layer([
          Atom(4, 0.25, 0.50, 0.50),   # Ti, bulk, cell 1
          Atom(4, 0.75, 0.50, 0.50),   # Ti, bulk, cell 2

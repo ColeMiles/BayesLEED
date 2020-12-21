@@ -117,17 +117,30 @@ class Phaseshifts:
         self.num_elem = self.phases.shape[1]      # Number of elements
         self.lmax = self.phases.shape[2] - 1      # Maximum angular momentum quantum number
 
-    # TODO: URGENT: Needs to write out to TLEED specs (max 10 phases per line, gross)
-    def to_script(self) -> str:
-        """ Returns a string to be inserted into scripts which expect phaseshifts as text """
-        with open(self.filename, "r") as f:
-            return f.read()
-
-
-def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
-    """ Parse a set of phaseshifts from a file. The maximum angular momentum number contained
-         in the file must be specified due to the ambiguous format of phaseshift files.
+    """ Returns a string to be inserted into scripts which expect phaseshifts as text.
+        Produces the string in the gross Fortran format of 10 F7.4's per line.
     """
+    def to_script(self) -> str:
+        script = ""
+        for energy, phases in zip(self.energies, self.phases):
+            script += "{:7.4f}\n".format(energy)
+
+            for elem_row in phases:
+                for i, phas in enumerate(elem_row):
+                    script += "{:7.4f}".format(phas)
+                    # Wrap phases to next line every 10 phases
+                    if i % 10 == 9:
+                        script += "\n"
+                script += "\n"
+        return script
+
+
+""" Parse a set of phaseshifts from a file. The maximum angular momentum number contained
+     in the file must be specified due to the ambiguous format of phaseshift files.
+    This function is compatible with the Fortran 10-phases-per-line formatting, or a more
+     sane format with each t-matrix on its own line.
+"""
+def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
     try:
         with open(filename, 'r') as f:
             contents = f.readlines()
@@ -140,7 +153,6 @@ def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
     return phaseshifts
 
 
-# TODO: Improve with idea in Julia code
 def _parse_phaseshifts_str(lines: List[str], l_max: int) -> Phaseshifts:
     energies = []
     # Will become a triply-nested list of dimensions [NENERGIES, NELEM, NANG_MOM],
@@ -152,31 +164,31 @@ def _parse_phaseshifts_str(lines: List[str], l_max: int) -> Phaseshifts:
     phases.append([])
     linenum = 1
 
+    fortran_mode = False
+
     # Use the first couple of lines to determine the number of elements present
     line = lines[linenum].rstrip('\n')
 
     num_elem = 0
     # Once len(line) == 8, we've hit a new energy rather than more phaseshifts
-    # TODO (URGENT): TEMPORARY BREAKING CHANGE TO ACCOMODATE NEW PHASESHIFT FILES
-    #  OLD STUFF IS COMMENTED OUT
     while len(line) != 7:
-        # if len(line) != min(70, 7 * (l_max + 1)):
-        if len(line) != 7 * (l_max + 1):
+        num_phases_line = len(line) // 7
+        if num_phases_line != (l_max + 1) and num_phases_line != 10:
             raise ValueError(
                 "Provided l_max does not agree with phaseshift file: Line {}".format(
                     linenum + 1
                 )
             )
 
-        # elem_phases = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
-        elem_phases = [float(line[7*i:7*(i+1)]) for i in range(l_max+1)]
+        elem_phases = [float(line[7*i:7*(i+1)]) for i in range(num_phases_line)]
 
-        # # This line is extraneous if l_max <= 9, but will contain more phaseshifts otherwise
-        # linenum += 1
-        # line = lines[linenum]
-        # if l_max > 9:
-        #     for i in range(l_max - 9):
-        #         elem_phases.append(float(line[7*i:7*(i+1)]))
+        # Detect if the input phaseshift file is in the weird Fortran formatting
+        if num_phases_line != (l_max + 1):
+            fortran_mode = True
+            linenum += 1
+            line = lines[linenum]
+            for i in range(l_max + 1 - num_phases_line):
+                elem_phases.append(float(line[7*i:7*(i+1)]))
 
         phases[0].append(elem_phases)
         num_elem += 1
@@ -191,12 +203,13 @@ def _parse_phaseshifts_str(lines: List[str], l_max: int) -> Phaseshifts:
         for n in range(num_elem):
             linenum += 1
             line = lines[linenum]
-            # elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(min(10, l_max))]
-            elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(l_max+1)]
-            # if l_max > 9:
-            #     for i in range(l_max - 9):
-            #         elem_phases[n].append(float(line[7*i:7*(i+1)]))
-            # linenum += 1
+            num_phases_line = len(line) // 7
+            elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(num_phases_line)]
+            if num_phases_line != (l_max + 1):
+                linenum += 1
+                line = lines[linenum]
+                for i in range(l_max + 1 - num_phases_line):
+                    elem_phases[n].append(float(line[7*i:7*(i+1)]))
         phases.append(elem_phases)
         linenum += 1
 
@@ -348,15 +361,20 @@ class RefCalc:
                 "--- define bulk stacking sequence                           *   ---\n"
                 "-------------------------------------------------------------------\n"
             )
+            bulk_interlayer_vec = self.struct.layers[-1].interlayer_vec
 
             ofile.write("  0" + 23 * " " + "TSLAB = 0: compute bulk using subras\n")
-            ofile.write("{:>7.4f}{:>7.4f}{:>7.4f}".format(*self.struct.layers[-1].interlayer_vec))
+            ofile.write("{:>7.4f}{:>7.4f}{:>7.4f}".format(
+                bulk_interlayer_vec[2], *bulk_interlayer_vec[:2]
+            ))
             ofile.write("     ASA interlayer vector between different bulk units *\n")
             ofile.write("{:>3d}".format(num_layer_types))
             ofile.write(23 * " " + "top layer of bulk unit: type {}\n".format(num_layer_types))
             ofile.write("{:>3d}".format(num_layer_types))
             ofile.write(23 * " " + "bottom layer of bulk unit: type {}\n".format(num_layer_types))
-            ofile.write("{:>7.4f}{:>7.4f}{:>7.4f}".format(*self.struct.layers[-1].interlayer_vec))
+            ofile.write("{:>7.4f}{:>7.4f}{:>7.4f}".format(
+                bulk_interlayer_vec[2], *bulk_interlayer_vec[:2]
+            ))
             ofile.write("     ASBULK between the two bulk unit layers (may differ from ASA)\n")
 
             # Surface layer stacking sequence
@@ -365,17 +383,23 @@ class RefCalc:
                 "--- define layer stacking sequence and Tensor LEED output   *   ---\n"
                 "-------------------------------------------------------------------\n"
             )
-            ofile.write("{:>3d}".format(num_layer_types - 1))
+            num_surf_layers = num_layer_types - 1
+            ofile.write("{:>3d}".format(num_surf_layers))
             ofile.write(23 * " " + "Number of surface layers(?)\n")
-            for i, layer in enumerate(self.struct.layers[:-1]):
-                ofile.write("{:>3d}{:>7.4f}{:>7.4f}{:>7.4f}".format(i+1, *layer.interlayer_vec))
-                ofile.write("  this layer is of type {}:".format(i+1) +
+            # Need to iterate through the layers in reverse order, starting from the
+            #  second-to-last
+            for i, layer in enumerate(self.struct.layers[-2::-1]):
+                layer_type = num_surf_layers - i
+                ofile.write("{:>3d}{:>7.4f}{:>7.4f}{:>7.4f}".format(
+                    layer_type, layer.interlayer_vec[2], *layer.interlayer_vec[:2]
+                ))
+                ofile.write("  this layer is of type {}:".format(layer_type) +
                             "interlayer vector connecting it to bulk\n")
                 if self.produce_tensors:
                     ofile.write("  1" + 23 * " " + "Tensor output is required for this layer\n")
                     for j in range(len(layer)):
                         ofile.write("LAY{}_{}".format(i + 1, j + 1) + 22 * " " +
-                                    "Tensorfile, layer {}, sublayer {}\n".format(i, j))
+                                    "Tensorfile, layer {}, sublayer {}\n".format(i+1, j+1))
                 else:
                     ofile.write("  0" + 23 * " " + "Tensor output is NOT required for this layer\n")
 
