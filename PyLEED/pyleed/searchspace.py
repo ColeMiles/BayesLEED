@@ -18,14 +18,17 @@ from . import curves
 class SearchKey(enum.Enum):
     """ Enumeration defining the types of parameters which can be searched over
     """
-    CONC = enum.auto()
-    VIB = enum.auto()
-    ATOMX = enum.auto()
-    ATOMY = enum.auto()
-    ATOMZ = enum.auto()
-    CELLA = enum.auto()
-    CELLB = enum.auto()
-    CELLC = enum.auto()
+    CONC = enum.auto()      # elem concentrations at a site     indexes (sites, concs)
+    VIB = enum.auto()       # vibrational parameter of a site   indexes sites
+    ATOMX = enum.auto()     # x component of an atom            indexes (layers, atoms)
+    ATOMY = enum.auto()     # y component of an atom            indexes (layers, atoms)
+    ATOMZ = enum.auto()     # z component of an atom            indexes (layers, atoms)
+    CELLA = enum.auto()     # unit cell's a parameter           index is ignored
+    CELLB = enum.auto()     # unit cell's b parameter           index is ignored
+    CELLC = enum.auto()     # unit cell's c parameter           index is ignored
+    INTX = enum.auto()      # x-component of interlayer vector  indexes layers
+    INTY = enum.auto()      # y-component of interlayer vector  indexes layers
+    INTZ = enum.auto()      # z-component of interlayer vector  indexes layers
 
 
 class Constraint:
@@ -66,8 +69,6 @@ class SearchSpace:
          are tuples of the intervals defining the search domain (minval, maxval).
         Note these intervals are interpreted as deviations from the values given
          by the atomic structure, not absolute coordinates.
-        Also note that this assumes that all atoms to search over are in the
-         first layer. (Except for lattice parameters, which also apply to the bulk)
 
         TODO: Re-do how constraints are handled to allow arbitrary multi-atom constraints
     """
@@ -92,11 +93,14 @@ class SearchSpace:
                 continue
             elif key == SearchKey.VIB:
                 if idx > len(self.atomic_structure.sites):
-                    raise ValueError("SearchSpace idx out of bounds")
+                    raise ValueError("SearchSpace VIB idx out of bounds")
+            elif key in [SearchKey.INTX, SearchKey.INTY, SearchKey.INTZ]:
+                if idx > len(self.atomic_structure.layers):
+                    raise ValueError("SearchSpace INT idx out of bounds")
             else:
                 if idx > num_atoms:
-                    raise ValueError("SearchSpace idx out of bounds")
-            if idx < 0:
+                    raise ValueError("SearchSpace atomic idx out of bounds")
+            if idx <= 0:
                 raise ValueError("SearchSpace idx out of bounds")
 
         self.constraints = {param: [] for param in self.search_params}
@@ -151,7 +155,6 @@ class SearchSpace:
                 elif isinstance(constraint, LambdaConstraint):
                     new_struct[b_key, b_idx] = constraint.f(new_struct[key, idx])
 
-
         return new_struct
 
     def to_structures(self, norm_vecs) -> Union[AtomicStructure, List[AtomicStructure]]:
@@ -187,7 +190,7 @@ class SearchSpace:
 # While the search space in the full space is continuous, due to how TensErLEED functions
 #  it is necessary (for now) to limit these to search space of a discrete grid of points.
 # In principle, this can be made continuous as well, however that will increase the computational
-#  effort greatly since T-matrices will have be to be re-generated on every evaluation.
+#  effort greatly since t-matrices will have be to be re-generated on every evaluation.
 # Maybe there is some nice compromise?
 # TODO: Make a continuous version for comparison.
 # (atom_idx, disps_list, vibs_list) : Displacements should be in un-normalized coordinates

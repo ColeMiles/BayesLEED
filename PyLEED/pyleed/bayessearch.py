@@ -37,12 +37,12 @@ def append_arrays_to_file(filename, pts, rfactors, labels=None):
             f.write(row_format_string.format(*pt, rfactor) + "\n")
 
 
-def create_manager(workdir, tleed_dir, beaminfo, beamlist_file, phaseshift_file, lmax,
+def create_manager(workdir, tleed_dir, beaminfo, beamlist_file, phaseshift_file, lmax, num_el,
                    executable='ref-calc.LaNiO3'):
     """ Makes a LEEDManager working in the given directory, assuming default names for files.
     """
     beamlist = tleed.parse_beamlist(beamlist_file)
-    phaseshifts = tleed.parse_phaseshifts(phaseshift_file, lmax)
+    phaseshifts = tleed.parse_phaseshifts(phaseshift_file, num_el, lmax)
     leed_executable = os.path.join(workdir, executable)
     expdatafile = os.path.join(workdir, "WEXPEL")
     exp_curves = tleed.parse_ivcurves(expdatafile, format="WEXPEL")
@@ -168,7 +168,7 @@ def acquire_sample_points(
     return new_normalized_pts.cpu().numpy()
 
 
-def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, problem, ncores, ncalcs,
+def main(leed_executable, tleed_dir, phaseshifts, lmax, num_el, beamset, beamlist, problem, ncores, ncalcs,
          tleed_radius=0.0, warm=None, seed=None, start_pts_file=None, detect_existing_calcs=None,
          early_stop=None, random=False):
     workdir, executable = os.path.split(leed_executable)
@@ -178,7 +178,7 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, beamset, beamlist, probl
 
     num_eval = min(ncores, mp.cpu_count())
     beaminfo = problems.beaminfos[beamset]
-    manager = create_manager(workdir, tleed_dir, beaminfo, beamlist, phaseshifts, lmax,
+    manager = create_manager(workdir, tleed_dir, beaminfo, beamlist, phaseshifts, lmax, num_el,
                              executable=leed_executable)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -320,6 +320,9 @@ if __name__ == "__main__":
         default="/home/cole/ProgScratch/BayesLEED/TLEED/phaseshifts/FeSeBulk.eight.phase",
         help="Path to phaseshift file to use for calculations."
     )
+    parser.add_argument("--num-el", type=int, default=2,
+        help="Number of elements present in phaseshift file. [Default = 2]"
+    )
     parser.add_argument("--lmax", type=int, default=8,
         help="Highest angular momentum number present in phaseshift file. [Default = 8]"
     )
@@ -398,7 +401,7 @@ if __name__ == "__main__":
         torch.manual_seed(seed=args.seed)
 
     # TODO: Do something about this. Config file / class?
-    main(args.leed_executable, args.tleed, args.phaseshifts, args.lmax, args.beaminfo,
+    main(args.leed_executable, args.tleed, args.phaseshifts, args.lmax, args.num_el, args.beaminfo,
          args.beamlist, args.problem, args.ncores, args.num_calcs,
          tleed_radius=args.radius_tleed, seed=args.seed, start_pts_file=args.start_pts,
          detect_existing_calcs=args.detect_calcs, random=args.random)

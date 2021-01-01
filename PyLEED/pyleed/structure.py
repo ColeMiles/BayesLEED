@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import List, Tuple, Collection
+import enum
 
 from .searchspace import SearchKey
 
@@ -61,6 +62,13 @@ class Atom:
         self.coord[2] = value
 
 
+class LayerType(enum.Enum):
+    """ Enumeration defining layer periodicity types
+    """
+    SURF = 1
+    BULK = 2
+
+
 # TODO: I don't like how this class is arranged
 class Layer:
     """ Stores the coordinates of atoms within a single 'layer' in the LEED
@@ -70,14 +78,16 @@ class Layer:
          (0, 0, 0) coordinate of the next layer. This should be in unnormalized
          coordinates (Angstroms).
     """
-    def __init__(self, atoms: List[Atom], interlayer_vec: Collection[float], name: str = ""):
+    def __init__(self, atoms: List[Atom], interlayer_vec: Collection[float],
+                 lay_type: LayerType, name: str = ""):
         self.sitenums = np.array([a.sitenum for a in atoms])
         self.xs = np.array([a.x for a in atoms])
         self.ys = np.array([a.y for a in atoms])
         self.zs = np.array([a.z for a in atoms])
-        self.name = name
         self.atoms = atoms
         self.interlayer_vec = np.array(interlayer_vec)
+        self.lay_type = lay_type
+        self.name = name
         assert len(interlayer_vec) == 3, "Interlayer vector must be 3-dimensional"
 
     def __len__(self):
@@ -93,6 +103,7 @@ class Layer:
             result += "    " + repr(atom) + ",\n"
         result += "],\n"
         result += "    " + repr(self.interlayer_vec) + ",\n"
+        result += "    " + repr(self.lay_type) + ",\n"
         result += "    " + repr(self.name) + "\n"
         result += ")"
         return result
@@ -121,6 +132,10 @@ class AtomicStructure:
         self.cell_params = np.array(cell_params)
         self.num_elems = len(sites[0].elems)
         self._lay_counts = np.cumsum([0] + [len(lay) for lay in layers])
+        # Verify that the 1 <= num_bulk_layers <= 2
+        num_bulk_layers = sum(1 for l in layers if l.lay_type == LayerType.BULK)
+        if not 1 <= num_bulk_layers <= 2:
+            raise ValueError("AtomicStructure must have either 1 or 2 bulk layers.")
 
     def __repr__(self):
         result = "AtomicStructure(\n"
@@ -200,6 +215,12 @@ class AtomicStructure:
             return self.cell_params[1]
         elif key == SearchKey.CELLC:
             return self.cell_params[2]
+        elif key == SearchKey.INTX:
+            return self.layers[idx].interlayer_vec[0]
+        elif key == SearchKey.INTY:
+            return self.layers[idx].interlayer_vec[1]
+        elif key == SearchKey.INTZ:
+            return self.layers[idx].interlayer_vec[2]
 
     def __setitem__(self, keyidx: Tuple[SearchKey, int], value: float):
         """ Set a structural parameter. NOTE: 1-based indexing!
@@ -230,7 +251,10 @@ class AtomicStructure:
             self.cell_params[1] = value
         elif key == SearchKey.CELLC:
             self.cell_params[2] = value
+        elif key == SearchKey.INTZ:
+            self.layers[idx].interlayer_vec[2] = value
 
+    # TODO: Enough changes have happened that this is probably wrong
     def write_xyz(self, filename: str, comment: str = ""):
         """ Writes the atomic structure to an XYZ file. Overwrites file if it
              already exists.
@@ -251,6 +275,7 @@ class AtomicStructure:
                     ))
                 current_z += np.ceil(max(layer.zs))
 
+    # TODO: Enough changes have happened that this is probably wrong
     def write_cif(self, filename: str, comment: str = ""):
         """ Writes the atomic structure to a CIF file. Overwrites files if it
              already exists.

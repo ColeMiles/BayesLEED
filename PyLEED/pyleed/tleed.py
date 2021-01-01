@@ -15,7 +15,7 @@ from typing import List, Tuple, Collection, Optional, Union
 
 import numpy as np
 
-from .structure import AtomicStructure, Site, Layer, Atom
+from .structure import AtomicStructure, Site, Layer, Atom, LayerType
 from .searchspace import DeltaSearchDim, DeltaSearchSpace, Constraint, optimize_delta_anneal
 from .curves import IVCurve, IVCurveSet, parse_ivcurves, avg_rfactors
 
@@ -126,6 +126,8 @@ class Phaseshifts:
             script += "{:7.4f}\n".format(energy)
 
             for elem_row in phases:
+                # Always write out 16 phases for TLEED formatting, no matter what
+                elem_row = elem_row.tolist() + [0] * max(0, 16 - len(elem_row))
                 for i, phas in enumerate(elem_row):
                     script += "{:7.4f}".format(phas)
                     # Wrap phases to next line every 10 phases
@@ -134,17 +136,23 @@ class Phaseshifts:
                 script += "\n"
         return script
 
+    def trunc(self, trunc_lmax) -> Phaseshifts:
+        new_phases = self.phases[:, :, :trunc_lmax+1]
+        return Phaseshifts(
+            self.filename, self.energies, new_phases
+        )
+
 
 """ Parse a set of phaseshifts from a file. The maximum angular momentum number contained
      in the file must be specified due to the ambiguous format of phaseshift files.
     This function is compatible with the Fortran 10-phases-per-line formatting, or a more
      sane format with each t-matrix on its own line.
 """
-def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
+def parse_phaseshifts(filename: str, num_el: int, l_max: int) -> Phaseshifts:
     try:
         with open(filename, 'r') as f:
             contents = f.readlines()
-        phaseshifts = _parse_phaseshifts_str(contents, l_max)
+        phaseshifts = _parse_phaseshifts_str(contents, num_el, l_max)
         phaseshifts.filename = filename
     except Exception as e:
         logging.error("Error in parsing phaseshifts file {}!".format(filename))
@@ -153,65 +161,37 @@ def parse_phaseshifts(filename: str, l_max: int) -> Phaseshifts:
     return phaseshifts
 
 
-def _parse_phaseshifts_str(lines: List[str], l_max: int) -> Phaseshifts:
+def _parse_phaseshifts_str(lines: List[str], num_el: int, l_max: int) -> Phaseshifts:
     energies = []
     # Will become a triply-nested list of dimensions [NENERGIES, NELEM, NANG_MOM],
     #  converted to a numpy array at the end
     phases = []
 
-    line = lines[0]
-    energies.append(float(line))
-    phases.append([])
-    linenum = 1
-
-    fortran_mode = False
-
-    # Use the first couple of lines to determine the number of elements present
-    line = lines[linenum].rstrip('\n')
-
-    num_elem = 0
-    # Once len(line) == 8, we've hit a new energy rather than more phaseshifts
-    while len(line) != 7:
-        num_phases_line = len(line) // 7
-        if num_phases_line != (l_max + 1) and num_phases_line != 10:
-            raise ValueError(
-                "Provided l_max does not agree with phaseshift file: Line {}".format(
-                    linenum + 1
-                )
-            )
-
-        elem_phases = [float(line[7*i:7*(i+1)]) for i in range(num_phases_line)]
-
-        # Detect if the input phaseshift file is in the weird Fortran formatting
-        if num_phases_line != (l_max + 1):
-            fortran_mode = True
-            linenum += 1
+    try:
+        linenum = 0
+        while linenum < len(lines):
             line = lines[linenum]
-            for i in range(l_max + 1 - num_phases_line):
-                elem_phases.append(float(line[7*i:7*(i+1)]))
-
-        phases[0].append(elem_phases)
-        num_elem += 1
-        linenum += 1
-        line = lines[linenum].rstrip('\n')
-
-    # Once we know the number of elements, we can loop through the rest of the file simply
-    while linenum < len(lines):
-        line = lines[linenum]
-        energies.append(float(line))
-        elem_phases = [[] for _ in range(num_elem)]
-        for n in range(num_elem):
-            linenum += 1
-            line = lines[linenum]
-            num_phases_line = len(line) // 7
-            elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(num_phases_line)]
-            if num_phases_line != (l_max + 1):
+            energies.append(float(line))
+            elem_phases = [[] for _ in range(num_el)]
+            for n in range(num_el):
                 linenum += 1
                 line = lines[linenum]
-                for i in range(l_max + 1 - num_phases_line):
-                    elem_phases[n].append(float(line[7*i:7*(i+1)]))
-        phases.append(elem_phases)
-        linenum += 1
+                num_phases_line = len(line) // 7
+                elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(num_phases_line)]
+                # Detect weird Fortran formatting
+                if num_phases_line != (l_max + 1):
+                    linenum += 1
+                    line = lines[linenum]
+                    for i in range(l_max + 1 - num_phases_line):
+                        elem_phases[n].append(float(line[7*i:7*(i+1)]))
+                # Truncate phases to lmax+1
+                elem_phases[n] = elem_phases[n][:l_max+1]
+            phases.append(elem_phases)
+            linenum += 1
+    except Exception as e:
+        # Re-raise the exception with a line number
+        logging.error("Error on line number " + str(linenum) + "\n")
+        raise e
 
     return Phaseshifts("", np.array(energies), np.array(phases))
 
@@ -348,12 +328,14 @@ class RefCalc:
             ofile.write("{:>3d}".format(len(self.struct.layers)))
             ofile.write(23 * " " + "NLTYPE: number of different layer types\n")
             for i, layer in enumerate(self.struct.layers):
-                ofile.write("-   layer type {}  {}---\n".format(i + 1, layer.name))
-                ofile.write("{:>3d}".format(i + 1))
-                ofile.write(23 * " " + "LAY = {}\n".format(i + 1))
+                ofile.write("-   layer num {}  {}---\n".format(i + 1, layer.name))
+                ofile.write("{:>3d}".format(layer.lay_type.value))
+                ofile.write(23 * " " + "LAY = {}: {} periodicity\n".format(
+                    layer.lay_type.value, layer.lay_type.name
+                ))
                 ofile.write(layer.to_script(self.struct.cell_params))
 
-            num_layer_types = len(self.struct.layers)
+            num_layers = len(self.struct.layers)
 
             # Bulk stacking section
             ofile.write(
@@ -361,19 +343,32 @@ class RefCalc:
                 "--- define bulk stacking sequence                           *   ---\n"
                 "-------------------------------------------------------------------\n"
             )
-            bulk_interlayer_vec = self.struct.layers[-1].interlayer_vec
+            # List holds (layer_num, layer) for all bulk layers
+            bulk_layers = [
+                (i+1, lay) for i, lay in enumerate(self.struct.layers)
+                if lay.lay_type == LayerType.BULK
+            ]
+            double_bulk = len(bulk_layers) == 2
+            top_layer_num = bulk_layers[0][0]
+            bulk_intraunit_vec = bulk_layers[0][1].interlayer_vec
+            if double_bulk:
+                bulk_interunit_vec = bulk_layers[1][1].interlayer_vec
+                bot_layer_num = bulk_layers[1][0]
+            else:
+                bulk_interunit_vec = bulk_layers[0][1].interlayer_vec
+                bot_layer_num = bulk_layers[0][0]
 
             ofile.write("  0" + 23 * " " + "TSLAB = 0: compute bulk using subras\n")
             ofile.write("{:>7.4f}{:>7.4f}{:>7.4f}".format(
-                bulk_interlayer_vec[2], *bulk_interlayer_vec[:2]
+                bulk_interunit_vec[2], *bulk_interunit_vec[:2]
             ))
             ofile.write("     ASA interlayer vector between different bulk units *\n")
-            ofile.write("{:>3d}".format(num_layer_types))
-            ofile.write(23 * " " + "top layer of bulk unit: type {}\n".format(num_layer_types))
-            ofile.write("{:>3d}".format(num_layer_types))
-            ofile.write(23 * " " + "bottom layer of bulk unit: type {}\n".format(num_layer_types))
+            ofile.write("{:>3d}".format(top_layer_num))
+            ofile.write(23 * " " + "top layer of bulk unit: num {}\n".format(top_layer_num))
+            ofile.write("{:>3d}".format(bot_layer_num))
+            ofile.write(23 * " " + "bottom layer of bulk unit: num {}\n".format(bot_layer_num))
             ofile.write("{:>7.4f}{:>7.4f}{:>7.4f}".format(
-                bulk_interlayer_vec[2], *bulk_interlayer_vec[:2]
+                bulk_intraunit_vec[2], *bulk_intraunit_vec[:2]
             ))
             ofile.write("     ASBULK between the two bulk unit layers (may differ from ASA)\n")
 
@@ -383,23 +378,27 @@ class RefCalc:
                 "--- define layer stacking sequence and Tensor LEED output   *   ---\n"
                 "-------------------------------------------------------------------\n"
             )
-            num_surf_layers = num_layer_types - 1
+            # List holds (layer_num, layer) for all surface layers
+            surf_layers = [
+                (i+1, lay) for i, lay in enumerate(self.struct.layers)
+                if lay.lay_type == LayerType.SURF
+            ]
+            # Need to write out surface layers in reverse order
+            surf_layers.reverse()
+            num_surf_layers = len(surf_layers)
             ofile.write("{:>3d}".format(num_surf_layers))
             ofile.write(23 * " " + "Number of surface layers(?)\n")
-            # Need to iterate through the layers in reverse order, starting from the
-            #  second-to-last
-            for i, layer in enumerate(self.struct.layers[-2::-1]):
-                layer_type = num_surf_layers - i
+            for layer_num, layer in surf_layers:
                 ofile.write("{:>3d}{:>7.4f}{:>7.4f}{:>7.4f}".format(
-                    layer_type, layer.interlayer_vec[2], *layer.interlayer_vec[:2]
+                    layer_num, layer.interlayer_vec[2], *layer.interlayer_vec[:2]
                 ))
-                ofile.write("  this layer is of type {}:".format(layer_type) +
+                ofile.write("  this layer is of kind {}: ".format(layer_num) +
                             "interlayer vector connecting it to bulk\n")
                 if self.produce_tensors:
                     ofile.write("  1" + 23 * " " + "Tensor output is required for this layer\n")
                     for j in range(len(layer)):
-                        ofile.write("LAY{}_{}".format(i + 1, j + 1) + 22 * " " +
-                                    "Tensorfile, layer {}, sublayer {}\n".format(i+1, j+1))
+                        ofile.write("LAY{}_{}".format(layer_num, j + 1) + 22 * " " +
+                                    "Tensorfile, layer {}, sublayer {}\n".format(layer_num, j+1))
                 else:
                     ofile.write("  0" + 23 * " " + "Tensor output is NOT required for this layer\n")
 
@@ -1221,7 +1220,13 @@ class LEEDManager:
         with mp.Pool(num_structs) as pool:
             results = pool.starmap(
                 optimize_delta_anneal,
-                zip(search_spaces, deltacalcs, itertools.repeat(self.exp_curves))
+                zip(
+                    search_spaces,
+                    deltacalcs,
+                    itertools.repeat(self.exp_curves),
+                    itertools.repeat(search_indivs),
+                    itertools.repeat(search_epochs),
+                )
             )
 
         # Reconstruct the structures which achieved the minimum of each annealing
