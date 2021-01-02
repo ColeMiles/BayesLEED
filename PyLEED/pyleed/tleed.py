@@ -944,12 +944,14 @@ def _parse_deltas_str(lines: List[str]) -> SiteDeltaAmps:
     delta_amp.beams = np.empty((delta_amp.nbeams, 2))
     deltas = np.empty((numdeltas, 3))
 
-    linenum += 1
-    line = lines[linenum]
-    # TODO: Check that this is always on one line, even for more beams
     for i in range(delta_amp.nbeams):
-        delta_amp.beams[i, 0] = float(line[20*i:10+20*i])
-        delta_amp.beams[i, 1] = float(line[10+20*i:20+20*i])
+        # Only 5 beams per line
+        if i % 5 == 0:
+            linenum += 1
+            line = lines[linenum]
+        idx = i % 5
+        delta_amp.beams[i, 0] = float(line[20*idx:10+20*idx])
+        delta_amp.beams[i, 1] = float(line[10+20*idx:20+20*idx])
 
     # Skip line of 0.0's from an unused feature in TensErLEED
     linenum += 2
@@ -1169,7 +1171,7 @@ class LEEDManager:
     def batch_ref_calc_local_searches(self, structures: Collection[AtomicStructure],
                                       search_dims: List[DeltaSearchDim],
                                       constraints: List[Constraint] = None,
-                                      search_epochs: int = 100000, search_indivs: int = 25
+                                      search_epochs: int = 30000, search_indivs: int = 25
                                       ) -> Tuple[List[float], List[AtomicStructure], List[float]]:
         """ Starts (and waits for completion of) multiple reference calculations
              in parallel. Once all are done, computes a local TLEED search within
@@ -1252,7 +1254,7 @@ class LEEDManager:
                 delta_struct.sites[sitenum-1].vib = vib
 
             delta_structs.append(delta_struct)
-            delta_calc = DeltaCalc(delta_struct, ref_calc)
+            delta_calc = DeltaCalc(delta_struct, ref_calc, self._delta_exe, search_vibs=search_vibs)
             self.completed_deltacalcs.append((delta_calc, delta_rfactor))
             self.completed_calcs.append((delta_calc, delta_rfactor))
 
