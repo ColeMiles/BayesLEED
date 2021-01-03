@@ -37,18 +37,16 @@ def append_arrays_to_file(filename, pts, rfactors, labels=None):
             f.write(row_format_string.format(*pt, rfactor) + "\n")
 
 
-def create_manager(workdir, tleed_dir, beaminfo, beamlist_file, phaseshift_file, lmax, num_el,
+def create_manager(workdir, tleed_dir, exp_curves, beamlist_file, phaseshift_file, lmax, num_el,
                    executable='ref-calc.LaNiO3'):
     """ Makes a LEEDManager working in the given directory, assuming default names for files.
     """
     beamlist = tleed.parse_beamlist(beamlist_file)
     phaseshifts = tleed.parse_phaseshifts(phaseshift_file, num_el, lmax)
-    leed_executable = os.path.join(workdir, executable)
-    expdatafile = os.path.join(workdir, "WEXPEL")
-    exp_curves = tleed.parse_ivcurves(expdatafile, format="WEXPEL")
+    exp_curves = tleed.parse_ivcurves(exp_curves, format='TLEED')
     exp_curves = exp_curves.smooth(2)
     return tleed.LEEDManager(workdir, tleed_dir, exp_curves,
-                             phaseshifts, beaminfo, beamlist)
+                             phaseshifts, beamlist)
 
 
 def create_model(pts, targets, state_dict=None):
@@ -109,7 +107,7 @@ def optimize_EI(obs_pts, obs_objectives, q=5, pending_pts=None,
         resample=False
     )
 
-    best_objective = torch.max(obs_objectives).item()
+    best_objective = torch.max(obs_objectives)
     acquisition = botorch.acquisition.qExpectedImprovement(
         model,
         best_objective,
@@ -168,7 +166,7 @@ def acquire_sample_points(
     return new_normalized_pts.cpu().numpy()
 
 
-def main(workdir, tleed_dir, phaseshifts, lmax, num_el, beamset, beamlist, problem, ncores, ncalcs,
+def main(workdir, tleed_dir, phaseshifts, lmax, num_el, exp_curves, beamlist, problem, ncores, ncalcs,
          tleed_radius=0.0, warm=None, seed=None, start_pts_file=None, detect_existing_calcs=None,
          early_stop=None, random=False):
     tested_filename = os.path.join(workdir, "tested_point.txt")
@@ -176,8 +174,7 @@ def main(workdir, tleed_dir, phaseshifts, lmax, num_el, beamset, beamlist, probl
     rfactor_filename = os.path.join(workdir, "rfactorprogress.txt")
 
     num_eval = min(ncores, mp.cpu_count())
-    beaminfo = problems.beaminfos[beamset]
-    manager = create_manager(workdir, tleed_dir, beaminfo, beamlist, phaseshifts, lmax, num_el)
+    manager = create_manager(workdir, tleed_dir, exp_curves, beamlist, phaseshifts, lmax, num_el)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     search_problem = problems.problems[problem]
@@ -226,7 +223,7 @@ def main(workdir, tleed_dir, phaseshifts, lmax, num_el, beamset, beamlist, probl
         num_ref_calcs = num_eval
         num_delta_calcs = num_eval
 
-    # Normalize rfactors to zero mean, unit variance
+    # Normalize rfactors to zero mean, unit variance -- maybe don't do this, pick approx values
     normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std(ddof=1)
     model, mll = create_model(start_pts, normalized_rfactors)
 
@@ -330,8 +327,12 @@ if __name__ == "__main__":
     parser.add_argument("--problem", type=str, default="FESE_20UC",
         help="Name of problem to run (from problems.py)."
     )
-    parser.add_argument("-b", "--beaminfo", type=str, default="FESE_TRIM",
-        help="Name of a beam set descriptor (from problems.py)."
+    # parser.add_argument("-b", "--beaminfo", type=str, default="FESE_TRIM",
+    #     help="Name of a beam set descriptor (from problems.py)."
+    # )
+    parser.add_argument("-b", "--beaminfo", type=str,
+        default="/home/cole/ProgScratch/BayesLEED/TLEED/exp-data/Data.TrimmedFeSe-20uc",
+        help="Path to experimental data, formatted in the TLEED format.",
     )
     parser.add_argument('-bl', '--beamlist', type=str,
         default="/home/cole/ProgScratch/BayesLEED/TLEED/beamlists/NBLIST.FeSe-1x1",

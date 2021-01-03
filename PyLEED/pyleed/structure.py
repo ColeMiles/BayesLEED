@@ -184,6 +184,7 @@ class AtomicStructure:
 
         return output
 
+    # Is there a smarter way to handle arbitrary search parameters?
     def __getitem__(self, keyidx: Tuple[SearchKey, int]):
         """ Retrieve a structural parameter. NOTE: 1-based indexing!
             Also note: indexing CONC works differently!
@@ -192,11 +193,10 @@ class AtomicStructure:
         """
         key, idx = keyidx
         idx -= 1
-        if key == SearchKey.VIB:
-            return self.sites[idx].vib
-        elif key == SearchKey.CONC:
-            site_idx, conc_idx = divmod(idx, len(self.sites[0].concs))
-            return self.sites[site_idx].concs[conc_idx]
+        if key == SearchKey.ATOMZ:
+            lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
+            at_idx = idx - self._lay_counts[lay_idx]
+            return self.layers[lay_idx].zs[at_idx]
         elif key == SearchKey.ATOMX:
             lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
             at_idx = idx - self._lay_counts[lay_idx]
@@ -205,22 +205,28 @@ class AtomicStructure:
             lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
             at_idx = idx - self._lay_counts[lay_idx]
             return self.layers[lay_idx].ys[at_idx]
-        elif key == SearchKey.ATOMZ:
-            lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
-            at_idx = idx - self._lay_counts[lay_idx]
-            return self.layers[lay_idx].zs[at_idx]
+        elif key == SearchKey.VIB:
+            return self.sites[idx].vib
         elif key == SearchKey.CELLA:
             return self.cell_params[0]
         elif key == SearchKey.CELLB:
             return self.cell_params[1]
         elif key == SearchKey.CELLC:
             return self.cell_params[2]
+        elif key == SearchKey.INTZ:
+            return self.layers[idx].interlayer_vec[2]
         elif key == SearchKey.INTX:
             return self.layers[idx].interlayer_vec[0]
         elif key == SearchKey.INTY:
             return self.layers[idx].interlayer_vec[1]
-        elif key == SearchKey.INTZ:
-            return self.layers[idx].interlayer_vec[2]
+        elif key == SearchKey.CONC:
+            site_idx, conc_idx = divmod(idx, len(self.sites[0].concs))
+            return self.sites[site_idx].concs[conc_idx]
+        # While not a real search parameter, it is nice to be able to access this like this
+        elif key == SearchKey.SITENUM:
+            lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
+            at_idx = idx - self._lay_counts[lay_idx]
+            return self.layers[lay_idx].sitenums[at_idx]
 
     def __setitem__(self, keyidx: Tuple[SearchKey, int], value: float):
         """ Set a structural parameter. NOTE: 1-based indexing!
@@ -228,11 +234,10 @@ class AtomicStructure:
         """
         key, idx = keyidx
         idx -= 1
-        if key == SearchKey.VIB:
-            self.sites[idx].vib = value
-        elif key == SearchKey.CONC:
-            site_idx, conc_idx = divmod(idx, len(self.sites[0].concs))
-            self.sites[site_idx].concs[conc_idx] = value
+        if key == SearchKey.ATOMZ:
+            lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
+            at_idx = idx - self._lay_counts[lay_idx]
+            self.layers[lay_idx].zs[at_idx] = value
         elif key == SearchKey.ATOMX:
             lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
             at_idx = idx - self._lay_counts[lay_idx]
@@ -241,10 +246,8 @@ class AtomicStructure:
             lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
             at_idx = idx - self._lay_counts[lay_idx]
             self.layers[lay_idx].ys[at_idx] = value
-        elif key == SearchKey.ATOMZ:
-            lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
-            at_idx = idx - self._lay_counts[lay_idx]
-            self.layers[lay_idx].zs[at_idx] = value
+        elif key == SearchKey.VIB:
+            self.sites[idx].vib = value
         elif key == SearchKey.CELLA:
             self.cell_params[0] = value
         elif key == SearchKey.CELLB:
@@ -253,6 +256,13 @@ class AtomicStructure:
             self.cell_params[2] = value
         elif key == SearchKey.INTZ:
             self.layers[idx].interlayer_vec[2] = value
+        elif key == SearchKey.INTX:
+            self.layers[idx].interlayer_vec[0] = value
+        elif key == SearchKey.INTY:
+            self.layers[idx].interlayer_vec[1] = value
+        elif key == SearchKey.CONC:
+            site_idx, conc_idx = divmod(idx, len(self.sites[0].concs))
+            self.sites[site_idx].concs[conc_idx] = value
 
     # TODO: Enough changes have happened that this is probably wrong
     def write_xyz(self, filename: str, comment: str = ""):

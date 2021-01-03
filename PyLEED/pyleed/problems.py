@@ -5,42 +5,6 @@ from .searchspace import *
 from .tleed import *
 import numpy as np
 
-# TODO: BeamInfo can be automatically obtained from exp curve file
-
-FESE_BEAMINFO_TRIMMED = BeamInfo(
-    0.0, 0.0,         # Incident theta, phi
-    [                 # (kx, ky) of beams
-        (1, 0),
-        (1, 1),
-        (2, 0),
-        (2, 2),
-        (3, 0)
-    ],
-    30.0, 550.0, 2.0  # Emin, Emax, dE
-)
-
-FESE1UC_BEAMINFO = BeamInfo(
-    0.0, 0.0,
-    [
-        (0, 1),
-        (1, 0),
-        (1, 1),
-        (0, 2),
-        (2, 0),
-        (1, 2),
-        (2, 1),
-        (2, 2),
-        (0, 3),
-        (3, 0),
-        (1, 3),
-        (3, 1),
-        (2, 3),
-        (3, 2),
-        (3, 3)
-    ],
-    16.0, 410.0, 2.0  # Emin, Emax, dE
-)
-
 # TODO: All (commented out) structures need explicit interlayer vectors now!
 
 FESE_20UC = AtomicStructure(
@@ -592,10 +556,4 @@ problems = {
     # "TEST_FESE_2D": TEST_FESE_20UC_2D_PROBLEM,
     "FESE_1UC": FESE_1UC_PROBLEM,
     "TEST_FESE_1UC": TEST_DOUB_FESE_1UC_PROBLEM,
-}
-
-# TODO: Add LaNiO3
-beaminfos = {
-    "FESE_TRIM": FESE_BEAMINFO_TRIMMED,
-    "FESE_1UC": FESE1UC_BEAMINFO,
 }

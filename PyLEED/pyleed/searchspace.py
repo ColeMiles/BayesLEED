@@ -18,17 +18,18 @@ from . import curves
 class SearchKey(enum.Enum):
     """ Enumeration defining the types of parameters which can be searched over
     """
-    CONC = enum.auto()      # elem concentrations at a site     indexes (sites, concs)
-    VIB = enum.auto()       # vibrational parameter of a site   indexes sites
-    ATOMX = enum.auto()     # x component of an atom            indexes (layers, atoms)
-    ATOMY = enum.auto()     # y component of an atom            indexes (layers, atoms)
-    ATOMZ = enum.auto()     # z component of an atom            indexes (layers, atoms)
-    CELLA = enum.auto()     # unit cell's a parameter           index is ignored
-    CELLB = enum.auto()     # unit cell's b parameter           index is ignored
-    CELLC = enum.auto()     # unit cell's c parameter           index is ignored
-    INTX = enum.auto()      # x-component of interlayer vector  indexes layers
-    INTY = enum.auto()      # y-component of interlayer vector  indexes layers
-    INTZ = enum.auto()      # z-component of interlayer vector  indexes layers
+    CONC = enum.auto()      # elem concentrations at a site      indexes (sites, concs)
+    VIB = enum.auto()       # vibrational parameter of a site    indexes sites
+    ATOMX = enum.auto()     # x component of an atom             indexes (layers, atoms)
+    ATOMY = enum.auto()     # y component of an atom             indexes (layers, atoms)
+    ATOMZ = enum.auto()     # z component of an atom             indexes (layers, atoms)
+    CELLA = enum.auto()     # unit cell's a parameter            index is ignored
+    CELLB = enum.auto()     # unit cell's b parameter            index is ignored
+    CELLC = enum.auto()     # unit cell's c parameter            index is ignored
+    INTX = enum.auto()      # x-component of interlayer vector   indexes layers
+    INTY = enum.auto()      # y-component of interlayer vector   indexes layers
+    INTZ = enum.auto()      # z-component of interlayer vector   indexes layers
+    SITENUM = enum.auto()   # The sitenum of an atom (no search) indexes (layers, atoms)
 
 
 class Constraint:

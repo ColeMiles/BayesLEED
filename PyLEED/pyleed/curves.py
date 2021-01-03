@@ -127,7 +127,7 @@ def _parse_experiment_tleed(filename: str) -> IVCurveSet:
             # Read in all those energies
             for i in range(num_energies):
                 line = f.readline()
-                energy, intens = map(float, line.split())
+                energy, intens = float(line[:7]), float(line[7:])
                 energies[i] = energy
                 intensities[i] = intens
 
@@ -200,9 +200,7 @@ def _parse_ivcurves_plotfmt(filename: str) -> IVCurveSet:
 
 def parse_ivcurves(filename: str, format='TLEED') -> IVCurveSet:
     try:
-        if format.upper() == 'TLEED':
-            return _parse_experiment_tleed(filename)
-        elif format.upper() == 'WEXPEL':
+        if format.upper() in ['TLEED', 'WEXPEL']:
             return _parse_experiment_tleed(filename)
         elif format.upper() == 'RCOUT':
             return _parse_theory_tleed(filename)

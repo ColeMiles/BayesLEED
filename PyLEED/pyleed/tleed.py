@@ -16,7 +16,9 @@ from typing import List, Tuple, Collection, Optional, Union
 import numpy as np
 
 from .structure import AtomicStructure, Site, Layer, Atom, LayerType
-from .searchspace import DeltaSearchDim, DeltaSearchSpace, Constraint, optimize_delta_anneal
+from .searchspace import (
+    DeltaSearchDim, DeltaSearchSpace, Constraint, SearchKey, optimize_delta_anneal
+)
 from .curves import IVCurve, IVCurveSet, parse_ivcurves, avg_rfactors
 
 
@@ -625,6 +627,8 @@ def _parse_ref_calc_str(lines: List[str]) -> RefCalc:
     return ref_calc
 
 
+# TODO: This class will not work for structure with >1 surface layer.
+#        See optimize_delta_anneal for ideas of how to fix.
 class DeltaCalc:
     """ Class representing a single perturbative calculation away from a reference calculation.
         Note that structure is not very `natural` from the perspective of the TensErLEED program,
@@ -671,7 +675,7 @@ class DeltaCalc:
                     c * (delta_atom.z - ref_atom.z)
                 ]))
                 self._vibs.append(
-                    struct.sites[delta_atom.sitenum].vib
+                    struct.sites[delta_atom.sitenum-1].vib
                 )
 
     def _write_scripts(self, directory: Optional[str] = None) -> List[str]:
@@ -1064,7 +1068,7 @@ Calc = Union[RefCalc, DeltaCalc]
 
 class LEEDManager:
     def __init__(self, workdir: str, tleed_dir: str, exp_curves: IVCurveSet,
-                 phaseshifts: Phaseshifts, beaminfo: BeamInfo, beamlist: BeamList):
+                 phaseshifts: Phaseshifts, beamlist: BeamList):
         """ Create a LEEDManager to keep track of TensErLEED components, and orchestrate parallel
              executions of multiple calculations. Only one of these should exist per problem.
                 basedir: The base directory to do computation in
@@ -1086,9 +1090,19 @@ class LEEDManager:
         self._ref_compiled = False
         self._delta_compiled = False
 
+        # Create a BeamInfo from the exp_curves -- assumes normal incidence for now
+        curve_labels = [curve.label for curve in exp_curves]
+        min_en = min(np.min(curve.energies) for curve in exp_curves)
+        max_en = max(np.max(curve.energies) for curve in exp_curves)
+        step_en = exp_curves[0].energies[1] - exp_curves[0].energies[0]
+        self.beaminfo: BeamInfo = BeamInfo(
+            0.0, 0.0,
+            [(int(bx), int(by)) for bx, by in curve_labels],
+            min_en - 10., max_en + 10., step_en
+        )
+
         self.tleed_dir = os.path.abspath(tleed_dir)
         self.phaseshifts: Phaseshifts = phaseshifts
-        self.beaminfo: BeamInfo = beaminfo
         self.beamlist: BeamList = beamlist
         self.exp_curves: IVCurveSet = exp_curves
 
@@ -1252,6 +1266,7 @@ class LEEDManager:
             )
 
         # Reconstruct the structures which achieved the minimum of each annealing
+        # TODO: Issue: what if many atoms of the same site type give different vibs?
         # TODO: Move this inside optimize_delta_anneal?
         delta_structs = []
         delta_rfactors = [r[1] for r in results]
@@ -1267,11 +1282,11 @@ class LEEDManager:
                 geo = search_disps[geo_idx]
                 vib = search_vibs[vib_idx]
 
-                delta_struct.layers[0].xs[atom_idx-1] += geo[0] / delta_struct.cell_params[0]
-                delta_struct.layers[0].ys[atom_idx-1] += geo[1] / delta_struct.cell_params[1]
-                delta_struct.layers[0].zs[atom_idx-1] += geo[2] / delta_struct.cell_params[2]
-                sitenum = delta_struct.layers[0].sitenums[atom_idx-1]
-                delta_struct.sites[sitenum-1].vib = vib
+                delta_struct[SearchKey.ATOMX, atom_idx] += geo[0] / delta_struct.cell_params[0]
+                delta_struct[SearchKey.ATOMY, atom_idx] += geo[1] / delta_struct.cell_params[1]
+                delta_struct[SearchKey.ATOMZ, atom_idx] += geo[2] / delta_struct.cell_params[2]
+                sitenum = delta_struct[SearchKey.SITENUM, atom_idx]
+                delta_struct[SearchKey.VIB, sitenum] = vib
 
             delta_structs.append(delta_struct)
             delta_calc = DeltaCalc(delta_struct, ref_calc, self._delta_exe, search_vibs=search_vibs)
