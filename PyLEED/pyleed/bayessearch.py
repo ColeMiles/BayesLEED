@@ -47,7 +47,7 @@ def create_manager(workdir, tleed_dir, beaminfo, beamlist_file, phaseshift_file,
     expdatafile = os.path.join(workdir, "WEXPEL")
     exp_curves = tleed.parse_ivcurves(expdatafile, format="WEXPEL")
     exp_curves = exp_curves.smooth(2)
-    return tleed.LEEDManager(workdir, tleed_dir, leed_executable, exp_curves,
+    return tleed.LEEDManager(workdir, tleed_dir, exp_curves,
                              phaseshifts, beaminfo, beamlist)
 
 
@@ -168,26 +168,23 @@ def acquire_sample_points(
     return new_normalized_pts.cpu().numpy()
 
 
-def main(leed_executable, tleed_dir, phaseshifts, lmax, num_el, beamset, beamlist, problem, ncores, ncalcs,
+def main(workdir, tleed_dir, phaseshifts, lmax, num_el, beamset, beamlist, problem, ncores, ncalcs,
          tleed_radius=0.0, warm=None, seed=None, start_pts_file=None, detect_existing_calcs=None,
          early_stop=None, random=False):
-    workdir, executable = os.path.split(leed_executable)
     tested_filename = os.path.join(workdir, "tested_point.txt")
     model_filename = os.path.join(workdir, "finalmodel.pt")
     rfactor_filename = os.path.join(workdir, "rfactorprogress.txt")
 
     num_eval = min(ncores, mp.cpu_count())
     beaminfo = problems.beaminfos[beamset]
-    manager = create_manager(workdir, tleed_dir, beaminfo, beamlist, phaseshifts, lmax, num_el,
-                             executable=leed_executable)
+    manager = create_manager(workdir, tleed_dir, beaminfo, beamlist, phaseshifts, lmax, num_el)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     search_problem = problems.problems[problem]
     num_params = search_problem.num_params
 
+    # TODO: add this to SearchSpace definition
     delta_search_dims = problems.FESE_DELTA_SEARCHDIMS
-    # Re-compile the delta exe to expect these search dimensions
-    manager.change_delta_exe(len(delta_search_dims[0][1]), len(delta_search_dims[0][2]))
 
     if detect_existing_calcs:
         logging.info("Loading points from reference calculations in directory {}".format(workdir))
@@ -313,8 +310,8 @@ def main(leed_executable, tleed_dir, phaseshifts, lmax, num_el, beamset, beamlis
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("leed_executable", 
-        help="Path to LEED executable. Directory containing it treated as work directory."
+    parser.add_argument("workdir", type=str,
+        help="Directory to carry out all calculations in."
     )
     parser.add_argument("-p", "--phaseshifts", type=str,
         default="/home/cole/ProgScratch/BayesLEED/TLEED/phaseshifts/FeSeBulk.eight.phase",
@@ -387,6 +384,17 @@ if __name__ == "__main__":
         ]
     )
 
+    # Set random seeds to get reproducible behavior
+    if args.seed is not None:
+        np.random.seed(args.seed)
+        torch.manual_seed(seed=args.seed)
+    else:
+        # Is there a better way?
+        seed = np.random.get_state()[1][0]
+        args.seed = seed
+        np.random.seed(seed)
+        torch.manual_seed(seed=args.seed)
+
     pretty_print_args(args)
 
     # Check for GPU presence
@@ -395,13 +403,7 @@ if __name__ == "__main__":
     else:
         logging.info("No CUDA-capable GPU found, continuing on CPU.")
 
-    # Set random seeds to get reproducible behavior
-    if args.seed is not None:
-        np.random.seed(args.seed)
-        torch.manual_seed(seed=args.seed)
-
     # TODO: Do something about this. Config file / class?
-    main(args.leed_executable, args.tleed, args.phaseshifts, args.lmax, args.num_el, args.beaminfo,
-         args.beamlist, args.problem, args.ncores, args.num_calcs,
-         tleed_radius=args.radius_tleed, seed=args.seed, start_pts_file=args.start_pts,
-         detect_existing_calcs=args.detect_calcs, random=args.random)
+    main(args.workdir, args.tleed, args.phaseshifts, args.lmax, args.num_el, args.beaminfo, args.beamlist,
+         args.problem, args.ncores, args.num_calcs, tleed_radius=args.radius_tleed, seed=args.seed,
+         start_pts_file=args.start_pts, detect_existing_calcs=args.detect_calcs, random=args.random)

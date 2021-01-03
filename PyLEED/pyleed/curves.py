@@ -86,17 +86,12 @@ def _crop_common_energy(curves: List[IVCurve]) -> List[IVCurve]:
     return new_curves
 
 
-def _parse_experiment_tleed(filename: str, extra_header=True) -> IVCurveSet:
-    """ Parse IV curves that are in the experimental data format expected by TLEED
+def _parse_experiment_tleed(filename: str) -> IVCurveSet:
+    """ Parse IV curves that are in the experimental data format expected by TLEED.
     """
     ivcurves = IVCurveSet()
 
     with open(filename, 'r') as f:
-        if extra_header:
-            # File WEXPEL created has 28 extra lines at the top we don't care about at the moment
-            for _ in range(28):
-                f.readline()
-
         # Title line
         f.readline()
 
@@ -206,9 +201,9 @@ def _parse_ivcurves_plotfmt(filename: str) -> IVCurveSet:
 def parse_ivcurves(filename: str, format='TLEED') -> IVCurveSet:
     try:
         if format.upper() == 'TLEED':
-            return _parse_experiment_tleed(filename, extra_header=False)
+            return _parse_experiment_tleed(filename)
         elif format.upper() == 'WEXPEL':
-            return _parse_experiment_tleed(filename, extra_header=True)
+            return _parse_experiment_tleed(filename)
         elif format.upper() == 'RCOUT':
             return _parse_theory_tleed(filename)
         elif format.upper() == 'PLOT':

@@ -17,7 +17,7 @@ def test_lanio3_convergence():
     shutil.copytree(origdir, newdir)
 
     _, _, rfactors = bayessearch.main(
-        executable, "LANIO3", 8, 20, early_stop=0.3
+        newdir, "LANIO3", 8, 20, early_stop=0.3
     )
 
     assert np.min(rfactors) < 0.3

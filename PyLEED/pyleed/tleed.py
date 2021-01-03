@@ -22,6 +22,10 @@ from .curves import IVCurve, IVCurveSet, parse_ivcurves, avg_rfactors
 
 _MNLMBS = [19, 126, 498, 1463, 3549, 7534, 14484, 25821, 43351,
            69322, 106470, 158067, 227969, 320664, 441320]
+_MNLMOS = [1, 70, 264, 759, 1820, 3836, 7344, 13053, 21868, 34914,
+           53560, 79443, 114492, 160952, 221408]
+_MNLMS = [1, 76, 284, 809, 1925, 4032, 7680, 13593, 22693, 36124,
+          55276, 81809, 117677, 165152, 226848]
 
 
 class BeamInfo:
@@ -39,6 +43,9 @@ class BeamInfo:
         if not self.energy_min < self.energy_max:
             raise ValueError("Cannot have energy_min >= energy_max")
 
+    def __len__(self):
+        return len(self.beams)
+
     def __iter__(self):
         return iter(self.beams)
 
@@ -49,7 +56,7 @@ class BeamList:
         Note a distinction: BeamInfo is used for the set of beams measured by experiment
          that you want to compare simulated results against. BeamList is the list of all
          beams that TensErLEED has determined it needs to track to perform this
-         calculation.
+         calculation. (Produced by beamgen.f).
     """
     def __init__(self, beams, energies):
         self.beams: List[Tuple[float, float]] = beams
@@ -1056,7 +1063,7 @@ Calc = Union[RefCalc, DeltaCalc]
 
 
 class LEEDManager:
-    def __init__(self, workdir: str, tleed_dir: str, leed_executable: str, exp_curves: IVCurveSet,
+    def __init__(self, workdir: str, tleed_dir: str, exp_curves: IVCurveSet,
                  phaseshifts: Phaseshifts, beaminfo: BeamInfo, beamlist: BeamList):
         """ Create a LEEDManager to keep track of TensErLEED components, and orchestrate parallel
              executions of multiple calculations. Only one of these should exist per problem.
@@ -1069,12 +1076,16 @@ class LEEDManager:
             In general, operations on this class are NOT thread-safe. Create an instance
              of this class on a single (main) thread and let it handle asynchronous executions.
         """
-        for path in [workdir, leed_executable, tleed_dir]:
+        for path in [workdir, tleed_dir]:
             if not os.path.exists(path):
-                raise ValueError("File not found: {}".format(path))
+                raise ValueError("Directory not found: {}".format(path))
         self.workdir = os.path.abspath(workdir)
-        self.leed_exe = os.path.abspath(leed_executable)
-        self._delta_exe = os.path.join(os.path.dirname(self.leed_exe), "delta.x")
+        # These will be compiled and set as needed - they may not exist at this point
+        self._ref_exe = os.path.join(self.workdir, "ref-calc.x")
+        self._delta_exe = os.path.join(self.workdir, "delta.x")
+        self._ref_compiled = False
+        self._delta_compiled = False
+
         self.tleed_dir = os.path.abspath(tleed_dir)
         self.phaseshifts: Phaseshifts = phaseshifts
         self.beaminfo: BeamInfo = beaminfo
@@ -1087,9 +1098,6 @@ class LEEDManager:
         self.calc_number = 0
         self.active_calcs: List[Calc] = []
 
-        logging.info("Compiling TLEED delta program...")
-        self._compile_delta_program(self._delta_exe, 1, 1)
-
     def change_delta_exe(self, ndisps: int, nvibs: int,
                          compiler: str = "gfortran", options: List[str] = None):
         """ Reset self._delta_exe to one which is prepared for a larger number of disps/vibs
@@ -1100,10 +1108,14 @@ class LEEDManager:
         """ Spawns a subprocess running a reference calculation for the given AtomicStructure.
             Adds this subprocess to the manager's list of active calculations.
         """
+        # Compile the reference calculation program if this is the first call
+        if not self._ref_compiled:
+            self._compile_ref_program(structure, self._ref_exe)
+
         newdir = os.path.join(self.workdir, "ref-calc" + str(self.calc_number))
         os.makedirs(newdir, exist_ok=True)
         ref_calc = RefCalc(structure, self.phaseshifts, self.beaminfo, self.beamlist,
-                           self.leed_exe, newdir, produce_tensors=produce_tensors)
+                           self._ref_exe, newdir, produce_tensors=produce_tensors)
         ref_calc.run()
         self.calc_number += 1
         self.active_calcs.append(ref_calc)
@@ -1210,6 +1222,14 @@ class LEEDManager:
             space.ref_calc._process = None
 
         logging.info("Producing delta amplitudes around {} reference calcs.".format(num_structs))
+
+        # Compile the delta_exe if this has not been done yet
+        # This currently assumes that all search dims have the same number of geo/vib disps
+        # TODO: Compile separate delta program for each search dimension?
+        if not self._delta_compiled:
+            self._compile_delta_program(
+                self._delta_exe, len(search_dims[0][1]), len(search_dims[0][2])
+            )
 
         # Make MultiDeltaAmps for each, just do this in serial for now
         deltacalcs = [
@@ -1359,6 +1379,7 @@ class LEEDManager:
         """ Compiles the delta.f program. Should only need to be called one at the beginning
              of an optimization problem.
         """
+        logging.info("Compiling perturbative TLEED program.")
         exe_dir = os.path.dirname(executable_path)
 
         # Write PARAM needed to compile the delta executable
@@ -1382,7 +1403,7 @@ class LEEDManager:
         delta_lib_dest = os.path.join(exe_dir, "lib.delta.f")
         tleed_lib_dest = os.path.join(exe_dir, "lib.tleed.f")
 
-        # Create symlinks to source files so that local compilation includes PARAM
+        # Create symlinks to source files for local compilation
         for src, dest in zip([global_source, delta_exe_source, delta_lib_source, tleed_lib_source],
                              [global_dest, delta_exe_dest, delta_lib_dest, tleed_lib_dest]):
             if os.path.exists(dest):
@@ -1394,13 +1415,16 @@ class LEEDManager:
 
         processes = list()
         processes.append(subprocess.Popen(
-            [compiler] + options + ["-o", "main.o", "-c", delta_exe_dest], cwd=exe_dir
+            [compiler] + options + ["-o", "main.o", "-c", delta_exe_dest], cwd=exe_dir,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         ))
         processes.append(subprocess.Popen(
-            [compiler] + options + ["-o", "lib.tleed.o", "-c", tleed_lib_dest], cwd=exe_dir
+            [compiler] + options + ["-o", "lib.tleed.o", "-c", tleed_lib_dest], cwd=exe_dir,
+            stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL,
         ))
         processes.append(subprocess.Popen(
-            [compiler] + options + ["-o", "lib.delta.o", "-c", delta_lib_dest], cwd=exe_dir
+            [compiler] + options + ["-o", "lib.delta.o", "-c", delta_lib_dest], cwd=exe_dir,
+            stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL,
         ))
         for p in processes:
             p.wait()
@@ -1410,6 +1434,131 @@ class LEEDManager:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
+
+        self._delta_compiled = True
+        logging.info("Perturbative TLEED program compiled.")
+
+    def _compile_muftin_func(self, compiler: str = "gfortran", options: List[str] = None):
+        """ Compiles the muffin tin potential function. For now, uses the potential that is default
+             in TensErLEED.
+             TODO: Make this edit-able
+        """
+        executable_dir = os.path.dirname(self._ref_exe)
+        with open(os.path.join(executable_dir, "muftin.f"), "w") as f:
+            f.write(
+                "      subroutine muftin(EEV,VO,VV,VPI,VPIS,VPIO)"
+                "      real EEV,VO,VV,VPI,VPIS,VPIO"
+                "      real workfn"
+                "      workfn = 0."
+                "      VV = workfn - max( (0.08-77.73/sqrt(EEV+workfn+30.7)) , -10.73)"
+                "      VO = 0."
+                "      VPI = 5.0"
+                "      VPIS = VPI"
+                "      VPIO = VPI"
+                "      return"
+                "      end"
+            )
+
+        subprocess.run(
+            [compiler] + options + ["-o", "muftin.o", "-c", "muftin.f"],
+            cwd=executable_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+    def _compile_ref_program(self, struct: AtomicStructure, executable_path: str, sym: int = 2,
+                             compiler: str = "gfortran", options: List[str] = None):
+        """ Compiles the reference calculation code, using the given AtomicStructure as the
+                source of various required dimension sizes in the calculation.
+        """
+        logging.info("Compiling reference calculation program.")
+        exe_dir = os.path.dirname(os.path.abspath(executable_path))
+
+        with open(os.path.join(exe_dir, "PARAM"), "w") as f:
+            # 1. Lattice symmetry
+            # For now, don't touch these for simplicity.
+            f.write("      PARAMETER (MIDEG={},MNL1=1,MNL2=1)\n".format(sym))
+            f.write("      PARAMETER (MNL = MNL1*MNL2)\n")
+
+            # 2. General calculational quantities
+            # "Number of independent beam sets in beam list"
+            f.write("      PARAMETER (MKNBS = 1)\n")
+            f.write("      PARAMETER (MKNT = {})\n".format(len(self.beamlist)))
+            f.write("      PARAMETER (MNPUN = {0}, MNT0 = {0})\n".format(len(self.beaminfo)))
+            f.write("      PARAMETER (MNPSI = {}, MNEL = {})\n".format(
+                self.phaseshifts.num_energies, self.phaseshifts.num_elem
+            ))
+            f.write("      PARAMETER (MLMAX = {})\n".format(self.phaseshifts.lmax))
+            f.write("      PARAMETER (MNLMO = {}, MNLM = {})\n".format(
+                _MNLMOS[self.phaseshifts.lmax-1], _MNLMS[self.phaseshifts.lmax-1]
+            ))
+
+            # 3. Parameters for (3D) geometry within (2D) unit mesh
+            f.write("      PARAMETER (MNSITE  = {})\n".format(len(struct.sites)))
+            f.write("      PARAMETER (MNLTYPE = {})\n".format(len(struct.layers)))
+            # Treat all layers are composite for now
+            f.write("      PARAMETER (MNBRAV  = 0)\n")
+            f.write("      PARAMETER (MNSUB   = {})\n".format(
+                max(len(lay) for lay in struct.layers)
+            ))
+            f.write("      PARAMETER (MNSTACK = {})\n".format(
+                sum(1 for lay in struct.layers if lay.lay_type == LayerType.SURF)
+            ))
+
+            # 4. Some derived quantities. Do not modify -- copied as-is from TensErLEED scripts.
+            f.write("      PARAMETER (MLMAX1=MLMAX+1)\n")
+            f.write("      PARAMETER (MLMMAX = MLMAX1*MLMAX1)\n")
+            f.write("      PARAMETER (MNBRAV2 = 1)\n")
+            f.write("      PARAMETER (MNCOMP= MNLTYPE-MNBRAV)\n")
+            f.write("      PARAMETER (MLMT  = MNSUB*MLMMAX)\n")
+            f.write("      PARAMETER (MNSUB2= MNSUB * (MNSUB-1)/2)\n")
+            f.write("      PARAMETER (MLMG  = MNSUB2*MLMMAX*2)\n")
+            f.write("      PARAMETER (MLMN  = MNSUB * MLMMAX)\n")
+            f.write("      PARAMETER (MLM2N = 2*MLMN)\n")
+            f.write("      PARAMETER (MLMNI = MNSUB*MLMMAX)\n")
+
+        global_source = os.path.join(self.tleed_dir, "v1.2", "src", "GLOBAL")
+        ref_lib_source = os.path.join(self.tleed_dir, "v1.2", "lib", "lib.tleed.f")
+        ref_exe_source = os.path.join(self.tleed_dir, "v1.2", "src", "ref-calc.f")
+        global_dest = os.path.join(exe_dir, "GLOBAL")
+        ref_lib_dest = os.path.join(exe_dir, "lib.tleed.f")
+        ref_exe_dest = os.path.join(exe_dir, "ref-calc.f")
+
+        # Create symlinks to source files so that local compilation includes PARAM
+        for src, dest in zip([global_source, ref_lib_source, ref_exe_source],
+                             [global_dest, ref_lib_dest, ref_exe_dest]):
+            if os.path.exists(dest):
+                os.remove(dest)
+            os.symlink(src, dest)
+
+        if options is None:
+            options = ["-O3", "-malign-double", "-funroll-loops", "-std=legacy"]
+
+        # Compile the muffin tin potential subroutine
+        self._compile_muftin_func(compiler=compiler, options=options)
+
+        # Compile the consituent libraries / programs
+        processes = list()
+        processes.append(subprocess.Popen(
+            [compiler] + options + ["-o", "main.o", "-c", ref_exe_dest], cwd=exe_dir,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        ))
+        processes.append(subprocess.Popen(
+            [compiler] + options + ["-o", "lib.tleed.o", "-c", ref_lib_dest], cwd=exe_dir,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        ))
+        for p in processes:
+            p.wait()
+        # Link together
+        subprocess.run(
+            [compiler] + options + ["-o", executable_path, "muftin.o", "lib.tleed.o", "main.o"],
+            cwd=exe_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+        self._ref_compiled = True
+        logging.info("Reference calculation program compiled.")
 
     def produce_delta_amps(self, delta_space: DeltaSearchSpace,
                            delta_exe: Optional[str] = None) -> MultiDeltaAmps:
