@@ -1197,7 +1197,7 @@ class LEEDManager:
     def batch_ref_calc_local_searches(self, structures: Collection[AtomicStructure],
                                       search_dims: List[DeltaSearchDim],
                                       constraints: List[Constraint] = None,
-                                      search_epochs: int = 30000, search_indivs: int = 25
+                                      search_epochs: int = 40000, search_indivs: int = 25
                                       ) -> Tuple[List[float], List[AtomicStructure], List[float]]:
         """ Starts (and waits for completion of) multiple reference calculations
              in parallel. Once all are done, computes a local TLEED search within
@@ -1431,24 +1431,38 @@ class LEEDManager:
         processes = list()
         processes.append(subprocess.Popen(
             [compiler] + options + ["-o", "main.o", "-c", delta_exe_dest], cwd=exe_dir,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
         ))
         processes.append(subprocess.Popen(
             [compiler] + options + ["-o", "lib.tleed.o", "-c", tleed_lib_dest], cwd=exe_dir,
-            stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr = subprocess.PIPE, text=True,
         ))
         processes.append(subprocess.Popen(
             [compiler] + options + ["-o", "lib.delta.o", "-c", delta_lib_dest], cwd=exe_dir,
-            stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr = subprocess.PIPE, text=True,
         ))
         for p in processes:
-            p.wait()
-        subprocess.run(
-            [compiler] + options + ["-o", executable_path, "main.o", "lib.tleed.o", "lib.delta.o"],
-            cwd=exe_dir,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
+            _, errs = p.communicate()
+            if p.returncode != 0:
+                logging.error("Error in compiling delta perturbative calculation code!")
+                logging.error(errs)
+                raise subprocess.CalledProcessError(returncode=p.returncode, cmd=" ".join(p.args),
+                                                    stderr=errs)
+
+        # Link together
+        try:
+            subprocess.run(
+                [compiler] + options + ["-o", executable_path, "main.o", "lib.tleed.o", "lib.delta.o"],
+                cwd=exe_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            logging.error("Error in linking delta calculation code!")
+            logging.error(e.stderr)
+            raise e
 
         self._delta_compiled = True
         logging.info("Perturbative TLEED program compiled.")
@@ -1461,25 +1475,32 @@ class LEEDManager:
         executable_dir = os.path.dirname(self._ref_exe)
         with open(os.path.join(executable_dir, "muftin.f"), "w") as f:
             f.write(
-                "      subroutine muftin(EEV,VO,VV,VPI,VPIS,VPIO)"
-                "      real EEV,VO,VV,VPI,VPIS,VPIO"
-                "      real workfn"
-                "      workfn = 0."
-                "      VV = workfn - max( (0.08-77.73/sqrt(EEV+workfn+30.7)) , -10.73)"
-                "      VO = 0."
-                "      VPI = 5.0"
-                "      VPIS = VPI"
-                "      VPIO = VPI"
-                "      return"
-                "      end"
+                "      subroutine muftin(EEV,VO,VV,VPI,VPIS,VPIO)\n"
+                "      real EEV,VO,VV,VPI,VPIS,VPIO\n"
+                "      real workfn\n"
+                "      workfn = 0.\n"
+                "      VV = workfn - max( (0.08-77.73/sqrt(EEV+workfn+30.7)) , -10.73)\n"
+                "      VO = 0.\n"
+                "      VPI = 5.0\n"
+                "      VPIS = VPI\n"
+                "      VPIO = VPI\n"
+                "      return\n"
+                "      end\n"
             )
 
-        subprocess.run(
-            [compiler] + options + ["-o", "muftin.o", "-c", "muftin.f"],
-            cwd=executable_dir,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
+        try:
+            subprocess.run(
+                [compiler] + options + ["-o", "muftin.o", "-c", "muftin.f"],
+                cwd=executable_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                check=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            logging.error("Error in muffin-tin subroutine compilation!")
+            logging.error(e.stderr)
+            raise e
 
     def _compile_ref_program(self, struct: AtomicStructure, executable_path: str, sym: int = 2,
                              compiler: str = "gfortran", options: List[str] = None):
@@ -1556,21 +1577,34 @@ class LEEDManager:
         processes = list()
         processes.append(subprocess.Popen(
             [compiler] + options + ["-o", "main.o", "-c", ref_exe_dest], cwd=exe_dir,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
         ))
         processes.append(subprocess.Popen(
             [compiler] + options + ["-o", "lib.tleed.o", "-c", ref_lib_dest], cwd=exe_dir,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
         ))
         for p in processes:
-            p.wait()
+            _, errs = p.communicate()
+            if p.returncode != 0:
+                logging.error("Error in compiling reference calculation code!")
+                logging.error(errs)
+                raise subprocess.CalledProcessError(returncode=p.returncode, cmd=" ".join(p.args),
+                                                    stderr=errs)
+
         # Link together
-        subprocess.run(
-            [compiler] + options + ["-o", executable_path, "muftin.o", "lib.tleed.o", "main.o"],
-            cwd=exe_dir,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
+        try:
+           subprocess.run(
+                [compiler] + options + ["-o", executable_path, "muftin.o", "lib.tleed.o", "main.o"],
+                cwd=exe_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                check=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            logging.error("Error in linking reference calculation code!")
+            logging.error(e.stderr)
+            raise e
 
         self._ref_compiled = True
         logging.info("Reference calculation program compiled.")
