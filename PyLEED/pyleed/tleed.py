@@ -1198,7 +1198,7 @@ class LEEDManager:
                                       search_dims: List[DeltaSearchDim],
                                       constraints: List[Constraint] = None,
                                       search_epochs: int = 40000, search_indivs: int = 25
-                                      ) -> Tuple[List[float], List[AtomicStructure], List[float]]:
+                                      ) -> Tuple[List[float], List[AtomicStructure], List[float], IVCurveSet]:
         """ Starts (and waits for completion of) multiple reference calculations
              in parallel. Once all are done, computes a local TLEED search within
              the given radii of the reference calc.
@@ -1270,8 +1270,9 @@ class LEEDManager:
         # TODO: Move this inside optimize_delta_anneal?
         delta_structs = []
         delta_rfactors = [r[1] for r in results]
+        best_curves = results[np.argmin(delta_rfactors).item()][2]
         for i in range(len(structures)):
-            (geo_idxs, vib_idxs), delta_rfactor = results[i]
+            (geo_idxs, vib_idxs), delta_rfactor, _ = results[i]
             atom_idxs = search_spaces[i].atoms
             base_struct = search_spaces[i].struct
             delta_struct = copy.deepcopy(base_struct)
@@ -1293,7 +1294,7 @@ class LEEDManager:
             self.completed_deltacalcs.append((delta_calc, delta_rfactor))
             self.completed_calcs.append((delta_calc, delta_rfactor))
 
-        return ref_rfactors, delta_structs, delta_rfactors
+        return ref_rfactors, delta_structs, delta_rfactors, best_curves
 
     def poll_active_calcs(self) -> List[Tuple[Calc, float]]:
         """ Polls all of the 'active calculations' to check if any have completed,

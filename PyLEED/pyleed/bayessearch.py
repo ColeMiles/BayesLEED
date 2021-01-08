@@ -16,6 +16,7 @@ import botorch
 from pyleed import problems, tleed
 from pyleed.structure import AtomicStructure
 from pyleed.tleed import RefCalc, parse_ref_calc, CalcState
+from pyleed.curves import write_curves
 
 
 def pretty_print_args(args):
@@ -168,7 +169,10 @@ def acquire_sample_points(
 
 def main(workdir, tleed_dir, phaseshifts, lmax, num_el, exp_curves, beamlist, problem, ncores, ncalcs,
          tleed_radius=0.0, warm=None, seed=None, start_pts_file=None, detect_existing_calcs=None,
-         early_stop=None, random=False):
+         early_stop=None, random=False, save_curves=None):
+    if save_curves is None:
+        save_curves = os.path.join(workdir, 'bestcurves.data')
+
     tested_filename = os.path.join(workdir, "tested_point.txt")
     model_filename = os.path.join(workdir, "finalmodel.pt")
     rfactor_filename = os.path.join(workdir, "rfactorprogress.txt")
@@ -214,7 +218,7 @@ def main(workdir, tleed_dir, phaseshifts, lmax, num_el, exp_curves, beamlist, pr
         # Replace one of the random pts with the "ideal" structure (no perturbations)
         start_pts[0] = search_problem.to_normalized(search_problem.atomic_structure)
         random_structs[0] = search_problem.atomic_structure
-        ref_rfactors, delta_structs, delta_rfactors = manager.batch_ref_calc_local_searches(
+        ref_rfactors, delta_structs, delta_rfactors, best_curves = manager.batch_ref_calc_local_searches(
             random_structs, delta_search_dims
         )
         rfactors = np.array(ref_rfactors + delta_rfactors)
@@ -222,6 +226,7 @@ def main(workdir, tleed_dir, phaseshifts, lmax, num_el, exp_curves, beamlist, pr
         start_pts = np.concatenate((start_pts, delta_pts), axis=0)
         num_ref_calcs = num_eval
         num_delta_calcs = num_eval
+        write_curves(save_curves, best_curves, format='TLEED')
 
     # Normalize rfactors to zero mean, unit variance -- maybe don't do this, pick approx values
     normalized_rfactors = (rfactors - rfactors.mean()) / rfactors.std(ddof=1)
@@ -261,7 +266,7 @@ def main(workdir, tleed_dir, phaseshifts, lmax, num_el, exp_curves, beamlist, pr
 
         trial_structs = search_problem.to_structures(new_normalized_pts)
 
-        ref_rfactors, delta_structs, delta_rfactors = manager.batch_ref_calc_local_searches(
+        ref_rfactors, delta_structs, delta_rfactors, best_curves = manager.batch_ref_calc_local_searches(
             trial_structs,
             delta_search_dims
         )
@@ -275,6 +280,8 @@ def main(workdir, tleed_dir, phaseshifts, lmax, num_el, exp_curves, beamlist, pr
         if best_new_rfactor < best_rfactor:
             best_rfactor = best_new_rfactor
             best_pt = new_normalized_pts[best_new_idx]
+            # Save out the best curves
+            write_curves(save_curves, best_curves, format='TLEED')
 
         # Log some output
         labels = ["R" + str(i) for i in range(num_ref_calcs, num_ref_calcs + num_to_opt)]
@@ -369,11 +376,18 @@ if __name__ == "__main__":
     parser.add_argument('--random', action='store_true',
         help="If set, performs random search rather than Bayesian Optimization."
     )
-    parser.add_argument('--log', type=str, default='./search.log',
-        help="Name of outputted log file. [Default: search.log]"
+    parser.add_argument('--log', type=str, default=None,
+        help="Name of outputted log file. [Default: workdir/search.log]"
+    )
+    parser.add_argument('--save-curves', type=str, default=None,
+        help="Name of file to store the best found I-V curves."
+             " [Default: workdir/bestcurves.data]"
     )
     args = parser.parse_args()
 
+    # Set default logging locations
+    if args.log is None:
+        args.log = os.path.join(args.workdir, 'search.log')
     # Set up logger
     logging.basicConfig(
         format="[%(asctime)s] %(message)s",
@@ -407,4 +421,5 @@ if __name__ == "__main__":
     # TODO: Do something about this. Config file / class?
     main(args.workdir, args.tleed, args.phaseshifts, args.lmax, args.num_el, args.beaminfo, args.beamlist,
          args.problem, args.ncores, args.num_calcs, tleed_radius=args.radius_tleed, seed=args.seed,
-         start_pts_file=args.start_pts, detect_existing_calcs=args.detect_calcs, random=args.random)
+         start_pts_file=args.start_pts, detect_existing_calcs=args.detect_calcs, random=args.random,
+         save_curves=args.save_curves)

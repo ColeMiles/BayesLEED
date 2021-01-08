@@ -229,11 +229,11 @@ def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: Mult
                           exp_curves: IVCurveSet, nindivs: int = 25,
                           nepochs: int = 30000, init_gaus: float = 0.5,
                           gaus_decay: float = 0.9999, seed: Optional[int] = None,
-                          ) -> Tuple[Tuple[int, int], float]:
+                          ) -> Tuple[Tuple[int, int], float, IVCurveSet]:
     """ Optimize the TLEED problem using a simulated-annealing type algorithm, similar to
          how the original Fortran implements this.
-        Returns (disp, rfactor) of the integer index of the displacement
-         and the corresponding r-factor.
+        Returns (disp, rfactor, curves) of the integer index of the displacement
+         and the corresponding r-factor and simulated curve set.
     """
     if seed is not None:
         np.random.seed(seed)
@@ -267,11 +267,16 @@ def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: Mult
     # Randomly initialize each individual to a lattice point
     indivs = np.random.randint(0, ndisps, (nindivs, nsites))
     rfactors = np.empty(nindivs)
+    # Current best set of curves
+    best_rfactor = float('inf')
+    best_curves = None
 
     # Calculate all of these initial r-factors
     for iindiv in range(nindivs):
         new_curves = multi_delta_amps.compute_curves(indivs[iindiv])
         rfactors[iindiv] = np.min(curves.avg_rfactors(exp_curves, new_curves))
+        if rfactors[iindiv] < best_rfactor:
+            best_curves = new_curves
 
     # Current width of the Gaussian used for sampling moves
     gaus_width = init_gaus
@@ -304,6 +309,8 @@ def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: Mult
             if propose_rfactor < rfactors[iindiv]:
                 rfactors[iindiv] = propose_rfactor
                 indivs[iindiv] = propose_idxs
+                if propose_rfactor < best_rfactor:
+                    best_curves = propose_curves
 
         # Decay the gaussian width
         gaus_width *= gaus_decay
@@ -314,4 +321,4 @@ def optimize_delta_anneal(search_space: DeltaSearchSpace, multi_delta_amps: Mult
     best_idx = np.argmin(rfactors)
     best_indiv, best_rfactor = indivs[best_idx], rfactors[best_idx]
     vib_idxs, geo_idxs = divmod(best_indiv, ngeo)
-    return (geo_idxs, vib_idxs), best_rfactor
+    return (geo_idxs, vib_idxs), best_rfactor, best_curves

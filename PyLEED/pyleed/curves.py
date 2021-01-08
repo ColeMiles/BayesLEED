@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import logging
+import itertools
 
 import numpy as np
 from scipy import signal
@@ -11,9 +12,26 @@ from numba import njit
 
 class IVCurve:
     def __init__(self, energies: np.ndarray, intensities: np.ndarray, label: Tuple[float, float]):
+        if len(energies) != len(intensities):
+            raise ValueError("IVCurve must have same number of energies and intensities!")
         self.energies: np.ndarray = energies
         self.intensities: np.ndarray = intensities
         self.label: Tuple[float, float] = label
+
+    def __iter__(self):
+        return zip(self.energies, self.intensities)
+
+    def __repr__(self):
+        return "pyleed.IVCurve({}, {})".format(self.label[0], self.label[1])
+
+    def __eq__(self, other):
+        ener_same = np.all(self.energies == other.energies)
+        intens_same = np.all(self.intensities == other.intensities)
+        labels_same = self.label == other.label
+        return ener_same and intens_same and labels_same
+
+    def __len__(self):
+        return len(self.energies)
 
     def smooth(self, nsmooth=1) -> IVCurve:
         smooth_intensities = self.intensities
@@ -24,17 +42,20 @@ class IVCurve:
 
 # TODO: Make a jitclass
 class IVCurveSet:
-    def __init__(self, curves=None):
+    def __init__(self, curves=None, set_label=""):
         self.curves: List[IVCurve] = [] if curves is None else curves
         self.imagV: float = None
         self.interp_dE: float = None
         self.interp_energies: List[np.ndarray] = None
         self.interp_pendries: List[np.ndarray] = None
         self.precomputed = False
-        self.set_label = None
+        self.set_label = set_label
 
     def __len__(self):
         return len(self.curves)
+
+    def __eq__(self, other):
+        return self.curves == other.curves
 
     def __iter__(self):
         return iter(self.curves)
@@ -69,6 +90,47 @@ class IVCurveSet:
         self.precomputed = True
 
 
+def write_curves(filename: str, ivcurves: IVCurveSet, format="PLOT"):
+    """ Writes out an IVCurveSet to file, in the given format.
+    """
+    if format == "PLOT":
+        _write_curves_plotfmt(filename, ivcurves)
+    elif format in ["TLEED", "WEXPEL"]:
+        _write_curves_tleed(filename, ivcurves)
+    else:
+        raise ValueError("Unrecognized curve format for writeout: " + format)
+
+
+def _write_curves_plotfmt(filename: str, ivcurves: IVCurveSet):
+    """ Writes out an IVCurveSet in the plotting format
+    """
+    with open(filename, 'w') as f:
+        all_curves = list(ivcurves)
+        for curve in all_curves:
+            f.write("     ({:3.1f},{:3.1f})".format(*curve.label))
+        f.write("\n")
+        for curve_vals in itertools.zip_longest(*all_curves, fillvalue=(0.0, 0.0)):
+            for (ener, intens) in curve_vals:
+                f.write("{:7.2f}{:7.2f}".format(ener, intens))
+            f.write("\n")
+
+
+def _write_curves_tleed(filename: str, ivcurves: IVCurveSet):
+    """ Writes out an IVCurveSet in the TLEED format
+    """
+    with open(filename, 'w') as f:
+        f.write(ivcurves.set_label + "\n")
+        for i in range(len(ivcurves)):
+            f.write("{:3d}".format(i+1))
+        f.write("\n")
+        f.write("(F7.2,F10.6)\n")
+        for curve in ivcurves:
+            f.write("({:3.1f},{:3.1f})\n".format(*curve.label))
+            f.write("{:4d}   1.0000E+00\n".format(len(curve)))
+            for ener, intens in curve:
+                f.write("{:7.2f}{:10.6f}\n".format(ener, intens))
+
+
 def _crop_common_energy(curves: List[IVCurve]) -> List[IVCurve]:
     """ Crops the list of curves to the largest common energy range.
     """
@@ -93,7 +155,7 @@ def _parse_experiment_tleed(filename: str) -> IVCurveSet:
 
     with open(filename, 'r') as f:
         # Title line
-        f.readline()
+        ivcurves.set_label = f.readline().strip()
 
         # Grouping line: Use to find number of beams to expect
         line = f.readline()
@@ -184,16 +246,29 @@ def _parse_theory_tleed(filename: str) -> IVCurveSet:
 
 def _parse_ivcurves_plotfmt(filename: str) -> IVCurveSet:
     """ Parse IV curves in the format output by TLEED for plotting.
+        If labelheader=True, excepts a one-line header at the top labeling each beam.
+        Otherwise, the IVCurveSet will have unlabeled beams.
         This format does not provide beam labels: This sets all to (-1, -1).
     """
     ivcurves = IVCurveSet()
-    data = np.loadtxt(filename)
+    try:
+        data = np.loadtxt(filename)
+        labels = None
+    except ValueError:
+        # Try to read the header
+        data = np.loadtxt(filename, skiprows=1)
+        with open(filename, 'r') as f:
+            labels = f.readline().split()
+            labels = [(float(s[1:4]), float(s[5:8])) for s in labels]
+
     num_beams = data.shape[1] // 2
+
     for i in range(num_beams):
         energies = np.trim_zeros(data[:, 2*i], 'b')
         intensities = np.trim_zeros(data[:, 2*i+1], 'b')
+        label = labels[i] if labels is not None else (-1, -1)
         ivcurves.curves.append(
-            IVCurve(energies, intensities, (-1, -1))
+            IVCurve(energies, intensities, label)
         )
     return ivcurves
 
@@ -222,8 +297,6 @@ def _resample_interpolate(x: np.ndarray, y: np.ndarray, dx: float = 1.0) -> Tupl
 @njit(fastmath=True)
 def _interpolate_fortran(oldx, oldy, newx):
     """ Attempts to match the Fortran interpolation [XNTERP in aux/rf.f] exactly.
-        However, due to all arithmetic being done in pure Python, this is probably
-         very slow.
     """
     newy = np.empty_like(newx)
     for i, x in enumerate(newx):
