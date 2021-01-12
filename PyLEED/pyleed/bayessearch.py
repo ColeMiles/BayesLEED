@@ -6,6 +6,7 @@ import multiprocessing as mp
 import gc
 import time
 import re
+import subprocess
 from typing import Tuple, List
 
 import numpy as np
@@ -17,6 +18,15 @@ from pyleed import problems, tleed
 from pyleed.structure import AtomicStructure
 from pyleed.tleed import RefCalc, parse_ref_calc, CalcState
 from pyleed.curves import write_curves
+
+SCRIPT_PATH = os.path.abspath(__file__)
+SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
+
+
+def get_git_hash():
+    return subprocess.check_output(
+        ["git", "rev-parse", "--short", "HEAD"], text=True, cwd=SCRIPT_DIR
+    ).strip()
 
 
 def pretty_print_args(args):
@@ -409,6 +419,9 @@ if __name__ == "__main__":
         args.seed = seed
         np.random.seed(seed)
         torch.manual_seed(seed=args.seed)
+
+    # Insert the git hash into the arguments so that it gets logged at the top
+    args.githash = get_git_hash()
 
     pretty_print_args(args)
 
