@@ -5,3 +5,4 @@ TLEED/
 FeSeData/
 PyLEED/.idea/
 PhaseshiftTools/
+PyLEED/test/test_files/*

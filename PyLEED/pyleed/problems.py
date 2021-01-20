@@ -50,50 +50,51 @@ FESE_20UC = AtomicStructure(
 FESE_1UC_2x1 = AtomicStructure(
     # Atomic sites
     [
-     Site([1.0, 0.0, 0.0, 0.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Fe film"),
-     Site([0.0, 1.0, 0.0, 0.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Se film"),
-     Site([0.0, 0.0, 1.0, 0.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Sr bulk"),
-     Site([0.0, 0.0, 0.0, 1.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Ti bulk"),
-     Site([0.0, 0.0, 0.0, 0.0, 1.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "O  bulk"),
+     Site([1.0, 0.0, 0.0, 0.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "Sr bulk"),
+     Site([0.0, 1.0, 0.0, 0.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "Ti bulk"),
+     Site([0.0, 0.0, 1.0, 0.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "apO bulk"),
+     Site([0.0, 0.0, 0.0, 1.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "eqO bulk"),
+     Site([0.0, 0.0, 0.0, 0.0, 1.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "Fe film"),
+     Site([0.0, 0.0, 0.0, 0.0, 0.0, 1.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "Se film"),
     ],
     # Layer definitions (fractional coordinates)
     [
      Layer([
-         Atom(1, 0.25, 0.50, 0.25),   # Top Layer Fe, cell 1
-         Atom(1, 0.50, 0.00, 0.25),   # Top Layer Fe, cell 1
-         Atom(2, 0.25, 0.00, 0.00),   # Top Layer Se, cell 1
-         Atom(2, 0.50, 0.50, 0.50),   # Top Layer Se, cell 1
-         Atom(1, 0.75, 0.50, 0.25),   # Top Layer Fe, cell 2
-         Atom(1, 1.00, 0.00, 0.25),   # Top Layer Fe, cell 2
-         Atom(2, 0.75, 0.00, 0.00),   # Top Layer Se, cell 2
-         Atom(2, 1.00, 0.50, 0.50),   # Top Layer Se, cell 2
+         Atom(5, 0.25, 0.50, 0.25),   # Top Layer Fe, cell 1
+         Atom(5, 0.50, 0.00, 0.25),   # Top Layer Fe, cell 1
+         Atom(6, 0.25, 0.00, 0.00),   # Top Layer Se, cell 1
+         Atom(6, 0.50, 0.50, 0.50),   # Top Layer Se, cell 1
+         Atom(5, 0.75, 0.50, 0.25),   # Top Layer Fe, cell 2
+         Atom(5, 1.00, 0.00, 0.25),   # Top Layer Fe, cell 2
+         Atom(6, 0.75, 0.00, 0.00),   # Top Layer Se, cell 2
+         Atom(6, 1.00, 0.50, 0.50),   # Top Layer Se, cell 2
          ], [0.0, 0.0, 5.5180 / 2],
          LayerType.SURF,
          "Top FeSe film",
      ),
      Layer([
-         Atom(4, 0.75, 0.00, 0.00),   # Ti, doubled overlayer, cell 1
-         Atom(4, 0.50, 0.50, 0.00),   # Ti, doubled overlayer, cell 2
-         Atom(5, 0.50, 0.00, 0.00),   # O, doubled overlayer, cell 1
-         Atom(5, 0.75, 0.50, 0.00),   # O, doubled overlayer, cell 1
-         Atom(5, 0.25, 0.50, 0.00),   # O, doubled overlayer, cell 2
-         Atom(5, 0.00, 0.00, 0.00),   # O, doubled overlayer, cell 2
+         Atom(2, 0.75, 0.00, 0.00),   # Ti, doubled overlayer, cell 1
+         Atom(2, 0.50, 0.50, 0.00),   # Ti, doubled overlayer, cell 2
+         Atom(4, 0.50, 0.00, 0.00),   # O, doubled overlayer, cell 1
+         Atom(4, 0.75, 0.50, 0.00),   # O, doubled overlayer, cell 1
+         Atom(4, 0.25, 0.50, 0.00),   # O, doubled overlayer, cell 2
+         Atom(4, 0.00, 0.00, 0.00),   # O, doubled overlayer, cell 2
          ], [0.0, 0.0, 3.945 / 2],
          LayerType.SURF,
          "TiO2 doubled overlayer",
      ),
      # TODO: For efficiency, split the bulk into two layers and alternate?
      Layer([
-         Atom(4, 0.25, 0.50, 0.50),   # Ti, bulk, cell 1
-         Atom(4, 0.75, 0.50, 0.50),   # Ti, bulk, cell 2
-         Atom(5, 0.00, 0.50, 0.50),   # O, bulk, cell 1
-         Atom(5, 0.25, 0.00, 0.50),   # O, bulk, cell 1
-         Atom(5, 0.50, 0.00, 0.50),   # O, bulk, cell 2
-         Atom(5, 0.75, 0.00, 0.50),   # O, bulk, cell 2
-         Atom(3, 0.00, 0.00, 0.00),   # Sr, bulk, cell 1
-         Atom(3, 0.50, 0.00, 0.00),   # Sr, bulk, cell 2
-         Atom(5, 0.25, 0.50, 0.00),   # O, bulk, cell 1
-         Atom(5, 0.75, 0.50, 0.00),   # O, bulk, cell 2
+         Atom(2, 0.25, 0.50, 0.50),   # Ti, bulk, cell 1
+         Atom(2, 0.75, 0.50, 0.50),   # Ti, bulk, cell 2
+         Atom(4, 0.00, 0.50, 0.50),   # O, bulk, cell 1
+         Atom(4, 0.25, 0.00, 0.50),   # O, bulk, cell 1
+         Atom(4, 0.50, 0.00, 0.50),   # O, bulk, cell 2
+         Atom(4, 0.75, 0.00, 0.50),   # O, bulk, cell 2
+         Atom(1, 0.00, 0.00, 0.00),   # Sr, bulk, cell 1
+         Atom(1, 0.50, 0.00, 0.00),   # Sr, bulk, cell 2
+         Atom(3, 0.25, 0.50, 0.00),   # O, bulk, cell 1
+         Atom(3, 0.75, 0.50, 0.00),   # O, bulk, cell 2
          ], [0.0, 0.0, 3.945 / 2],
          LayerType.BULK,
          "SrTiO3 bulk",
@@ -106,61 +107,68 @@ FESE_1UC_2x1 = AtomicStructure(
 TEST_DOUB_FESE_1UC_2x1 = AtomicStructure(
     # Atomic sites
     [
-        Site([1.0, 0.0, 0.0, 0.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Fe film"),
-        Site([0.0, 1.0, 0.0, 0.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Se film"),
-        Site([0.0, 0.0, 1.0, 0.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Sr bulk"),
-        Site([0.0, 0.0, 0.0, 1.0, 0.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "Ti bulk"),
-        Site([0.0, 0.0, 0.0, 0.0, 1.0], 0.1, ["Fe", "Se", "Sr", "Ti", "O"], "O  bulk"),
+        Site([1.0, 0.0, 0.0, 0.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"],
+             "Sr bulk"),
+        Site([0.0, 1.0, 0.0, 0.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"],
+             "Ti bulk"),
+        Site([0.0, 0.0, 1.0, 0.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"],
+             "apO bulk"),
+        Site([0.0, 0.0, 0.0, 1.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"],
+             "eqO bulk"),
+        Site([0.0, 0.0, 0.0, 0.0, 1.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"],
+             "Fe film"),
+        Site([0.0, 0.0, 0.0, 0.0, 0.0, 1.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"],
+             "Se film"),
     ],
     # Layer definitions (fractional coordinates)
     [
         Layer([
-            Atom(1, 0.25, 0.50, 0.25),   # Top Layer Fe, cell 1
-            Atom(1, 0.50, 0.00, 0.25),   # Top Layer Fe, cell 1
-            Atom(2, 0.25, 0.00, 0.00),   # Top Layer Se, cell 1
-            Atom(2, 0.50, 0.50, 0.50),   # Top Layer Se, cell 1
-            Atom(1, 0.75, 0.50, 0.25),   # Top Layer Fe, cell 2
-            Atom(1, 1.00, 0.00, 0.25),   # Top Layer Fe, cell 2
-            Atom(2, 0.75, 0.00, 0.00),   # Top Layer Se, cell 2
-            Atom(2, 1.00, 0.50, 0.50),   # Top Layer Se, cell 2
+            Atom(5, 0.25, 0.50, 0.25),   # Top Layer Fe, cell 1
+            Atom(5, 0.50, 0.00, 0.25),   # Top Layer Fe, cell 1
+            Atom(6, 0.25, 0.00, 0.00),   # Top Layer Se, cell 1
+            Atom(6, 0.50, 0.50, 0.50),   # Top Layer Se, cell 1
+            Atom(5, 0.75, 0.50, 0.25),   # Top Layer Fe, cell 2
+            Atom(5, 1.00, 0.00, 0.25),   # Top Layer Fe, cell 2
+            Atom(6, 0.75, 0.00, 0.00),   # Top Layer Se, cell 2
+            Atom(6, 1.00, 0.50, 0.50),   # Top Layer Se, cell 2
         ], [0.0, 0.0, 5.5180 / 2],
             LayerType.SURF,
             "Top FeSe film",
         ),
         Layer([
-            Atom(4, 0.75, 0.00, 0.00),   # Ti, doubled overlayer, cell 1
-            Atom(4, 0.50, 0.50, 0.00),   # Ti, doubled overlayer, cell 2
-            Atom(5, 0.50, 0.00, 0.00),   # O, doubled overlayer, cell 1
-            Atom(5, 0.75, 0.50, 0.00),   # O, doubled overlayer, cell 1
-            Atom(5, 0.25, 0.50, 0.00),   # O, doubled overlayer, cell 2
-            Atom(5, 0.00, 0.00, 0.00),   # O, doubled overlayer, cell 2
+            Atom(2, 0.75, 0.00, 0.00),   # Ti, doubled overlayer, cell 1
+            Atom(2, 0.50, 0.50, 0.00),   # Ti, doubled overlayer, cell 2
+            Atom(4, 0.50, 0.00, 0.00),   # O, doubled overlayer, cell 1
+            Atom(4, 0.75, 0.50, 0.00),   # O, doubled overlayer, cell 1
+            Atom(4, 0.25, 0.50, 0.00),   # O, doubled overlayer, cell 2
+            Atom(4, 0.00, 0.00, 0.00),   # O, doubled overlayer, cell 2
         ], [0.0, 0.0, 3.945 / 2],
             LayerType.SURF,
             "TiO2 doubled overlayer",
         ),
         Layer([
-            Atom(3, 0.00, 0.00, 0.00),   # Sr, bulk, cell 1
-            Atom(3, 0.50, 0.00, 0.00),   # Sr, bulk, cell 2
-            Atom(5, 0.25, 0.50, 0.00),   # O, bulk, cell 1
-            Atom(5, 0.75, 0.50, 0.00),   # O, bulk, cell 2
+            Atom(1, 0.00, 0.00, 0.00),   # Sr, bulk, cell 1
+            Atom(1, 0.50, 0.00, 0.00),   # Sr, bulk, cell 2
+            Atom(3, 0.25, 0.50, 0.00),   # O, bulk, cell 1
+            Atom(3, 0.75, 0.50, 0.00),   # O, bulk, cell 2
         ], [0.0, 0.0, 3.945 / 2],
             LayerType.BULK,
             "SrTiO3 bulk -- SrO",
         ),
         Layer([
-            Atom(4, 0.25, 0.50, 0.00),  # Ti, bulk, cell 1
-            Atom(4, 0.75, 0.50, 0.00),  # Ti, bulk, cell 2
-            Atom(5, 0.00, 0.50, 0.00),  # O, bulk, cell 1
-            Atom(5, 0.25, 0.00, 0.00),  # O, bulk, cell 1
-            Atom(5, 0.50, 0.00, 0.00),  # O, bulk, cell 2
-            Atom(5, 0.75, 0.00, 0.00),  # O, bulk, cell 2
+            Atom(2, 0.25, 0.50, 0.00),  # Ti, bulk, cell 1
+            Atom(2, 0.75, 0.50, 0.00),  # Ti, bulk, cell 2
+            Atom(4, 0.00, 0.50, 0.00),  # O, bulk, cell 1
+            Atom(4, 0.25, 0.00, 0.00),  # O, bulk, cell 1
+            Atom(4, 0.50, 0.00, 0.00),  # O, bulk, cell 2
+            Atom(4, 0.75, 0.00, 0.00),  # O, bulk, cell 2
         ], [0.0, 0.0, 3.945 / 2],
            LayerType.BULK,
             "SrTiO3 bulk -- TiO2",
         ),
     ],
     # Unit cell parameters
-    [7.810, 3.905, 3.945]
+    [7.810, 3.905, 3.905]
 )
 
 # FESE_20UC_SINGLEZREGRESSED = AtomicStructure(
@@ -511,6 +519,8 @@ TEST_DOUB_FESE_1UC_PROBLEM = SearchSpace(
     [
         (SearchKey.CELLB, -1, (-0.01, 0.01)),
         (SearchKey.CELLC, -1, (-0.01, 0.01)),
+        (SearchKey.INTZ, 1, (0.0, 0.3)),
+        (SearchKey.INTZ, 2, (-0.1, 0.2)),
         (SearchKey.ATOMZ,  1, (-0.1, 0.1)),
         (SearchKey.ATOMZ,  2, (-0.1, 0.1)),
         (SearchKey.ATOMZ,  3, (-0.1, 0.1)),
@@ -518,16 +528,31 @@ TEST_DOUB_FESE_1UC_PROBLEM = SearchSpace(
         (SearchKey.ATOMZ,  5, (-0.1, 0.1)),
         (SearchKey.ATOMZ,  6, (-0.1, 0.1)),
         (SearchKey.ATOMZ,  7, (-0.1, 0.1)),
-        (SearchKey.ATOMZ,  8, (-0.1, 0.1)),
         (SearchKey.ATOMZ,  9, (-0.1, 0.1)),
         (SearchKey.ATOMZ, 10, (-0.1, 0.1)),
         (SearchKey.ATOMZ, 11, (-0.1, 0.1)),
         (SearchKey.ATOMZ, 12, (-0.1, 0.1)),
         (SearchKey.ATOMZ, 13, (-0.1, 0.1)),
-        (SearchKey.ATOMZ, 14, (-0.1, 0.1)),
+        (SearchKey.ATOMX, 1, (0.0, 0.5)),
+        (SearchKey.ATOMY, 1, (0.0, 0.5)),
     ],
     constraints=[   # Bind cell's a axis to be twice the b axis
-        LambdaConstraint(SearchKey.CELLB, -1, SearchKey.CELLA, -1, lambda x: 2*x)
+        LambdaConstraint(SearchKey.CELLB, -1, SearchKey.CELLA, -1, lambda x: 2*x),
+        # Allow an overal registry shift
+        EqualShiftConstraint(SearchKey.ATOMX, 1, SearchKey.ATOMX, 2),
+        EqualShiftConstraint(SearchKey.ATOMX, 1, SearchKey.ATOMX, 3),
+        EqualShiftConstraint(SearchKey.ATOMX, 1, SearchKey.ATOMX, 4),
+        EqualShiftConstraint(SearchKey.ATOMX, 1, SearchKey.ATOMX, 5),
+        EqualShiftConstraint(SearchKey.ATOMX, 1, SearchKey.ATOMX, 6),
+        EqualShiftConstraint(SearchKey.ATOMX, 1, SearchKey.ATOMX, 7),
+        EqualShiftConstraint(SearchKey.ATOMX, 1, SearchKey.ATOMX, 8),
+        EqualShiftConstraint(SearchKey.ATOMY, 1, SearchKey.ATOMY, 2),
+        EqualShiftConstraint(SearchKey.ATOMY, 1, SearchKey.ATOMY, 3),
+        EqualShiftConstraint(SearchKey.ATOMY, 1, SearchKey.ATOMY, 4),
+        EqualShiftConstraint(SearchKey.ATOMY, 1, SearchKey.ATOMY, 5),
+        EqualShiftConstraint(SearchKey.ATOMY, 1, SearchKey.ATOMY, 6),
+        EqualShiftConstraint(SearchKey.ATOMY, 1, SearchKey.ATOMY, 7),
+        EqualShiftConstraint(SearchKey.ATOMY, 1, SearchKey.ATOMY, 8),
     ]
 )
 
@@ -544,6 +569,21 @@ FESE_DELTA_SEARCHDIMS = [
     (6, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
     (7, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
     (8, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+]
+
+FESE_SRTIO_DELTA_SEARCHDIMS = [
+    (1, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+    (2, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+    (3, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+    (4, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+    (5, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+    (6, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+    (7, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+    (8, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+    (9, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+    (10, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+    (11, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
+    (12, DEFAULT_DELTA_DISPS, DEFAULT_DELTA_VIBS),
 ]
 
 problems = {

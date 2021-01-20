@@ -177,9 +177,10 @@ def acquire_sample_points(
     return new_normalized_pts.cpu().numpy()
 
 
-def main(workdir, tleed_dir, phaseshifts, lmax, num_el, exp_curves, beamlist, problem, ncores, ncalcs,
-         tleed_radius=0.0, warm=None, seed=None, start_pts_file=None, detect_existing_calcs=None,
-         early_stop=None, random=False, save_curves=None):
+def main(workdir, tleed_dir, phaseshifts, lmax, num_el, exp_curves, beamlist, problem, ncores,
+         ncalcs, tleed_radius=0.0, warm=None, seed=None, start_pts_file=None,
+         detect_existing_calcs=None, early_stop=None, random=False, save_curves=None,
+         delta_indivs=25, delta_evals=40000):
     if save_curves is None:
         save_curves = os.path.join(workdir, 'bestcurves.data')
 
@@ -229,7 +230,7 @@ def main(workdir, tleed_dir, phaseshifts, lmax, num_el, exp_curves, beamlist, pr
         start_pts[0] = search_problem.to_normalized(search_problem.atomic_structure)
         random_structs[0] = search_problem.atomic_structure
         ref_rfactors, delta_structs, delta_rfactors, best_curves = manager.batch_ref_calc_local_searches(
-            random_structs, delta_search_dims
+            random_structs, delta_search_dims, search_epochs=delta_evals, search_indivs=delta_indivs,
         )
         rfactors = np.array(ref_rfactors + delta_rfactors)
         delta_pts = search_problem.to_normalized(delta_structs)
@@ -344,9 +345,12 @@ if __name__ == "__main__":
     parser.add_argument("--problem", type=str, default="FESE_20UC",
         help="Name of problem to run (from problems.py)."
     )
-    # parser.add_argument("-b", "--beaminfo", type=str, default="FESE_TRIM",
-    #     help="Name of a beam set descriptor (from problems.py)."
-    # )
+    parser.add_argument("--delta-evals", type=int, default=40000,
+        help="Number of evaluations to perform in the delta searches."
+    )
+    parser.add_argument("--delta-indivs", type=int, default=25,
+        help="Number of inidividuals to set up in the delta searches."
+    )
     parser.add_argument("-b", "--beaminfo", type=str,
         default="/home/cole/ProgScratch/BayesLEED/TLEED/exp-data/Data.TrimmedFeSe-20uc",
         help="Path to experimental data, formatted in the TLEED format.",
@@ -432,7 +436,8 @@ if __name__ == "__main__":
         logging.info("No CUDA-capable GPU found, continuing on CPU.")
 
     # TODO: Do something about this. Config file / class?
-    main(args.workdir, args.tleed, args.phaseshifts, args.lmax, args.num_el, args.beaminfo, args.beamlist,
-         args.problem, args.ncores, args.num_calcs, tleed_radius=args.radius_tleed, seed=args.seed,
-         start_pts_file=args.start_pts, detect_existing_calcs=args.detect_calcs, random=args.random,
-         save_curves=args.save_curves)
+    main(args.workdir, args.tleed, args.phaseshifts, args.lmax, args.num_el, args.beaminfo,
+         args.beamlist, args.problem, args.ncores, args.num_calcs, tleed_radius=args.radius_tleed,
+         seed=args.seed, start_pts_file=args.start_pts, detect_existing_calcs=args.detect_calcs,
+         random=args.random, save_curves=args.save_curves, delta_indivs=args.delta_indivs,
+         delta_evals=args.delta_evals)
