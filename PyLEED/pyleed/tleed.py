@@ -2,6 +2,8 @@
 """
 from __future__ import annotations # Python 3.7+ required
 
+# TODO: Refactor into smaller files
+
 import os
 import shutil
 import subprocess
@@ -11,6 +13,7 @@ import time
 import itertools
 import multiprocessing as mp
 import copy
+import string
 from typing import List, Tuple, Collection, Optional, Union
 
 import numpy as np
@@ -157,11 +160,11 @@ class Phaseshifts:
     This function is compatible with the Fortran 10-phases-per-line formatting, or a more
      sane format with each t-matrix on its own line.
 """
-def parse_phaseshifts(filename: str, num_el: int, l_max: int) -> Phaseshifts:
+def parse_phaseshifts(filename: str) -> Phaseshifts:
     try:
         with open(filename, 'r') as f:
             contents = f.readlines()
-        phaseshifts = _parse_phaseshifts_str(contents, num_el, l_max)
+        phaseshifts = _parse_phaseshifts_str(contents)
         phaseshifts.filename = filename
     except Exception as e:
         logging.error("Error in parsing phaseshifts file {}!".format(filename))
@@ -170,39 +173,38 @@ def parse_phaseshifts(filename: str, num_el: int, l_max: int) -> Phaseshifts:
     return phaseshifts
 
 
-def _parse_phaseshifts_str(lines: List[str], num_el: int, l_max: int) -> Phaseshifts:
-    energies = []
-    # Will become a triply-nested list of dimensions [NENERGIES, NELEM, NANG_MOM],
-    #  converted to a numpy array at the end
-    phases = []
+"""Warning: No longer accepts the weird staggered-line TensErLEED format. Each set of
+    phaseshifts should be on a single line! Also will break on files with lmax = 0,
+    but nobody will ever do that. But, now auto-detects lmax and nelem.
+"""
+def _parse_phaseshifts_str(lines: List[str]) -> Phaseshifts:
+    l_max_plusone = len(lines[1].rstrip(string.whitespace)
+                                .rstrip(string.ascii_letters)
+                                .rstrip(string.punctuation)) // 7
+    # Short probing loop to find num_el, and hence num_energies
+    num_el = 0
+    while len(lines[num_el+1]) // 7 != 1:
+        num_el += 1
+    num_energies = len(lines) // (num_el + 1)
 
+    energies = np.empty(num_energies)
+    phases = np.empty((num_energies, num_el, l_max_plusone))
     try:
         linenum = 0
-        while linenum < len(lines):
+        for ien in range(num_energies):
             line = lines[linenum]
-            energies.append(float(line))
-            elem_phases = [[] for _ in range(num_el)]
-            for n in range(num_el):
-                linenum += 1
-                line = lines[linenum]
-                num_phases_line = len(line) // 7
-                elem_phases[n] = [float(line[7*i:7*(i+1)]) for i in range(num_phases_line)]
-                # Detect weird Fortran formatting
-                if num_phases_line != (l_max + 1):
-                    linenum += 1
-                    line = lines[linenum]
-                    for i in range(l_max + 1 - num_phases_line):
-                        elem_phases[n].append(float(line[7*i:7*(i+1)]))
-                # Truncate phases to lmax+1
-                elem_phases[n] = elem_phases[n][:l_max+1]
-            phases.append(elem_phases)
+            energies[ien] = float(line)
             linenum += 1
+            for iel in range(num_el):
+                line = lines[linenum]
+                phases[ien, iel] = [float(line[7*i:7*(i+1)]) for i in range(l_max_plusone)]
+                linenum += 1
     except Exception as e:
         # Re-raise the exception with a line number
         logging.error("Error on line number " + str(linenum) + "\n")
         raise e
 
-    return Phaseshifts("", np.array(energies), np.array(phases))
+    return Phaseshifts("", energies, phases)
 
 
 class CalcState(enum.Enum):
@@ -554,7 +556,7 @@ def _parse_ref_calc_str(lines: List[str]) -> RefCalc:
         linenum += 1
         line = lines[linenum]
 
-    phaseshifts = _parse_phaseshifts_str(lines[phaseshifts_start_idx:linenum], lmax)
+    phaseshifts = _parse_phaseshifts_str(lines[phaseshifts_start_idx:linenum])
 
     linenum += 1
     beams = [(int(float(l[:10])), int(float(l[10:20]))) for l in lines[linenum:linenum+num_beams]]
@@ -1353,8 +1355,8 @@ class LEEDManager:
         atom_num, disps, vibs = search_dim
         # Determine which element the site of this atom is.
         # Unsure how this extends to handle concentration variation.
-        site_num = ref_calc.struct.layers[0].sitenums[atom_num-1]
-        elem_num = np.argmax(ref_calc.struct.sites[site_num].concs) + 1
+        site_num = ref_calc.struct[SearchKey.SITENUM, atom_num]
+        elem_num = np.argmax(ref_calc.struct.sites[site_num-1].concs) + 1
         with open(filename, "w") as f:
             f.write("Delta Script\n")
             f.write("{:>7.2f}{:>7.2f}\n".format(self.beaminfo.energy_min, self.beaminfo.energy_max))

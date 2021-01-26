@@ -46,6 +46,134 @@ FESE_20UC = AtomicStructure(
     [3.7676, 3.7676, 5.5180]
 )
 
+STO_1x1 = AtomicStructure(
+    # Atomic sites
+    [
+        Site([1.0, 0.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO"],
+             "Sr bulk"),
+        Site([0.0, 1.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO"],
+             "Ti bulk"),
+        Site([0.0, 0.0, 1.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO"],
+             "apO bulk"),
+        Site([0.0, 0.0, 0.0, 1.0], 0.1, ["Sr", "Ti", "apO", "eqO"],
+             "eqO bulk"),
+    ],
+    # Layer definitions (fractional coordinates)
+    [
+        Layer([
+            Atom(2, 0.50, 0.50, 0.00),  # Ti, doubled overlayer, cell 1
+            Atom(4, 0.50, 0.00, 0.00),  # O, doubled overlayer, cell 1
+            Atom(4, 0.00, 0.50, 0.00),  # O, doubled overlayer, cell 1
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.SURF,
+            "TiO2 doubled overlayer",
+        ),
+        Layer([
+            Atom(2, 0.50, 0.50, 0.00),  # Ti surface 1, cell 1
+            Atom(4, 0.50, 0.00, 0.00),  # O surface 1, cell 1
+            Atom(4, 0.00, 0.50, 0.00),  # O surface 1, cell 1
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.SURF,
+            "SrTiO3 surface 1 -- TiO2",
+        ),
+        Layer([
+            Atom(1, 0.00, 0.00, 0.00),  # Sr surface 1, cell 1
+            Atom(3, 0.50, 0.50, 0.00),  # O surface 1, cell 1
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.SURF,
+            "SrTiO3 surface 1 -- SrO",
+        ),
+        Layer([
+            Atom(2, 0.50, 0.50, 0.00),  # Ti, bulk, cell 1
+            Atom(4, 0.50, 0.00, 0.00),  # O, bulk, cell 1
+            Atom(4, 0.00, 0.50, 0.00),  # O, bulk, cell 1
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.BULK,
+            "SrTiO3 bulk -- TiO2",
+        ),
+        Layer([
+            Atom(1, 0.00, 0.00, 0.00),  # Sr, bulk, cell 1
+            Atom(3, 0.50, 0.50, 0.00),  # O, bulk, cell 1
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.BULK,
+            "SrTiO3 bulk -- SrO",
+        ),
+    ],
+    # Unit cell parameters
+    [3.905, 3.905, 3.905]
+)
+
+
+STO_2x1 = AtomicStructure(
+    # Atomic sites
+    [
+        Site([1.0, 0.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO"],
+             "Sr bulk"),
+        Site([0.0, 1.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO"],
+             "Ti bulk"),
+        Site([0.0, 0.0, 1.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO"],
+             "apO bulk"),
+        Site([0.0, 0.0, 0.0, 1.0], 0.1, ["Sr", "Ti", "apO", "eqO"],
+             "eqO bulk"),
+    ],
+    # Layer definitions (fractional coordinates)
+    [
+        Layer([
+            Atom(2, 0.25, 0.50, 0.00),  # Ti, doubled overlayer, cell 1
+            Atom(4, 0.25, 0.00, 0.00),  # O, doubled overlayer, cell 1
+            Atom(4, 0.00, 0.50, 0.00),  # O, doubled overlayer, cell 1
+            Atom(2, 0.75, 0.50, 0.00),  # Ti, doubled overlayer, cell 2
+            Atom(4, 0.75, 0.00, 0.00),  # O, doubled overlayer, cell 2
+            Atom(4, 0.50, 0.50, 0.00),  # O, doubled overlayer, cell 2
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.SURF,
+            "TiO2 doubled overlayer",
+        ),
+        Layer([
+            Atom(2, 0.25, 0.50, 0.00),  # Ti, bulk, cell 1
+            Atom(4, 0.25, 0.00, 0.00),  # O, bulk, cell 1
+            Atom(4, 0.00, 0.50, 0.00),  # O, bulk, cell 1
+            Atom(2, 0.75, 0.50, 0.00),  # Ti, bulk, cell 2
+            Atom(4, 0.75, 0.00, 0.00),  # O, bulk, cell 2
+            Atom(4, 0.50, 0.50, 0.00),  # O, bulk, cell 2
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.SURF,
+            "SrTiO3 surface 1 -- TiO2",
+        ),
+        Layer([
+            Atom(1, 0.00, 0.00, 0.00),  # Sr, bulk, cell 1
+            Atom(3, 0.25, 0.50, 0.00),  # O, bulk, cell 1
+            Atom(1, 0.50, 0.00, 0.00),  # Sr, bulk, cell 2
+            Atom(3, 0.75, 0.50, 0.00),  # O, bulk, cell 2
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.SURF,
+            "SrTiO3 surface 1 -- SrO",
+        ),
+        Layer([
+            Atom(2, 0.25, 0.50, 0.00),  # Ti, bulk, cell 1
+            Atom(4, 0.25, 0.00, 0.00),  # O, bulk, cell 1
+            Atom(4, 0.00, 0.50, 0.00),  # O, bulk, cell 1
+            Atom(2, 0.75, 0.50, 0.00),  # Ti, bulk, cell 2
+            Atom(4, 0.75, 0.00, 0.00),  # O, bulk, cell 2
+            Atom(4, 0.50, 0.50, 0.00),  # O, bulk, cell 2
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.BULK,
+            "SrTiO3 bulk -- TiO2",
+        ),
+        Layer([
+            Atom(1, 0.00, 0.00, 0.00),  # Sr, bulk, cell 1
+            Atom(3, 0.25, 0.50, 0.00),  # O, bulk, cell 1
+            Atom(1, 0.50, 0.00, 0.00),  # Sr, bulk, cell 2
+            Atom(3, 0.75, 0.50, 0.00),  # O, bulk, cell 2
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.BULK,
+            "SrTiO3 bulk -- SrO",
+        ),
+    ],
+    # Unit cell parameters
+    [7.810, 3.905, 3.905]
+)
+
 # TODO: Should I add one more tunable layer of TiO2?
 FESE_1UC_2x1 = AtomicStructure(
     # Atomic sites
@@ -79,7 +207,7 @@ FESE_1UC_2x1 = AtomicStructure(
          Atom(4, 0.75, 0.50, 0.00),   # O, doubled overlayer, cell 1
          Atom(4, 0.25, 0.50, 0.00),   # O, doubled overlayer, cell 2
          Atom(4, 0.00, 0.00, 0.00),   # O, doubled overlayer, cell 2
-         ], [0.0, 0.0, 3.945 / 2],
+         ], [0.0, 0.0, 3.905 / 2],
          LayerType.SURF,
          "TiO2 doubled overlayer",
      ),
@@ -95,13 +223,13 @@ FESE_1UC_2x1 = AtomicStructure(
          Atom(1, 0.50, 0.00, 0.00),   # Sr, bulk, cell 2
          Atom(3, 0.25, 0.50, 0.00),   # O, bulk, cell 1
          Atom(3, 0.75, 0.50, 0.00),   # O, bulk, cell 2
-         ], [0.0, 0.0, 3.945 / 2],
+         ], [0.0, 0.0, 3.905 / 2],
          LayerType.BULK,
          "SrTiO3 bulk",
      ),
     ],
     # Unit cell parameters
-    [7.810, 3.905, 3.945]
+    [7.810, 3.905, 3.905]
 )
 
 TEST_DOUB_FESE_1UC_2x1 = AtomicStructure(
@@ -142,18 +270,9 @@ TEST_DOUB_FESE_1UC_2x1 = AtomicStructure(
             Atom(4, 0.75, 0.50, 0.00),   # O, doubled overlayer, cell 1
             Atom(4, 0.25, 0.50, 0.00),   # O, doubled overlayer, cell 2
             Atom(4, 0.00, 0.00, 0.00),   # O, doubled overlayer, cell 2
-        ], [0.0, 0.0, 3.945 / 2],
+        ], [0.0, 0.0, 3.905 / 2],
             LayerType.SURF,
             "TiO2 doubled overlayer",
-        ),
-        Layer([
-            Atom(1, 0.00, 0.00, 0.00),   # Sr, bulk, cell 1
-            Atom(1, 0.50, 0.00, 0.00),   # Sr, bulk, cell 2
-            Atom(3, 0.25, 0.50, 0.00),   # O, bulk, cell 1
-            Atom(3, 0.75, 0.50, 0.00),   # O, bulk, cell 2
-        ], [0.0, 0.0, 3.945 / 2],
-            LayerType.BULK,
-            "SrTiO3 bulk -- SrO",
         ),
         Layer([
             Atom(2, 0.25, 0.50, 0.00),  # Ti, bulk, cell 1
@@ -162,9 +281,18 @@ TEST_DOUB_FESE_1UC_2x1 = AtomicStructure(
             Atom(4, 0.25, 0.00, 0.00),  # O, bulk, cell 1
             Atom(4, 0.50, 0.00, 0.00),  # O, bulk, cell 2
             Atom(4, 0.75, 0.00, 0.00),  # O, bulk, cell 2
-        ], [0.0, 0.0, 3.945 / 2],
-           LayerType.BULK,
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.BULK,
             "SrTiO3 bulk -- TiO2",
+        ),
+        Layer([
+            Atom(1, 0.00, 0.00, 0.00),   # Sr, bulk, cell 1
+            Atom(1, 0.50, 0.00, 0.00),   # Sr, bulk, cell 2
+            Atom(3, 0.25, 0.50, 0.00),   # O, bulk, cell 1
+            Atom(3, 0.75, 0.50, 0.00),   # O, bulk, cell 2
+        ], [0.0, 0.0, 3.905 / 2],
+            LayerType.BULK,
+            "SrTiO3 bulk -- SrO",
         ),
     ],
     # Unit cell parameters
@@ -556,6 +684,87 @@ TEST_DOUB_FESE_1UC_PROBLEM = SearchSpace(
     ]
 )
 
+STO_1x1_PROBLEM = SearchSpace(
+    STO_1x1,
+    [
+        # Relax the lattice constants
+        (SearchKey.CELLB, -1, (-0.02, 0.02)),
+        (SearchKey.CELLC, -1, (-0.02, 0.02)),
+        # Surface atomic coordinates
+        (SearchKey.INTZ, 1, (0.0, 0.3)),
+        (SearchKey.INTZ, 2, (0.0, 0.3)),
+        (SearchKey.INTZ, 3, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 1, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 2, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 4, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 5, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 7, (0.0, 0.3)),
+        # Let the doubled TiO2 layer have some nonzero xy motion
+        (SearchKey.ATOMX, 1, (-0.3, 0.3)),
+        (SearchKey.ATOMX, 2, (-0.3, 0.3)),
+        (SearchKey.ATOMX, 3, (-0.3, 0.3)),
+        (SearchKey.ATOMY, 1, (-0.3, 0.3)),
+        (SearchKey.ATOMY, 2, (-0.3, 0.3)),
+        (SearchKey.ATOMY, 3, (-0.3, 0.3)),
+        # Vibrational params
+        (SearchKey.VIB, 1, (-0.08, 0.1)),
+        (SearchKey.VIB, 2, (-0.08, 0.1)),
+        (SearchKey.VIB, 3, (-0.08, 0.1)),
+        (SearchKey.VIB, 4, (-0.08, 0.1)),
+    ],
+    constraints=[
+        EqualityConstraint(SearchKey.CELLB, -1, SearchKey.CELLA, -1),
+    ]
+)
+
+
+STO_2x1_PROBLEM = SearchSpace(
+    STO_2x1,
+    [
+        # Relax the lattice constants
+        (SearchKey.CELLB, -1, (-0.02, 0.02)),
+        (SearchKey.CELLC, -1, (-0.02, 0.02)),
+        # Surface atomic coordinates
+        (SearchKey.INTZ, 1, (0.0, 0.3)),
+        (SearchKey.INTZ, 2, (0.0, 0.3)),
+        (SearchKey.INTZ, 3, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 1, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 2, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 3, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 4, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 5, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 7, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 8, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 9, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 10, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 11, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 13, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 13, (0.0, 0.3)),
+        (SearchKey.ATOMZ, 14, (0.0, 0.3)),
+        # Let the doubled TiO2 layer have some nonzero xy motion
+        (SearchKey.ATOMX, 1, (-0.3, 0.3)),
+        (SearchKey.ATOMX, 2, (-0.3, 0.3)),
+        (SearchKey.ATOMX, 3, (-0.3, 0.3)),
+        (SearchKey.ATOMX, 4, (-0.3, 0.3)),
+        (SearchKey.ATOMX, 5, (-0.3, 0.3)),
+        (SearchKey.ATOMX, 6, (-0.3, 0.3)),
+        (SearchKey.ATOMY, 1, (-0.3, 0.3)),
+        (SearchKey.ATOMY, 2, (-0.3, 0.3)),
+        (SearchKey.ATOMY, 3, (-0.3, 0.3)),
+        (SearchKey.ATOMX, 4, (-0.3, 0.3)),
+        (SearchKey.ATOMX, 5, (-0.3, 0.3)),
+        (SearchKey.ATOMX, 6, (-0.3, 0.3)),
+        # Vibrational params
+        (SearchKey.VIB, 1, (-0.08, 0.1)),
+        (SearchKey.VIB, 2, (-0.08, 0.1)),
+        (SearchKey.VIB, 3, (-0.08, 0.1)),
+        (SearchKey.VIB, 4, (-0.08, 0.1)),
+    ],
+    constraints=[
+        EqualityConstraint(SearchKey.CELLB, -1, SearchKey.CELLA, -1),
+    ]
+)
+
 DEFAULT_DELTA_DISPS = np.zeros((21, 3))
 DEFAULT_DELTA_DISPS[:, 2] = np.arange(-0.2, 0.22, step=0.02)
 DEFAULT_DELTA_VIBS = np.arange(0.1, 0.3, step=0.04)
@@ -596,4 +805,6 @@ problems = {
     # "TEST_FESE_2D": TEST_FESE_20UC_2D_PROBLEM,
     "FESE_1UC": FESE_1UC_PROBLEM,
     "TEST_FESE_1UC": TEST_DOUB_FESE_1UC_PROBLEM,
+    "STO_1x1": STO_1x1_PROBLEM,
+    "STO_2x1": STO_2x1_PROBLEM,
 }

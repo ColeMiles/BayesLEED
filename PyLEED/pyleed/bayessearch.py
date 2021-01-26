@@ -48,12 +48,12 @@ def append_arrays_to_file(filename, pts, rfactors, labels=None):
             f.write(row_format_string.format(*pt, rfactor) + "\n")
 
 
-def create_manager(workdir, tleed_dir, exp_curves, beamlist_file, phaseshift_file, lmax, num_el,
+def create_manager(workdir, tleed_dir, exp_curves, beamlist_file, phaseshift_file, lmax,
                    executable='ref-calc.LaNiO3'):
     """ Makes a LEEDManager working in the given directory, assuming default names for files.
     """
     beamlist = tleed.parse_beamlist(beamlist_file)
-    phaseshifts = tleed.parse_phaseshifts(phaseshift_file, num_el, lmax)
+    phaseshifts = tleed.parse_phaseshifts(phaseshift_file).trunc(lmax)
     exp_curves = tleed.parse_ivcurves(exp_curves, format='TLEED')
     exp_curves = exp_curves.smooth(2)
     return tleed.LEEDManager(workdir, tleed_dir, exp_curves,
@@ -177,10 +177,9 @@ def acquire_sample_points(
     return new_normalized_pts.cpu().numpy()
 
 
-def main(workdir, tleed_dir, phaseshifts, lmax, num_el, exp_curves, beamlist, problem, ncores,
-         ncalcs, tleed_radius=0.0, warm=None, seed=None, start_pts_file=None,
-         detect_existing_calcs=None, early_stop=None, random=False, save_curves=None,
-         delta_indivs=25, delta_evals=40000):
+def main(workdir, tleed_dir, phaseshifts, lmax, exp_curves, beamlist, problem, ncores, ncalcs,
+         tleed_radius=0.0, warm=None, seed=None, start_pts_file=None, detect_existing_calcs=None,
+         early_stop=None, random=False, save_curves=None, delta_indivs=25, delta_evals=40000):
     if save_curves is None:
         save_curves = os.path.join(workdir, 'bestcurves.data')
 
@@ -189,7 +188,7 @@ def main(workdir, tleed_dir, phaseshifts, lmax, num_el, exp_curves, beamlist, pr
     rfactor_filename = os.path.join(workdir, "rfactorprogress.txt")
 
     num_eval = min(ncores, mp.cpu_count())
-    manager = create_manager(workdir, tleed_dir, exp_curves, beamlist, phaseshifts, lmax, num_el)
+    manager = create_manager(workdir, tleed_dir, exp_curves, beamlist, phaseshifts, lmax)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     search_problem = problems.problems[problem]
@@ -332,11 +331,8 @@ if __name__ == "__main__":
         default="/home/cole/ProgScratch/BayesLEED/TLEED/phaseshifts/FeSeBulk.eight.phase",
         help="Path to phaseshift file to use for calculations."
     )
-    parser.add_argument("--num-el", type=int, default=2,
-        help="Number of elements present in phaseshift file. [Default = 2]"
-    )
     parser.add_argument("--lmax", type=int, default=8,
-        help="Highest angular momentum number present in phaseshift file. [Default = 8]"
+        help="Highest angular momentum number to truncate calculations to. [Default = 8]"
     )
     parser.add_argument("-t", "--tleed", type=str,
         default="/home/cole/ProgScratch/BayesLEED/TLEED/",
@@ -436,8 +432,7 @@ if __name__ == "__main__":
         logging.info("No CUDA-capable GPU found, continuing on CPU.")
 
     # TODO: Do something about this. Config file / class?
-    main(args.workdir, args.tleed, args.phaseshifts, args.lmax, args.num_el, args.beaminfo,
-         args.beamlist, args.problem, args.ncores, args.num_calcs, tleed_radius=args.radius_tleed,
-         seed=args.seed, start_pts_file=args.start_pts, detect_existing_calcs=args.detect_calcs,
-         random=args.random, save_curves=args.save_curves, delta_indivs=args.delta_indivs,
-         delta_evals=args.delta_evals)
+    main(args.workdir, args.tleed, args.phaseshifts, args.lmax, args.beaminfo, args.beamlist,
+         args.problem, args.ncores, args.num_calcs, tleed_radius=args.radius_tleed, seed=args.seed,
+         start_pts_file=args.start_pts, detect_existing_calcs=args.detect_calcs, random=args.random,
+         save_curves=args.save_curves, delta_indivs=args.delta_indivs, delta_evals=args.delta_evals)

@@ -112,7 +112,10 @@ class SearchSpace:
             bound_key = constraint.bound_key
             bound_idx = constraint.bound_idx
             if (search_key, search_idx) not in self.search_params:
-                raise ValueError("Search parameter in constraint not present")
+                error_msg = "Search parameter in constraint not present: ({}, {}) <- ({}, {})".format(
+                    search_key, search_idx, bound_key, bound_idx
+                )
+                raise ValueError(error_msg)
             elif bound_key in [SearchKey.CELLA, SearchKey.CELLB, SearchKey.CELLC]:
                 if bound_key in [skey for skey, idx in self.search_params]:
                     raise ValueError("Bound parameter is in search parameter list")

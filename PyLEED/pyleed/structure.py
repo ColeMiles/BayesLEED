@@ -223,6 +223,7 @@ class AtomicStructure:
             site_idx, conc_idx = divmod(idx, len(self.sites[0].concs))
             return self.sites[site_idx].concs[conc_idx]
         # While not a real search parameter, it is nice to be able to access this like this
+        # TODO: Split off into a separate function, this isn't a search param.
         elif key == SearchKey.SITENUM:
             lay_idx = np.searchsorted(self._lay_counts, idx, side='right') - 1
             at_idx = idx - self._lay_counts[lay_idx]

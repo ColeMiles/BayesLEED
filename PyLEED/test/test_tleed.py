@@ -16,14 +16,12 @@ def _isclose(a, b, eps=1e-6):
 
 def _make_test_manager():
     # TODO: Make this so that you don't have to call from a specific directory
-    return bayessearch.create_manager(
-        'test/test_files/FeSetest/',
-        '/home/cole/ProgScratch/BayesLEED/TLEED/',
-        problems.FESE_BEAMINFO_TRIMMED,
-        'test/test_files/FeSetest/NBLIST.FeSe-1x1',
-        'test/test_files/FeSetest/FeSeBulk.eight.phase', 8,
-        executable='ref-calc.FeSe'
-    )
+    return bayessearch.create_manager('test/test_files/FeSetest/',
+                                      '/home/cole/ProgScratch/BayesLEED/TLEED/',
+                                      problems.FESE_BEAMINFO_TRIMMED,
+                                      'test/test_files/FeSetest/NBLIST.FeSe-1x1',
+                                      'test/test_files/FeSetest/FeSeBulk.eight.phase', 8,
+                                      executable='ref-calc.FeSe')
 
 TEST_STRUCT = AtomicStructure(
     # Atomic sites
@@ -313,7 +311,7 @@ def test_refcalc():
         shutil.rmtree(newdir)
     shutil.copytree(origdir, newdir)
 
-    manager = bayessearch.create_manager(newdir, executable)
+    manager = bayessearch.create_manager(newdir, executable,,
 
     struct = problems.LANIO3
     solution = problems.LANIO3_SOLUTION.tolist()
