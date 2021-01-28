@@ -761,7 +761,7 @@ STO_2x1_PROBLEM = SearchSpace(
         (SearchKey.VIB, 4, (-0.08, 0.1)),
     ],
     constraints=[
-        EqualityConstraint(SearchKey.CELLB, -1, SearchKey.CELLA, -1),
+        LambdaConstraint(SearchKey.CELLB, -1, SearchKey.CELLA, -1, lambda x: 2 * x),
     ]
 )
 
