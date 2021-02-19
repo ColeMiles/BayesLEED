@@ -61,7 +61,7 @@ STO_1x1 = AtomicStructure(
     # Layer definitions (fractional coordinates)
     [
         Layer([
-            Atom(2, 0.50, 0.50, 0.00),  # Ti, doubled overlayer, cell 1
+            Atom(2, 0.00, 0.00, 0.00),  # Ti, doubled overlayer, cell 1
             Atom(4, 0.50, 0.00, 0.00),  # O, doubled overlayer, cell 1
             Atom(4, 0.00, 0.50, 0.00),  # O, doubled overlayer, cell 1
         ], [0.0, 0.0, 3.905 / 2],
@@ -69,32 +69,32 @@ STO_1x1 = AtomicStructure(
             "TiO2 doubled overlayer",
         ),
         Layer([
-            Atom(2, 0.50, 0.50, 0.00),  # Ti surface 1, cell 1
+            Atom(2, 0.00, 0.00, 0.00),  # Ti surface 1, cell 1
             Atom(4, 0.50, 0.00, 0.00),  # O surface 1, cell 1
             Atom(4, 0.00, 0.50, 0.00),  # O surface 1, cell 1
-        ], [0.0, 0.0, 3.905 / 2],
+        ], [3.905 / 2, 3.905 / 2, 3.905 / 2],
             LayerType.SURF,
             "SrTiO3 surface 1 -- TiO2",
         ),
         Layer([
             Atom(1, 0.00, 0.00, 0.00),  # Sr surface 1, cell 1
             Atom(3, 0.50, 0.50, 0.00),  # O surface 1, cell 1
-        ], [0.0, 0.0, 3.905 / 2],
+        ], [3.905 / 2, 3.905 / 2, 3.905 / 2],
             LayerType.SURF,
             "SrTiO3 surface 1 -- SrO",
         ),
         Layer([
-            Atom(2, 0.50, 0.50, 0.00),  # Ti, bulk, cell 1
+            Atom(2, 0.00, 0.00, 0.00),  # Ti, bulk, cell 1
             Atom(4, 0.50, 0.00, 0.00),  # O, bulk, cell 1
             Atom(4, 0.00, 0.50, 0.00),  # O, bulk, cell 1
-        ], [0.0, 0.0, 3.905 / 2],
+        ], [3.905 / 2, 3.905 / 2, 3.905 / 2],
             LayerType.BULK,
             "SrTiO3 bulk -- TiO2",
         ),
         Layer([
             Atom(1, 0.00, 0.00, 0.00),  # Sr, bulk, cell 1
             Atom(3, 0.50, 0.50, 0.00),  # O, bulk, cell 1
-        ], [0.0, 0.0, 3.905 / 2],
+        ], [3.905 / 2, 3.905 / 2, 3.905 / 2],
             LayerType.BULK,
             "SrTiO3 bulk -- SrO",
         ),

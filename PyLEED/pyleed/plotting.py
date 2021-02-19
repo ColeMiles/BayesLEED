@@ -44,7 +44,7 @@ def plot_iv(ivcurves: Union[IVCurve, IVCurveSet], show=True, **kwargs):
 
 
 # TODO: Make work when some IVCurveSets have more beams than others
-def plot_many_iv(ivcurve_sets: List[IVCurveSet], show=True, kwarg_list=None):
+def plot_many_iv(ivcurve_sets: List[IVCurveSet], show=True, kwarg_list=None, rfactors=None):
     if kwarg_list is None:
         kwarg_list = [
             {"color": _COLOR_CYCLE[i % len(_COLOR_CYCLE)]} for i in range(len(ivcurve_sets))
@@ -85,6 +85,12 @@ def plot_many_iv(ivcurve_sets: List[IVCurveSet], show=True, kwarg_list=None):
             all_curves[0].energies[-1] * 1.02, (all_curves[0].intensities[-1] + shift) * 1.02,
             beam_label
         )
+        if rfactors is not None:
+            rfactor = rfactors[icurve]
+            ax.text(
+                all_curves[0].energies[-1] * 1.02, (all_curves[0].intensities[-1] + shift) * 1.02 + 0.15,
+                "Rf = {:.2f}".format(rfactor)
+            )
         shift = max_intensity
 
     if show:

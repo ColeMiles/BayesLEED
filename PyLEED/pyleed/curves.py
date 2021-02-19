@@ -65,7 +65,7 @@ class IVCurveSet:
 
     def smooth(self, nsmooth=1) -> IVCurveSet:
         smoothed_curves = [curve.smooth(nsmooth) for curve in self.curves]
-        return IVCurveSet(smoothed_curves)
+        return IVCurveSet(smoothed_curves, self.set_label)
 
     def precompute_pendry(self, imagV: float = 5.0, dE: float = 0.5):
         """ Precomputes the pendry Y functions for this set of IV curves.
