@@ -64,7 +64,7 @@ STO_1x1 = AtomicStructure(
             Atom(2, 0.00, 0.00, 0.00),  # Ti, doubled overlayer, cell 1
             Atom(4, 0.50, 0.00, 0.00),  # O, doubled overlayer, cell 1
             Atom(4, 0.00, 0.50, 0.00),  # O, doubled overlayer, cell 1
-        ], [0.0, 0.0, 3.905 / 2],
+        ], [3.905 / 2, 3.905 / 2, 3.905 / 2],
             LayerType.SURF,
             "TiO2 doubled overlayer",
         ),
@@ -125,7 +125,7 @@ STO_2x1 = AtomicStructure(
             Atom(2, 0.75, 0.50, 0.00),  # Ti, doubled overlayer, cell 2
             Atom(4, 0.75, 0.00, 0.00),  # O, doubled overlayer, cell 2
             Atom(4, 0.50, 0.50, 0.00),  # O, doubled overlayer, cell 2
-        ], [0.0, 0.0, 3.905 / 2],
+        ], [3.905 / 2, 3.905 / 2, 3.905 / 2],
             LayerType.SURF,
             "TiO2 doubled overlayer",
         ),
@@ -172,6 +172,72 @@ STO_2x1 = AtomicStructure(
     ],
     # Unit cell parameters
     [7.810, 3.905, 3.905]
+)
+
+
+# Z-displacements given by picoscale structure paper
+FESE_1UC_1x1 = AtomicStructure(
+    # Atomic sites
+    [
+        Site([1.0, 0.0, 0.0, 0.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "Sr bulk"),
+        Site([0.0, 1.0, 0.0, 0.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "Ti bulk"),
+        Site([0.0, 0.0, 1.0, 0.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "apO bulk"),
+        Site([0.0, 0.0, 0.0, 1.0, 0.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "eqO bulk"),
+        Site([0.0, 0.0, 0.0, 0.0, 1.0, 0.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "Fe film"),
+        Site([0.0, 0.0, 0.0, 0.0, 0.0, 1.0], 0.1, ["Sr", "Ti", "apO", "eqO", "Fe", "Se"], "Se film"),
+    ],
+    # Layer definitions (fractional coordinates)
+    [
+        Layer([
+            Atom(5, 0.00, 0.50, 1.43 / 3.9),            # Top Layer Fe, cell 1
+            Atom(5, 0.50, 0.00, 1.43 / 3.9),            # Top Layer Fe, cell 1
+            Atom(6, 0.50, 0.50, 0.00),                  # Top Layer Se, cell 1
+            Atom(6, 0.00, 0.00, (1.43 + 1.35) / 3.9),   # Top Layer Se, cell 1
+        ], [3.905 / 2, 0.0, 2.920],   # This shift makes the Ti in doubled layer line up with Fe
+            LayerType.SURF,
+            "Top FeSe film",
+        ),
+        Layer([
+            Atom(2, 0.00, 0.00, 0.00),  # Ti, doubled overlayer, cell 1
+            Atom(4, 0.50, 0.00, 0.00),  # O, doubled overlayer, cell 1
+            Atom(4, 0.00, 0.50, 0.00),  # O, doubled overlayer, cell 1
+        ], [3.905 / 2, 3.905 / 2, 2.340],
+            LayerType.SURF,
+            "TiO2 doubled overlayer",
+        ),
+        Layer([
+            Atom(2, 0.00, 0.00, 0.00),  # Ti surface 1, cell 1
+            Atom(4, 0.50, 0.00, 0.00),  # O surface 1, cell 1
+            Atom(4, 0.00, 0.50, 0.00),  # O surface 1, cell 1
+        ], [3.905 / 2, 3.905 / 2, 1.91],
+            LayerType.SURF,
+            "SrTiO3 surface 1 -- TiO2",
+        ),
+        Layer([
+            Atom(1, 0.00, 0.00, 0.00),  # Sr surface 1, cell 1
+            Atom(3, 0.50, 0.50, 0.00),  # O surface 1, cell 1
+        ], [3.905 / 2, 3.905 / 2, 1.95],
+            LayerType.SURF,
+            "SrTiO3 surface 1 -- SrO",
+        ),
+        Layer([
+            Atom(2, 0.00, 0.00, 0.00),  # Ti, bulk, cell 1
+            Atom(4, 0.50, 0.00, 0.00),  # O, bulk, cell 1
+            Atom(4, 0.00, 0.50, 0.00),  # O, bulk, cell 1
+        ], [3.905 / 2, 3.905 / 2, 1.95],
+            LayerType.BULK,
+            "SrTiO3 bulk -- TiO2",
+        ),
+        Layer([
+            Atom(1, 0.00, 0.00, 0.00),  # Sr, bulk, cell 1
+            Atom(3, 0.50, 0.50, 0.00),  # O, bulk, cell 1
+        ], [3.905 / 2, 3.905 / 2, 1.95],
+            LayerType.BULK,
+            "SrTiO3 bulk -- SrO",
+        ),
+    ],
+    # Unit cell parameters
+    [3.905, 3.905, 3.900]
 )
 
 # TODO: Should I add one more tunable layer of TiO2?
@@ -617,7 +683,33 @@ FESE_20UC_PROBLEM = SearchSpace(
 #     ]
 # )
 
-FESE_1UC_PROBLEM = SearchSpace(
+
+FESE_1UC_1x1_PROBLEM = SearchSpace(
+    FESE_1UC_1x1,
+    [
+        (SearchKey.CELLA, -1, (-0.01, 0.01)),
+        (SearchKey.ATOMZ,  1, (-0.05, 0.05)),
+        (SearchKey.ATOMZ,  2, (-0.05, 0.05)),
+        (SearchKey.ATOMZ,  3, (-0.05, 0.05)),
+        (SearchKey.ATOMZ,  4, (-0.05, 0.05)),
+        (SearchKey.ATOMZ,  5, (-0.05, 0.05)),
+        (SearchKey.ATOMZ,  6, (-0.05, 0.05)),
+        (SearchKey.ATOMZ,  7, (-0.05, 0.05)),
+        (SearchKey.ATOMZ,  8, (-0.05, 0.05)),
+        (SearchKey.ATOMZ,  9, (-0.05, 0.05)),
+        (SearchKey.ATOMZ, 10, (-0.05, 0.05)),
+        (SearchKey.ATOMZ, 11, (-0.05, 0.05)),
+        (SearchKey.ATOMZ, 12, (-0.05, 0.05)),
+        (SearchKey.INTZ, 1, (0.0, 0.1)),
+        (SearchKey.INTZ, 2, (0.0, 0.1)),
+        (SearchKey.INTZ, 3, (0.0, 0.1)),
+    ],
+    constraints=[   # Bind cell's a axis to be twice the b axis
+        EqualityConstraint(SearchKey.CELLA, -1, SearchKey.CELLB, -1),
+    ]
+)
+
+FESE_1UC_2x1_PROBLEM = SearchSpace(
     FESE_1UC_2x1,
     [
         (SearchKey.CELLB, -1, (-0.01, 0.01)),
@@ -803,8 +895,7 @@ problems = {
     # "FESE_20UC_DELTA": FESE_20UC_DELTA_PROBLEM,
     # "FESE_20UC_SECOND_SINGLEXY": FESE_20UC_SECOND_SINGLEXY_PROBLEM,
     # "TEST_FESE_2D": TEST_FESE_20UC_2D_PROBLEM,
-    "FESE_1UC": FESE_1UC_PROBLEM,
-    "TEST_FESE_1UC": TEST_DOUB_FESE_1UC_PROBLEM,
+    "FESE_1UC_1x1": FESE_1UC_1x1_PROBLEM,
     "STO_1x1": STO_1x1_PROBLEM,
     "STO_2x1": STO_2x1_PROBLEM,
 }
